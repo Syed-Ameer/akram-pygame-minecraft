@@ -21668,10 +21668,20 @@ def spawn_night_mobs():
             if random.random() < 0.1:
                 MOBS.add(ZombieCamel(spawn_x, spawn_y))
                 mobs_spawned += 1
+            # Rare Phoenix spawn in desert (flying high in the sky)
+            if random.random() < 0.05:  # 5% chance
+                MOBS.add(Phoenix(spawn_x, spawn_y - BLOCK_SIZE * 10))  # Spawn 10 blocks higher
+                mobs_spawned += 1
+                print(f"🔥 Phoenix spawned in desert at col {col}!")
         elif biome_type == SNOW_BIOME:
             if random.random() < 0.5:
                 MOBS.add(Skeleton(spawn_x, spawn_y, is_stray=True))
                 mobs_spawned += 1
+            # Rare Soul Phoenix spawn in snow biome (flying high in the sky)
+            if random.random() < 0.03:  # 3% chance - rarer than regular Phoenix
+                MOBS.add(BluePhoenix(spawn_x, spawn_y - BLOCK_SIZE * 10))  # Spawn 10 blocks higher
+                mobs_spawned += 1
+                print(f"❄️ Soul Phoenix spawned in snow biome at col {col}!")
         elif biome_type == SWAMP_BIOME:
             if random.random() < 0.8:
                 MOBS.add(Zombie(spawn_x, spawn_y))
