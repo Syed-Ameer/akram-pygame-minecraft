@@ -3045,9 +3045,11 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     
     # Spawn Pillagers around the outpost (3-5 pillagers)
     num_pillagers = random.randint(3, 5)
+    # Spawn on top floor (not at ground level)
+    spawn_floor_row = ground_row - outpost_height  # Top floor of the tower
     for i in range(num_pillagers):
         spawn_x = (col_start + random.randint(1, outpost_width - 2)) * BLOCK_SIZE
-        spawn_y = (ground_row - 1) * BLOCK_SIZE
+        spawn_y = (spawn_floor_row - 1) * BLOCK_SIZE  # Just above the floor
         pillager = Pillager(spawn_x, spawn_y)
         
         # Make one a patrol captain (25% chance)
@@ -3418,7 +3420,17 @@ def generate_witch_hut(world, height_map, col_start):
     chest_col = col_start + hut_width - 2
     place_chest_with_loot(world, chest_row, chest_col, 'witch_hut')
     
-    # 5. Spawn witch inside the hut (return it to be added later)\n    witch_x = (col_start + hut_width // 2) * BLOCK_SIZE\n    witch_y = (HUT_FLOOR_Y + 1) * BLOCK_SIZE\n    witch = Witch(witch_x, witch_y)\n    \n    # Store witch for later addition\n    if not hasattr(generate_witch_hut, 'spawned_mobs'):\n        generate_witch_hut.spawned_mobs = []\n    generate_witch_hut.spawned_mobs.append(witch)\n\n    return hut_width + 5  # Return only the number of blocks used 
+    # 5. Spawn witch inside the hut (return it to be added later)
+    witch_x = (col_start + hut_width // 2) * BLOCK_SIZE
+    witch_y = (HUT_FLOOR_Y + 1) * BLOCK_SIZE
+    witch = Witch(witch_x, witch_y)
+    
+    # Store witch for later addition
+    if not hasattr(generate_witch_hut, 'spawned_mobs'):
+        generate_witch_hut.spawned_mobs = []
+    generate_witch_hut.spawned_mobs.append(witch)
+
+    return hut_width + 5  # Return only the number of blocks used 
 
 
 def generate_shipwreck(world, height_map, col_start):

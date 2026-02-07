@@ -2867,9 +2867,11 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     
     # Spawn Pillagers around the outpost (3-5 pillagers)
     num_pillagers = random.randint(3, 5)
+    # Spawn on top floor (not at ground level)
+    spawn_floor_row = ground_row - outpost_height  # Top floor of the tower
     for i in range(num_pillagers):
         spawn_x = (col_start + random.randint(1, outpost_width - 2)) * BLOCK_SIZE
-        spawn_y = (ground_row - 1) * BLOCK_SIZE
+        spawn_y = (spawn_floor_row - 1) * BLOCK_SIZE  # Just above the floor
         pillager = Pillager(spawn_x, spawn_y)
         
         # Make one a patrol captain (25% chance)
