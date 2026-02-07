@@ -1,15 +1,12 @@
-import pygame
-import random
-import math
-import pickle
-import os
-import sys
-import subprocess
-import json
-import time
-from pathlib import Path
+def add_tall_grass(world, height_map, start_col, end_col):
+    """Randomly adds tall grass to grass blocks in the world."""
+    for col in range(start_col, end_col):
+        if random.random() < 0.10:
+            ground_row = height_map[col]
+            if ground_row < GRID_HEIGHT and world[ground_row][col] == GRASS_ID:
+                if world[ground_row - 1][col] == AIR_ID:
+                    world[ground_row - 1][col] = TALL_GRASS_ID
 
-# --- Decorative Flora Function (FLOWERS) ---
 def add_flowers(world, height_map, start_col, end_col):
     """Randomly adds flowers to grass blocks in the world with variety."""
     for col in range(start_col, end_col):
@@ -24,7 +21,7 @@ def add_flowers(world, height_map, start_col, end_col):
                     flower_id = random.choice(flower_types)
                     world[ground_row - 1][col] = flower_id
 
-# --- Decorative Flora Block IDs (FLOWERS) ---
+# --- Decorative Flora Block IDs ---
 TALL_GRASS_ID = 559
 # Flower IDs (multiple types)
 DANDELION_ID = 550
@@ -36,6 +33,16 @@ RED_TULIP_ID = 555
 ORANGE_TULIP_ID = 556
 WHITE_TULIP_ID = 557
 PINK_TULIP_ID = 558
+import pygame
+import random
+import math
+import pickle
+import os
+import sys
+import subprocess
+import json
+import time
+from pathlib import Path
 
 # Admin system
 ADMIN_USERS = []  # List of admin usernames
@@ -60,22 +67,20 @@ def is_admin(username):
 # Load admins at startup
 ADMIN_USERS = load_admin_users()
 
-
-# 3D End Portal System - Import from separate file
-try:
-    from ursina_portal import URSINA_AVAILABLE, EndPortal3D
-except ImportError:
-    URSINA_AVAILABLE = False
-    print("⚠️ Ursina aportal module not found - End Portal will use 2D mode")
-    # Create dummy class
-    class EndPortal3D:
-        def __init__(self, *args, **kwargs): pass
-        def launch_3d_portal(self): return False
-        def get_updated_inventory(self): return [], []
-
 # Add sound system
 # sys.path.append('..')  # Go up one level to access sound_manager
 # from sound_manager import initialize_sounds
+
+# Create dummy sound manager for now
+class DummySoundManager:
+    def play_sound(self, sound_name):
+        pass
+    
+    def play_music(self, music_file):
+        pass
+    
+    def stop_music(self):
+        pass
 
 # Enhanced sound system with more sounds
 class EnhancedSoundManager:
@@ -87,7 +92,7 @@ class EnhancedSoundManager:
         self.load_sounds()
     
     def load_sounds(self):
-        """Load all game sounds with fallback support"""
+        """Load all game sounds"""
         sound_files = {
             'break_stone': 'Sounds/break_stone.wav',
             'break_wood': 'Sounds/break_wood.wav', 
@@ -105,82 +110,34 @@ class EnhancedSoundManager:
             'arrow_hit': 'Sounds/arrow_hit.wav',
             'explosion': 'Sounds/explosion.wav',
             'door_open': 'Sounds/door_open.wav',
-            'button_click': 'Sounds/button_click.wav',
-            # New parody/fun sounds
-            'boat_splash': 'Sounds/splash.wav',  # Same as splash
-            'funny_hurt': 'Sounds/player_hurt.wav',  # Fallback
-            'achievement': 'Sounds/button_click.wav',  # Fallback
-            'level_up': 'Sounds/button_click.wav',  # Fallback
+            'button_click': 'Sounds/button_click.wav'
         }
         
-        loaded_count = 0
         for sound_name, file_path in sound_files.items():
             try:
                 sound = pygame.mixer.Sound(file_path)
                 sound.set_volume(self.sound_volume)
                 self.sounds[sound_name] = sound
-                loaded_count += 1
-            except Exception as e:
-                # Silent fail - game continues without sound
-                pass
-        
-        print(f"🎵 Loaded {loaded_count}/{len(sound_files)} sounds")
+            except:
+                print(f"⚠️ Could not load sound: {file_path}")
     
     def play_sound(self, sound_name, volume=None):
-        """Play sound with optional volume override"""
         if sound_name in self.sounds:
-            try:
-                sound = self.sounds[sound_name]
-                if volume is not None:
-                    sound.set_volume(volume * self.sound_volume)
-                else:
-                    sound.set_volume(self.sound_volume)
-                sound.play()
-            except:
-                pass  # Silent fail
-    
-    def play_random_sound(self, sound_list, volume=None):
-        """Play a random sound from a list (for variety/parody)"""
-        if sound_list:
-            sound_name = random.choice(sound_list)
-            self.play_sound(sound_name, volume)
+            sound = self.sounds[sound_name]
+            if volume:
+                sound.set_volume(volume)
+            sound.play()
     
     def play_music(self, music_file, loop=-1):
-        """Play background music with error handling"""
         try:
             pygame.mixer.music.load(music_file)
             pygame.mixer.music.set_volume(self.music_volume)
             pygame.mixer.music.play(loop)
-        except Exception as e:
+        except:
             print(f"⚠️ Could not load music: {music_file}")
     
     def stop_music(self):
-        """Stop current music"""
-        try:
-            pygame.mixer.music.stop()
-        except:
-            pass
-    
-    def set_volume(self, sound_vol=None, music_vol=None):
-        """Update volume settings"""
-        if sound_vol is not None:
-            self.sound_volume = max(0.0, min(1.0, sound_vol))
-            for sound in self.sounds.values():
-                sound.set_volume(self.sound_volume)
-        if music_vol is not None:
-            self.music_volume = max(0.0, min(1.0, music_vol))
-            pygame.mixer.music.set_volume(self.music_volume)
-
-# Create dummy sound manager for now
-class DummySoundManager:
-    def play_sound(self, sound_name):
-        pass
-    
-    def play_music(self, music_file):
-        pass
-    
-    def stop_music(self):
-        pass
+        pygame.mixer.music.stop()
 
 # Try to use enhanced sound manager, fallback to dummy
 try:
@@ -205,7 +162,6 @@ if sys.platform == 'win32':
 try:
     from pycraft_network import MultiplayerClient, draw_other_players, draw_multiplayer_chat
 except ImportError:
-    # Fallback if running from different directory
     import importlib.util
     _net_spec = importlib.util.spec_from_file_location("pycraft_network", os.path.join(os.path.dirname(__file__), "pycraft_network.py"))
     _net_mod = importlib.util.module_from_spec(_net_spec)
@@ -213,6 +169,8 @@ except ImportError:
     MultiplayerClient = _net_mod.MultiplayerClient
     draw_other_players = _net_mod.draw_other_players
     draw_multiplayer_chat = _net_mod.draw_multiplayer_chat
+
+# MultiplayerClient is now imported from pycraft_network.py
 
 # --- Menu System Constants ---
 MENU_STATE_MAIN = "main_menu"
@@ -231,90 +189,37 @@ USE_EXPERIMENTAL_TEXTURES = True  # Toggle for block textures (now default, disa
 # --- Game Modes ---
 GAME_MODE_SURVIVAL = "survival"
 GAME_MODE_CREATIVE = "creative"
+CURRENT_GAME_MODE = GAME_MODE_SURVIVAL  # Default to survival
+ORIGINAL_GAME_MODE = GAME_MODE_SURVIVAL  # Tracks the game mode the world was created with
 
-# --- Achievements System with Textures ---
-ADVANCEMENT_TEXTURES = {}
-# Load advancement textures (create empty surface if texture not found)
-def load_advancement_texture(name):
-    try:
-        texture_path = f"../Textures/Advancements/{name}.png"
-        texture = pygame.image.load(texture_path)
-        return pygame.transform.scale(texture, (64, 64))
-    except:
-        # Create a colored square as fallback
-        surface = pygame.Surface((64, 64))
-        color_map = {
-            "getting_wood": (139, 69, 19),  # Brown for wood
-            "benchmarking": (160, 82, 45),  # Crafting table brown
-            "time_to_mine": (205, 133, 63),  # Wood tool color
-            "getting_upgrade": (128, 128, 128),  # Stone gray
-            "acquire_hardware": (255, 165, 0),  # Iron orange
-            "isnt_it_iron_pick": (192, 192, 192),  # Iron silver
-            "we_need_to_go_deeper": (128, 0, 128),  # Purple for portal
-            "diamonds": (185, 242, 255),  # Diamond cyan
-            "enchanter": (138, 43, 226),  # Enchantment purple
-            "monster_hunter": (220, 20, 60),  # Crimson red
-            "cow_tipper": (139, 69, 19),  # Leather brown
-            "skys_the_limit": (135, 206, 235),  # Sky blue for elytra
-            "adventuring_time": (34, 139, 34),  # Forest green
-            "the_end": (25, 25, 112),  # Dark blue for End
-            "zombie_doctor": (144, 238, 144),  # Light green
-            "overpowered": (255, 215, 0),  # Gold
-            "free_the_end": (138, 43, 226),  # Dragon purple
-            "local_brewery": (160, 82, 45),  # Brewing brown
-            "bring_home_the_beacon": (255, 255, 224),  # Light yellow
-            "beaconator": (255, 215, 0),  # Gold beacon
-            "how_did_we_get_here": (255, 20, 147),  # Deep pink
-            "what_a_deal": (0, 255, 127),  # Spring green for villager trade
-            "the_parrots_and_the_bats": (255, 182, 193),  # Light pink for breeding
-        }
-        surface.fill(color_map.get(name, (100, 100, 100)))  # Default gray
-        pygame.draw.rect(surface, (255, 255, 255), surface.get_rect(), 3)  # White border
-        return surface
-
-# Initialize advancement textures
-for achievement_key in ["getting_wood", "benchmarking", "time_to_mine", "getting_upgrade", "acquire_hardware", "isnt_it_iron_pick", "we_need_to_go_deeper", "diamonds", "enchanter", "monster_hunter", "cow_tipper", "skys_the_limit", "adventuring_time", "the_end", "zombie_doctor", "overpowered", "free_the_end", "local_brewery", "bring_home_the_beacon", "beaconator", "how_did_we_get_here", "what_a_deal", "the_parrots_and_the_bats"]:
-    ADVANCEMENT_TEXTURES[achievement_key] = load_advancement_texture(achievement_key)
-
+# --- Achievements System ---
 ACHIEVEMENTS = {
-    "getting_wood": {"name": "Getting Wood", "desc": "Mine a wood block", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["getting_wood"]},
-    "benchmarking": {"name": "Benchmarking", "desc": "Craft a crafting table", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["benchmarking"]},
-    "time_to_mine": {"name": "Time to Mine!", "desc": "Craft a wooden pickaxe", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["time_to_mine"]},
-    "getting_upgrade": {"name": "Getting an Upgrade", "desc": "Craft a stone pickaxe", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["getting_upgrade"]},
-    "acquire_hardware": {"name": "Acquire Hardware", "desc": "Smelt iron ore", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["acquire_hardware"]},
-    "isnt_it_iron_pick": {"name": "Isn't It Iron Pick", "desc": "Craft an iron pickaxe", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["isnt_it_iron_pick"]},
-    "we_need_to_go_deeper": {"name": "We Need to Go Deeper", "desc": "Build a nether portal", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["we_need_to_go_deeper"]},
-    "diamonds": {"name": "DIAMONDS!", "desc": "Mine diamond ore", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["diamonds"]},
-    "enchanter": {"name": "Enchanter", "desc": "Construct an enchanting table", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["enchanter"]},
-    "monster_hunter": {"name": "Monster Hunter", "desc": "Kill 10 hostile mobs", "unlocked": False, "progress": 0, "target": 10, "texture": ADVANCEMENT_TEXTURES["monster_hunter"]},
-    "cow_tipper": {"name": "Cow Tipper", "desc": "Harvest leather from a cow", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["cow_tipper"]},
-    "skys_the_limit": {"name": "Sky's the Limit", "desc": "Find elytra with enchantment", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["skys_the_limit"]},
-    "adventuring_time": {"name": "Adventuring Time", "desc": "Discover all biomes", "unlocked": False, "biomes": set(), "target": 7, "texture": ADVANCEMENT_TEXTURES["adventuring_time"]},
-    "the_end": {"name": "The End?", "desc": "Enter the End dimension", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["the_end"]},
-    "zombie_doctor": {"name": "Zombie Doctor", "desc": "Cure a zombie villager", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["zombie_doctor"]},
-    "overpowered": {"name": "Overpowered", "desc": "Eat an enchanted golden apple", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["overpowered"]},
-    # New Epic Achievements
-    "free_the_end": {"name": "Free the End", "desc": "Kill the Ender Dragon", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["free_the_end"]},
-    "local_brewery": {"name": "Local Brewery", "desc": "Brew a potion", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["local_brewery"]},
-    "bring_home_the_beacon": {"name": "Bring Home the Beacon", "desc": "Construct a beacon", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["bring_home_the_beacon"]},
-    "beaconator": {"name": "Beaconator", "desc": "Bring a beacon to full power", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["beaconator"]},
-    "how_did_we_get_here": {"name": "How Did We Get Here?", "desc": "Have every effect applied at once", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["how_did_we_get_here"]},
-    "what_a_deal": {"name": "What a Deal!", "desc": "Successfully trade with a villager", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["what_a_deal"]},
-    "the_parrots_and_the_bats": {"name": "The Parrots and the Bats", "desc": "Breed two animals together", "unlocked": False, "texture": ADVANCEMENT_TEXTURES["the_parrots_and_the_bats"]},
+    "getting_wood": {"name": "Getting Wood", "desc": "Mine a wood block", "unlocked": False},
+    "benchmarking": {"name": "Benchmarking", "desc": "Craft a crafting table", "unlocked": False},
+    "time_to_mine": {"name": "Time to Mine!", "desc": "Craft a wooden pickaxe", "unlocked": False},
+    "getting_upgrade": {"name": "Getting an Upgrade", "desc": "Craft a stone pickaxe", "unlocked": False},
+    "acquire_hardware": {"name": "Acquire Hardware", "desc": "Smelt iron ore", "unlocked": False},
+    "isnt_it_iron_pick": {"name": "Isn't It Iron Pick", "desc": "Craft an iron pickaxe", "unlocked": False},
+    "we_need_to_go_deeper": {"name": "We Need to Go Deeper", "desc": "Build a nether portal", "unlocked": False},
+    "diamonds": {"name": "DIAMONDS!", "desc": "Mine diamond ore", "unlocked": False},
+    "diamonds_to_you": {"name": "Diamonds to you!", "desc": "Throw diamonds at another player", "unlocked": False},
+    "enchanter": {"name": "Enchanter", "desc": "Construct an enchanting table", "unlocked": False},
+    "monster_hunter": {"name": "Monster Hunter", "desc": "Kill 10 hostile mobs", "unlocked": False, "progress": 0, "target": 10},
+    "cow_tipper": {"name": "Cow Tipper", "desc": "Harvest leather from a cow", "unlocked": False},
+    "when_pigs_fly": {"name": "When Pigs Fly", "desc": "Fly with elytra", "unlocked": False},
+    "adventuring_time": {"name": "Adventuring Time", "desc": "Discover all biomes", "unlocked": False, "biomes": set(), "target": 7},
+    "the_end": {"name": "The End?", "desc": "Enter the End dimension", "unlocked": False},
+    "zombie_doctor": {"name": "Zombie Doctor", "desc": "Cure a zombie villager", "unlocked": False},
+    "overpowered": {"name": "Overpowered", "desc": "Eat an enchanted golden apple", "unlocked": False},
 }
 
 MAX_WORLDS = 3
 WORLDS_FOLDER = Path("saves")
 WORLDS_FOLDER.mkdir(exist_ok=True)
 
-# Global menu state
-CURRENT_MENU_STATE = MENU_STATE_MAIN
-CURRENT_WORLD_NAME = None
-CURRENT_GAME_MODE = GAME_MODE_SURVIVAL
-ORIGINAL_GAME_MODE = GAME_MODE_SURVIVAL  # Tracks the game mode the world was created with
-
-# Music state tracking
-current_music_state = "menu"  # "menu", "gameplay", "nether", "end"
+# Global frame counters for mob spawning optimization
+spawn_frame_counter = 0
+mob_ai_frame_counter = 0
 
 # Achievement Display System
 ACHIEVEMENT_POPUP = None  # {"achievement_id": str, "time": float} or None
@@ -330,8 +235,70 @@ SCREEN_HEIGHT = 600
 BLOCK_SIZE = 40
 FPS = 40  # Optimized for smooth gameplay
 
+# --- AKRAM DLC Features Flag ---
+AKRAM_DLC_ENABLED = True  # Set to True for enhanced animations and advanced mob features
+
+# --- UPDATE NEWS & CHANGELOG ---
+GAME_VERSION = "Alpha 4.6 - End Edition"
+LAST_UPDATE = "January 26, 2026"
+
+UPDATE_NEWS = [
+    "=== AKRAM DLC UPDATE v4.6 - January 2026 ===",
+    "",
+    "🎮 NEW FEATURES:",
+    "  • Universal mob animation system with blinking",
+    "  • Eye tracking - mobs look at players/items/mobs",
+    "  • Enhanced idle bobbing and breathing animations",
+    "  • Fixed jungle leaves & acacia leaves textures",
+    "  • Performance optimization system",
+    "  💬 Chat system - Press 'T' to open chat",
+    "  📰 Update news system - Press 'N' to view",
+    "  🥚 Spawn eggs work in End dimension",
+    "",
+    "⚡ PERFORMANCE IMPROVEMENTS:",
+    "  • Distance-based mob updates (3-tier system)",
+    "  • Reduced mob spawn limits (150 mobs)",
+    "  • Optimized particle system (50% reduction)",
+    "  • Frame skip for distant mobs",
+    "  • 100 FPS balanced gameplay",
+    "",
+    "🐉 END DIMENSION:",
+    "  • Ender Dragon boss fight",
+    "  • Enderman with teleportation",
+    "  • End Stone & Obsidian pillars",
+    "  • End Portal system",
+    "  • Spawn eggs functional",
+    "",
+    "🔧 BUG FIXES:",
+    "  • Fixed BLOCK_COLORS undefined error",
+    "  • Fixed texture ID conflicts",
+    "  • Fixed End Stone texture (was lapis)",
+    "  • Fixed sound system errors",
+    "  • Optimized eye tracking range",
+    "",
+    "CONTROLS:",
+    "  • Press 'T' to open chat",
+    "  • Press 'N' to view update news",
+    "  • Press ESC to close menus",
+    ""
+]
+
+SHOW_UPDATE_NEWS = False  # Toggle with 'N' key
+
 # Set totem animation duration now that FPS is defined
-TOTEM_ANIMATION_DURATION = FPS * 2  # 2 seconds (80 frames at 40 FPS)
+TOTEM_ANIMATION_DURATION = FPS * 2  # 2 seconds
+
+# Global mob and structure spawning limits
+SPAWNED_STRUCTURES = {
+    'village': [],
+    'desert_temple': [],
+    'witch_hut': [],
+    'pillager_outpost': [],
+    'stronghold': [],
+    'ruins': [],
+    'mineshaft': [],
+    'dungeon': []
+}
 
 # Portal animation system
 PORTAL_PARTICLES = []  # List of portal particles
@@ -383,12 +350,9 @@ CHUNK_SIZE = 256  # Blocks per chunk width
 WORLD_HEIGHT_BLOCKS = 150
 
 # --- World Map Dimensions (Larger for scrolling) ---
-WORLD_WIDTH_BLOCKS = CHUNK_SIZE * 50  # Expanded to 50 chunks (12,800 blocks wide) - MASSIVE EXPANSION!
+WORLD_WIDTH_BLOCKS = CHUNK_SIZE * 20  # Expanded to 20 chunks (5120 blocks wide)
 GRID_WIDTH = WORLD_WIDTH_BLOCKS
 GRID_HEIGHT = WORLD_HEIGHT_BLOCKS
-
-# --- Perspective System ---
-PERSPECTIVE_MODE = 1  # 0 = First-person (player hidden), 1 = Third-person back (default), 2 = Third-person front (selfie mode)
 
 # --- Mob Spawning & Respawning System ---
 SPAWNED_MOBS_REGISTRY = {}  # Track which mobs have spawned: {mob_type: count}
@@ -399,7 +363,7 @@ RESPAWN_INTERVAL = FPS * 60  # Respawn every 60 seconds (2400 frames at 40 FPS)
 # Chunk tracking
 LOADED_CHUNKS = {}  # Dictionary: chunk_x -> chunk_data
 LOADED_CHUNK_COORDS = set()  # Set of chunk coordinates that have had structures spawned
-CURRENT_CHUNK_RANGE = [-5, 5]  # Initially load chunks -5 to 5 (11 chunks) - MORE INITIAL LOADING
+CURRENT_CHUNK_RANGE = [-2, 2]  # Initially load chunks -2 to 2 (5 chunks)
 
 # --- Block ID Constants ---
 AIR_ID = 0
@@ -431,6 +395,11 @@ LADDER_ID = 41
 COBBLESTONE_ID = 42
 VINES_ID = 135
 
+# End dimension blocks (unified IDs)
+END_STONE_ID = 228  # End Stone
+END_PORTAL_ID = 229  # End Portal
+DRAGON_EGG_ID = 230  # Dragon Egg
+
 LAVA_ID = 199
 FIRE_ID = 220
 OBSIDIAN_ID = 221  # Portal block
@@ -439,6 +408,11 @@ BLAZE_ROD_ID = 223
 BLAZE_POWDER_ID = 224
 EYE_OF_ENDER_ID = 225
 SHIELD_ID = 227  # Shield for blocking
+
+# End Dimension Blocks
+END_STONE_ID = 228  # End Stone
+END_PORTAL_ID = 229  # End Portal
+DRAGON_EGG_ID = 230  # Dragon Egg
 
 # Spawn Egg IDs (300-342)
 ZOMBIE_EGG_ID = 300
@@ -513,11 +487,11 @@ OCEAN_BIOME = 11  # Large ocean biome (500-1000 blocks)
 MOUNTAIN_BIOME = 12  # Mountain biome with snow and stone
 
 # --- Day/Night Cycle Constants ---
-# Total cycle: 12 minutes at 40 FPS = 720 seconds = 28,800 frames
-DAY_LENGTH = FPS * 60 * 5      # 5 minutes = 12,000 frames at 40 FPS
-EVENING_LENGTH = FPS * 60 * 1    # 1 minute = 2,400 frames at 40 FPS
-NIGHT_LENGTH = FPS * 60 * 5     # 5 minutes = 12,000 frames at 40 FPS
-DAWN_LENGTH = FPS * 60 * 1       # 1 minute = 2,400 frames at 40 FPS
+# Total cycle: 12 minutes = 720 seconds = 43,200 frames at 60 FPS
+DAY_LENGTH = FPS * 60 * 5      # 5 minutes = 18,000 frames
+EVENING_LENGTH = FPS * 60 * 1    # 1 minute = 3,600 frames
+NIGHT_LENGTH = FPS * 60 * 5     # 5 minutes = 18,000 frames
+DAWN_LENGTH = FPS * 60 * 1       # 1 minute = 3,600 frames
 TOTAL_CYCLE_LENGTH = DAY_LENGTH + EVENING_LENGTH + NIGHT_LENGTH + DAWN_LENGTH
 
 # Time phases
@@ -737,13 +711,13 @@ BLOCK_TYPES = {
     109: {"name": "Stone Pickaxe", "color": (128, 128, 128), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 0, "attack_cooldown": 10},
     110: {"name": "Stone Sword", "color": (120, 120, 120), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 5, "attack_cooldown": 10},
     111: {"name": "Stone Shovel", "color": (115, 115, 115), "mineable": False, "solid": False, "tool_level": 2, "durability": 132},
-    112: {"name": "Stone Spear", "color": (110, 110, 110), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
-    113: {"name": "Stone Axe", "color": (125, 125, 125), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 8, "attack_cooldown": 48},
-    114: {"name": "Iron Pickaxe", "color": (200, 200, 200), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 0, "attack_cooldown": 4},
-    115: {"name": "Iron Sword", "color": (210, 210, 210), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 8, "attack_cooldown": 4},
+    112: {"name": "Stone Spear", "color": (110, 110, 110), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
+    113: {"name": "Stone Axe", "color": (125, 125, 125), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 8, "attack_cooldown": 120},
+    114: {"name": "Iron Pickaxe", "color": (200, 200, 200), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 0, "attack_cooldown": 10},
+    115: {"name": "Iron Sword", "color": (210, 210, 210), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 8, "attack_cooldown": 10},
     116: {"name": "Iron Shovel", "color": (205, 205, 205), "mineable": False, "solid": False, "tool_level": 3, "durability": 250},
-    117: {"name": "Iron Spear", "color": (195, 195, 195), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
-    118: {"name": "Iron Axe", "color": (215, 215, 215), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 11, "attack_cooldown": 48},
+    117: {"name": "Iron Spear", "color": (195, 195, 195), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
+    118: {"name": "Iron Axe", "color": (215, 215, 215), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 11, "attack_cooldown": 120},
     119: {"name": "Iron Helmet", "color": (220, 220, 220), "mineable": False, "solid": False, "armor_type": "helmet", "armor_points": 2},
     120: {"name": "Iron Chestplate", "color": (215, 215, 215), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 6},
     121: {"name": "Iron Leggings", "color": (210, 210, 210), "mineable": False, "solid": False, "armor_type": "leggings", "armor_points": 5},
@@ -1076,7 +1050,8 @@ BLOCK_TYPES = {
     536: {"name": "Netherite Chestplate", "color": (65, 42, 52), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 10, "texture": "Textures/netherite_chestplate.png"},
     537: {"name": "Netherite Leggings", "color": (70, 45, 55), "mineable": False, "solid": False, "armor_type": "leggings", "armor_points": 8, "texture": "Textures/netherite_leggings.png"},
     538: {"name": "Netherite Boots", "color": (60, 40, 50), "mineable": False, "solid": False, "armor_type": "boots", "armor_points": 4, "texture": "Textures/netherite_boots.png"},
-    539: {"name": "Cake", "color": (255, 250, 240), "mineable": True, "min_tool_level": 0, "solid": True},
+    539: {"name": "Netherite Hammer", "color": (90, 60, 70), "mineable": False, "solid": False, "tool_level": 7, "durability": 2500, "damage_bonus": 35, "attack_cooldown": 20, "fall_damage_multiplier": 3.0, "smash_attack": True, "texture": "Textures/netherite_hammer.png"},
+    540: {"name": "Cake", "color": (255, 250, 240), "mineable": True, "min_tool_level": 0, "solid": True},
     540: {"name": "Cookie", "color": (180, 130, 70), "mineable": False, "solid": False},
     541: {"name": "Blue Concrete Powder", "color": (70, 90, 160), "mineable": True, "min_tool_level": 0, "solid": True},
     542: {"name": "Black Concrete Powder", "color": (20, 20, 25), "mineable": True, "min_tool_level": 0, "solid": True},
@@ -1088,23 +1063,22 @@ BLOCK_TYPES = {
     548: {"name": "Cobweb", "color": (240, 240, 240), "mineable": True, "min_tool_level": 0, "solid": False},
     549: {"name": "Rail", "color": (100, 80, 60), "mineable": True, "min_tool_level": 0, "solid": False},
     
-    # --- Decorative Flora Blocks (FLOWERS) ---
-    550: {"name": "Dandelion", "color": (255, 220, 0), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    551: {"name": "Poppy", "color": (255, 50, 50), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    552: {"name": "Blue Orchid", "color": (50, 150, 255), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    553: {"name": "Allium", "color": (180, 100, 200), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    554: {"name": "Azure Bluet", "color": (240, 250, 255), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    555: {"name": "Red Tulip", "color": (220, 40, 40), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    556: {"name": "Orange Tulip", "color": (255, 140, 0), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    557: {"name": "White Tulip", "color": (255, 255, 255), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    558: {"name": "Pink Tulip", "color": (255, 150, 200), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    559: {"name": "Tall Grass", "color": (100, 200, 100), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-
-    # --- Decorative Flora Blocks (OLD - keeping for compatibility) ---
-    60: {"name": "Tall Grass", "color": (100, 200, 100), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    61: {"name": "Flower", "color": (255, 180, 200), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    62: {"name": "Poppy", "color": (255, 0, 60), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
-    63: {"name": "Daisy", "color": (255, 255, 180), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
+    # --- Decorative Flora (Flowers and Tall Grass) ---
+    550: {"name": "Dandelion", "color": (255, 255, 100), "mineable": True, "min_tool_level": 0, "solid": False},
+    551: {"name": "Poppy", "color": (255, 50, 50), "mineable": True, "min_tool_level": 0, "solid": False},
+    552: {"name": "Blue Orchid", "color": (100, 150, 255), "mineable": True, "min_tool_level": 0, "solid": False},
+    553: {"name": "Allium", "color": (200, 100, 255), "mineable": True, "min_tool_level": 0, "solid": False},
+    554: {"name": "Azure Bluet", "color": (240, 255, 255), "mineable": True, "min_tool_level": 0, "solid": False},
+    555: {"name": "Red Tulip", "color": (255, 80, 80), "mineable": True, "min_tool_level": 0, "solid": False},
+    556: {"name": "Orange Tulip", "color": (255, 165, 0), "mineable": True, "min_tool_level": 0, "solid": False},
+    557: {"name": "White Tulip", "color": (255, 255, 255), "mineable": True, "min_tool_level": 0, "solid": False},
+    558: {"name": "Pink Tulip", "color": (255, 180, 200), "mineable": True, "min_tool_level": 0, "solid": False},
+    559: {"name": "Tall Grass", "color": (120, 180, 100), "mineable": True, "min_tool_level": 0, "solid": False},
+    
+    # --- End Dimension Blocks ---
+    228: {"name": "End Stone", "color": (255, 255, 200), "mineable": True, "min_tool_level": 1, "solid": True},
+    229: {"name": "End Portal", "color": (20, 5, 30), "mineable": False, "solid": False, "emits_light": True},
+    230: {"name": "Dragon Egg", "color": (50, 20, 80), "mineable": True, "min_tool_level": 0, "solid": True, "emits_light": True},
 }
 
 
@@ -1375,6 +1349,7 @@ CRAFTING_TABLE_RECIPES = {
     frozenset([(216, 1), (480, 1)]): (536, 1),  # Diamond Chestplate + Netherite Ingot -> Netherite Chestplate
     frozenset([(217, 1), (480, 1)]): (537, 1),  # Diamond Leggings + Netherite Ingot -> Netherite Leggings
     frozenset([(218, 1), (480, 1)]): (538, 1),  # Diamond Boots + Netherite Ingot -> Netherite Boots
+    frozenset([(480, 6), (10, 1)]): (539, 1),  # 6 Netherite Ingots + 1 Stick -> Netherite Hammer
     
     # --- FOOD CRAFTING ---
     frozenset([(93, 3)]): (103, 1),  # 3 wheat -> 1 bread
@@ -1966,14 +1941,15 @@ def draw_death_screen(screen):
 # --- Pygame Initialization ---
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-pygame.display.set_caption("PyCraft Alpha 4 - Overworld")
+pygame.display.set_caption("PyCraft Alpha 4 - The End")
 clock = pygame.time.Clock()
 
 # Initialize sound system
 print("🎵 Initializing sound system...")
 try:
-    # sound_manager, pycraft_sounds = initialize_sounds("../Sounds")
-    raise Exception("Using dummy sound manager")  # Force dummy for now
+    sound_manager = DummySoundManager()
+    pycraft_sounds = DummySounds()
+    print("🎵 Sound system initialized")
 except Exception as e:
     print(f"⚠️ Sound system failed to initialize: {e}")
     # Create dummy sound objects for compatibility
@@ -1988,6 +1964,7 @@ except Exception as e:
         def play_block_place(self): pass
         def play_achievement(self): pass
     sound_manager = DummySoundManager()
+    pycraft_sounds = DummyPyCraftSounds()
     pycraft_sounds = DummyPyCraftSounds()
 
 pygame.font.init()
@@ -2018,59 +1995,38 @@ achievement_bg = load_achievement_background()
 BLOCK_TEXTURES = {}  # Dictionary to store all block textures
 DESTROY_STAGES = {}  # Dictionary to store destroy stage textures
 
-def load_texture_safe(texture_path, block_id, fallback_color=None):
-    """Safely load texture with fallback to solid color"""
-    try:
-        texture = pygame.image.load(texture_path).convert_alpha()
-        texture = pygame.transform.scale(texture, (BLOCK_SIZE, BLOCK_SIZE))
-        return texture
-    except Exception as e:
-        # Fallback to colored block if texture fails
-        if fallback_color:
-            fallback = pygame.Surface((BLOCK_SIZE, BLOCK_SIZE))
-            fallback.fill(fallback_color)
-            return fallback
-        return None
-
 try:
-    # Load block textures with improved loading
+    # Load block textures
     texture_mapping = {
-        # ==================== BLOCKS ====================
-        1: r"..\Textures\Grass.png",  # Grass
-        2: r"..\Textures\Dirt.png",  # Dirt
-        3: r"..\Textures\stone.png",  # Stone
-        6: r"..\Textures\Oak_leaves.png",  # Oak Leaves
-        8: r"..\Textures\Oak_planks.png",  # Wood Plank
-        11: r"..\Textures\Coal_ore.png",  # Coal Ore
-        12: r"..\Textures\iron_ore.png",  # Iron Ore
-        16: r"..\Textures\dispenser_front.png",  # Furnace (using dispenser as closest match)
-        18: r"..\Textures\Oak_log.png",  # Wood (Oak)
-        19: r"..\Textures\sand.png",  # Sand
-        20: r"..\Textures\sandstone.png",  # Sandstone
-        21: r"..\Textures\Cactus.png",  # Cactus
-        22: r"..\Textures\dead_bush.png",  # Dead Bush
-        24: r"..\Textures\snow.png",  # Snow
-        25: r"..\Textures\_ice_.png",  # Ice
-        32: r"..\Textures\dark_oak_log.png",  # Dark Oak Log
-        33: r"..\Textures\Coarse dirt.png",  # Coarse Dirt
-        34: r"..\Textures\spruce_log.png",  # Spruce Log
-        42: r"..\Textures\Cobblestone.png",  # Cobblestone
-        83: r"..\Textures\birch_log.png",  # Birch Wood
-        84: r"..\Textures\Oak_leaves.png",  # Birch Leaves (Oak as fallback)
-        105: r"..\Textures\birch_planks.png",  # Birch Planks
+        # Blocks
+        1: r"..\Textures\Grass.png",
+        2: r"..\Textures\Dirt.png",
+        3: r"..\Textures\stone.png",
+        6: r"..\Textures\Oak_leaves.png",
+        84: r"..\Textures\Oak_leaves.png",  # Birch Leaves (use Oak as fallback)
+        126: r"..\Textures\Oak_leaves.png",  # Jungle Leaves (use Oak as fallback)
+        149: r"..\Textures\Oak_leaves.png",  # Acacia Leaves (use Oak as fallback)
+        8: r"..\Textures\Oak_planks.png",
+        11: r"..\Textures\Coal_ore.png",
+        12: r"..\Textures\iron_ore.png",
+        16: r"..\Textures\diamond_ore.png",  # Furnace (but using diamond ore texture)
+        18: r"..\Textures\Oak_log.png",
+        19: r"..\Textures\sand.png",
+        20: r"..\Textures\sandstone.png",
+        21: r"..\Textures\Cactus.png",
+        22: r"..\Textures\dead_bush.png",
+        23: r"..\Textures\emerald.png",  # Emerald
+        24: r"..\Textures\snow.png",
+        25: r"..\Textures\_ice_.png",
+        31: r"..\Textures\Lava.jpg",  # Swamp Water (using lava texture)
+        33: r"..\Textures\Dirt.png",  # Coarse Dirt (use dirt as fallback since coarse_dirt.png is missing)
+        42: r"..\Textures\Cobblestone.png",
+        83: r"..\Textures\Oak_log.png",  # Birch Wood
+        105: r"..\Textures\Oak_planks.png",  # Birch planks
         123: r"..\Textures\podzol_side.png",  # Podzol
-        124: r"..\Textures\jungle_log.png",  # Jungle Wood
-        125: r"..\Textures\jungle_planks.png",  # Jungle Planks
-        126: r"..\Textures\Oak_leaves.png",  # Jungle Leaves (Oak as fallback)
-        147: r"..\Textures\jungle_log.png",  # Acacia Wood (jungle log as fallback)
-        148: r"..\Textures\jungle_planks.png",  # Acacia Planks (jungle planks as fallback)
-        149: r"..\Textures\Oak_leaves.png",  # Acacia Leaves (Oak as fallback)
-        199: r"..\Textures\Lava.jpg",  # Lava
-        429: r"..\Textures\snow.png",  # Snow Block
-        433: r"..\Textures\deepslate_copper_ore.png",  # Copper Ore
-        436: r"..\Textures\deepslate_copper_ore.png",  # Deepslate Copper Ore
+        124: r"..\Textures\Oak_log.png",  # Jungle Wood
         
-        # ==================== UNDERGROUND ORES ====================
+        # Underground Blocks
         183: r"..\Textures\gold_ore.png",  # Gold Ore
         185: r"..\Textures\redstone_ore.png",  # Redstone Ore
         186: r"..\Textures\redstone.png",  # Redstone Dust
@@ -2084,36 +2040,19 @@ try:
         196: r"..\Textures\deepslate_emerald_ore.png",  # Deepslate Emerald Ore
         197: r"..\Textures\deepslate_iron_ore.png",  # Deepslate Iron Ore
         198: r"..\Textures\deepslate_coal_ore.png",  # Deepslate Coal Ore
+        200: r"..\Textures\andesite.png",  # Andesite (ALSO Gold Pickaxe but block texture takes priority)
         228: r"..\Textures\lapis_ore.png",  # Lapis Lazuli Ore
         230: r"..\Textures\deepslate_lapis_ore.png",  # Deepslate Lapis Ore
         
-        # ==================== NETHER BLOCKS (IDs that don't conflict with Overworld) ====================
-        27: r"..\Textures\nether_bricks.png",  # Nether Bricks
-        28: r"..\Textures\crimson_stem.png",  # Crimson Stem
-        29: r"..\Textures\warped_stem.png",  # Warped Stem
-        37: r"..\Textures\warped_planks.png",  # Warped Planks
-        38: r"..\Textures\crimson_nylium.png",  # Crimson Nylium
-        39: r"..\Textures\warped_nylium.png",  # Warped Nylium
-        43: r"..\Textures\nether_gold_ore.png",  # Nether Gold Ore
-        44: r"..\Textures\nether_quartz_ore.png",  # Nether Quartz Ore
-        45: r"..\Textures\ancient_debris_side.png",  # Ancient Debris
-        46: r"..\Textures\netherite_block.png",  # Netherite Block
-        47: r"..\Textures\crimson_fungus.png",  # Crimson Fungus
-        48: r"..\Textures\warped_fungus.png",  # Warped Fungus
-        49: r"..\Textures\crimson_roots.png",  # Crimson Roots
-        # NOTE: IDs 26 (Gravel), 30 (Mud), 56 (Gunpowder), 57 (Deer Horn),
-        # 58 (Narwhal Horn), 59 (Flipper) are Overworld items - removed Nether textures
-        
-        # ==================== ITEMS - FOOD ====================
-        13: r"..\Textures\raw beef.png",  # Rotten Flesh (raw beef as fallback)
-        23: r"..\Textures\emerald.png",  # Emerald
+        # Items - Food
+        13: r"..\Textures\raw beef.png",  # Rotten Flesh
         50: r"..\Textures\mutton.png",  # Raw Mutton
         51: r"..\Textures\raw beef.png",  # Beef
-        81: r"..\Textures\raw_cod.png",  # Chicken (raw meat fallback)
+        81: r"..\Textures\raw_cod.png",  # Chicken
         87: r"..\Textures\cooked_beef.png",  # Steak
         88: r"..\Textures\cooked_mutton.png",  # Cooked Mutton
         89: r"..\Textures\cooked_chicken.png",  # Cooked Chicken
-        94: r"..\Textures\golden_carrot.png",  # Carrot (golden carrot as fallback)
+        94: r"..\Textures\golden_carrot.png",  # Carrot
         103: r"..\Textures\bread.png",  # Bread
         136: r"..\Textures\apple.png",  # Apple
         137: r"..\Textures\Orange_Fruit.png",  # Orange
@@ -2121,163 +2060,123 @@ try:
         144: r"..\Textures\sweet_berries.png",  # Berries
         145: r"..\Textures\rabbit.png",  # Raw Rabbit
         146: r"..\Textures\cooked_rabbit.png",  # Cooked Rabbit
-        156: r"..\Textures\raw_cod.png",  # Cod (raw)
+        156: r"..\Textures\raw_cod.png",  # Cod
         157: r"..\Textures\cooked_cod.png",  # Cooked Cod
-        158: r"..\Textures\raw_salmon.png",  # Salmon (raw)
-        159: r"..\Textures\cooked_salmon.png",  # Cooked Salmon
-        169: r"..\Textures\golden_apple.png",  # Enchanted Golden Apple
-        242: r"..\Textures\golden_carrot.png",  # Golden Carrot
-        309: r"..\Textures\golden_apple.png",  # Golden Apple
-        350: r"..\Textures\golden_apple.png",  # Enchanted Golden Apple
         
-        # ==================== ITEMS - MATERIALS ====================
+        # Items - Materials
         10: r"..\Textures\stick.png",  # Stick
         14: r"..\Textures\leather.png",  # Leather
         52: r"..\Textures\string.png",  # String
         53: r"..\Textures\arrow.png",  # Arrow
-        54: r"..\Textures\bone.png",  # Bone
+        54: r"..\Textures\bone.png",  # Bone (ID 54, not 15 which is Torch!)
         55: r"..\Textures\bow.png",  # Bow
         85: r"..\Textures\coal.png",  # Coal
-        93: r"..\Textures\wheat.png",  # Wheat Item
-        97: r"..\Textures\enchanted_book.png",  # Book
         108: r"..\Textures\iron_ingot.png",  # Iron Ingot
-        134: r"..\Textures\trident.png",  # Trident
-        164: r"..\Textures\nautilus_shell.png",  # Nautilus Shell
         184: r"..\Textures\gold_ingot.png",  # Gold Ingot
         189: r"..\Textures\diamond.png",  # Diamond
-        219: r"..\Textures\raw_iron.png",  # Raw Iron
         227: r"..\Textures\Shield.png",  # Shield
-        229: r"..\Textures\lapis_block.png",  # Lapis Lazuli (using block texture)
-        231: r"..\Textures\enchanting_table_side.png",  # Enchantment Table
+        229: r"..\Textures\lapis_block.png",  # Lapis Lazuli (use lapis block as fallback)
+        231: r"..\Textures\enchanting_table_side.png",  # Enchantment Table (use side texture)
         232: r"..\Textures\anvil.png",  # Anvil
         233: r"..\Textures\enchanted_book.png",  # Enchanted Book
         234: r"..\Textures\lapis_block.png",  # Lapis Block
-        480: r"..\Textures\netherite_ingot.png",  # Netherite Ingot
         
-        # ==================== TOOLS - WOODEN ====================
-        9: r"..\Textures\wooden_pickaxe.png",  # Wood Pickaxe
-        99: r"..\Textures\wooden_sword.png",  # Wooden Sword
-        100: r"..\Textures\wooden_shovel.png",  # Wooden Shovel
-        101: r"..\Textures\wooden_spear.png",  # Wooden Spear
-        102: r"..\Textures\wooden_axe.png",  # Wooden Axe
+        # Items - Tools & Weapons (Wooden) - ID 9 is Wood Pickaxe, 99-102 are Wooden tools
+        9: r"..\Textures\wooden_pickaxe.png",  # Wood Pickaxe (ID 9)
+        99: r"..\Textures\wooden_sword.png",  # Wooden Sword (ID 99)
+        100: r"..\Textures\wooden_shovel.png",  # Wooden Shovel (ID 100)
+        101: r"..\Textures\wooden_spear.png",  # Wooden Spear (ID 101)
+        102: r"..\Textures\wooden_axe.png",  # Wooden Axe (ID 102)
         
-        # ==================== TOOLS - STONE ====================
-        17: r"..\Textures\stone_pickaxe.png",  # Stone Pickaxe
-        109: r"..\Textures\stone_pickaxe.png",  # Stone Pickaxe (alt ID)
-        110: r"..\Textures\stone_sword.png",  # Stone Sword
-        111: r"..\Textures\stone_shovel.png",  # Stone Shovel
-        112: r"..\Textures\stone_spear.png",  # Stone Spear
-        113: r"..\Textures\stone_axe.png",  # Stone Axe
+        # Items - Tools & Weapons (Stone) - ID 17 is Stone Pickaxe, 109-113 are Stone tools
+        17: r"..\Textures\stone_pickaxe.png",  # Stone Pickaxe (ID 17)
+        109: r"..\Textures\stone_pickaxe.png",  # Stone Pickaxe (ID 109 duplicate)
+        110: r"..\Textures\stone_sword.png",  # Stone Sword (ID 110)
+        111: r"..\Textures\stone_shovel.png",  # Stone Shovel (ID 111)
+        112: r"..\Textures\stone_spear.png",  # Stone Spear (ID 112)
+        113: r"..\Textures\stone_axe.png",  # Stone Axe (ID 113)
         
-        # ==================== TOOLS - IRON ====================
-        114: r"..\Textures\iron_pickaxe.png",  # Iron Pickaxe
-        115: r"..\Textures\iron_sword.png",  # Iron Sword
-        116: r"..\Textures\iron_shovel.png",  # Iron Shovel
-        117: r"..\Textures\iron_spear.png",  # Iron Spear
-        118: r"..\Textures\iron_axe.png",  # Iron Axe
+        # Items - Tools & Weapons (Iron) - ID 114-118 are Iron tools
+        114: r"..\Textures\iron_pickaxe.png",  # Iron Pickaxe (ID 114)
+        115: r"..\Textures\iron_sword.png",  # Iron Sword (ID 115)
+        116: r"..\Textures\iron_shovel.png",  # Iron Shovel (ID 116)
+        117: r"..\Textures\iron_spear.png",  # Iron Spear (ID 117)
+        118: r"..\Textures\iron_axe.png",  # Iron Axe (ID 118)
         
-        # ==================== ARMOR - IRON ====================
-        119: r"..\Textures\iron_helmet.png",  # Iron Helmet
-        120: r"..\Textures\iron_chestplate.png",  # Iron Chestplate
-        121: r"..\Textures\iron_leggings.png",  # Iron Leggings
-        122: r"..\Textures\iron_boots.png",  # Iron Boots
+        # Items - Armor (Iron) - ID 119-122 are Iron armor
+        119: r"..\Textures\iron_helmet.png",  # Iron Helmet (ID 119)
+        120: r"..\Textures\iron_chestplate.png",  # Iron Chestplate (ID 120)
+        121: r"..\Textures\iron_leggings.png",  # Iron Leggings (ID 121)
+        122: r"..\Textures\iron_boots.png",  # Iron Boots (ID 122)
         
-        # ==================== TOOLS - GOLD ====================
+        # Items - Tools & Weapons (Gold) - ID 200-204 are Gold tools
+        # Note: 200 is also Andesite block, texture priority may cause conflicts
         200: r"..\Textures\golden_pickaxe.png",  # Gold Pickaxe
         201: r"..\Textures\golden_sword.png",  # Gold Sword
         202: r"..\Textures\golden_shovel.png",  # Gold Shovel
         203: r"..\Textures\golden_axe.png",  # Gold Axe
         204: r"..\Textures\golden_spear_in_hand.png",  # Gold Spear
         
-        # ==================== ARMOR - GOLD ====================
-        205: r"..\Textures\golden_helmet.png",  # Gold Helmet
-        206: r"..\Textures\golden_chestplate.png",  # Gold Chestplate
-        207: r"..\Textures\golden_leggings.png",  # Gold Leggings
-        208: r"..\Textures\golden_boots.png",  # Gold Boots
-        
-        # ==================== TOOLS - DIAMOND ====================
+        # Items - Tools & Weapons (Diamond) - ID 210-214 are Diamond tools
         210: r"..\Textures\diamond_pickaxe.png",  # Diamond Pickaxe
         211: r"..\Textures\diamond_sword.png",  # Diamond Sword
         212: r"..\Textures\diamond_shovel.png",  # Diamond Shovel
         213: r"..\Textures\diamond_axe.png",  # Diamond Axe
         214: r"..\Textures\diamond_spear.png",  # Diamond Spear
         
-        # ==================== ARMOR - DIAMOND ====================
+        # Items - Armor (Diamond) - ID 215-218 are Diamond armor
         215: r"..\Textures\diamond_helmet.png",  # Diamond Helmet
         216: r"..\Textures\diamond_chestplate.png",  # Diamond Chestplate
         217: r"..\Textures\diamond_leggings.png",  # Diamond Leggings
         218: r"..\Textures\diamond_boots.png",  # Diamond Boots
         
-        # ==================== TOOLS & ARMOR - NETHERITE ====================
-        531: r"..\Textures\netherite_pickaxe.png",  # Netherite Pickaxe
-        532: r"..\Textures\netherite_sword.png",  # Netherite Sword
-        533: r"..\Textures\netherite_shovel.png",  # Netherite Shovel
-        534: r"..\Textures\netherite_axe.png",  # Netherite Axe
-        535: r"..\Textures\netherite_helmet.png",  # Netherite Helmet
-        536: r"..\Textures\netherite_chestplate.png",  # Netherite Chestplate
-        537: r"..\Textures\netherite_leggings.png",  # Netherite Leggings
-        538: r"..\Textures\netherite_boots.png",  # Netherite Boots
-        
-        # ==================== NETHER & SPECIAL ITEMS ====================
-        107: r"..\Textures\trident.png",  # Trident
-        180: r"..\Textures\trident.png",  # Trident (alt ID)
-        181: r"..\Textures\bucket.png",  # Bucket
-        182: r"..\Textures\water_bucket.png",  # Water Bucket
-        220: r"..\Textures\Fire_(Item).gif",  # Fire
+        # Nether Items
         222: r"..\Textures\ender_pearl.png",  # Ender Pearl
-        223: r"..\Textures\blaze_rod.png",  # Blaze Rod
+        223: r"..\Textures\blaze_rod.png",  # Blaze Rod (ID 223, not 237!)
         224: r"..\Textures\blaze_powder.png",  # Blaze Powder
         225: r"..\Textures\ender_eye.png",  # Eye of Ender
+        
+        # Special Items
+        107: r"..\Textures\trident.png",  # Trident (ID 107, not 116!)
+        180: r"..\Textures\trident.png",  # Trident (ID 180, alternate)
+        181: r"..\Textures\bucket.png",  # Bucket
+        182: r"..\Textures\water_bucket.png",  # Water Bucket
+        199: r"..\Textures\Lava.jpg",  # Lava block
+        220: r"..\Textures\Fire_(Item).gif",  # Fire
+        241: r"..\Textures\enchanted_book.png",  # Fire Protection III (enchantment book)
         308: r"..\Textures\totem_of_undying.png",  # Totem of Undying
-        502: r"..\Textures\tnt_side.png",  # TNT
-        509: r"..\Textures\fishing_rod.png",  # Fishing Rod
-        512: r"..\Textures\redstone_torch.png",  # Redstone Torch
-        513: r"..\Textures\redstone_lamp.png",  # Redstone Lamp
         
-        # ==================== SPECIAL BLOCKS ====================
-        40: r"..\Textures\ladder.png",  # Fence (ladder texture as fallback)
-        41: r"..\Textures\ladder.png",  # Ladder
-        104: r"..\Textures\hay_block_side.png",  # Hay Bale
-        153: r"..\Textures\hay_block_side.png",  # Hay Bale (alt ID)
-        165: r"..\Textures\redstone_block.png",  # Redstone Block
-        166: r"..\Textures\dispenser_front.png",  # Dispenser
-        167: r"..\Textures\end_portal_frame_side.png",  # End Portal Frame
-        168: r"..\Textures\enchanting_table_side.png",  # Enchanting Table
+        # More Materials
+        93: r"..\Textures\wheat.png",  # Wheat Item
+        97: r"..\Textures\enchanted_book.png",  # Book
+        158: r"..\Textures\raw_salmon.png",  # Salmon (raw)
+        159: r"..\Textures\cooked_salmon.png",  # Cooked Salmon
+        164: r"..\Textures\nautilus_shell.png",  # Nautilus Shell
+        219: r"..\Textures\raw_iron.png",  # Raw Iron
         
-        # ==================== SAPLINGS ====================
-        139: r"..\Textures\birch_sapling.png",  # Oak Sapling (birch as fallback)
-        140: r"..\Textures\birch_sapling.png",  # Birch Sapling
+        # Saplings
+        139: r"..\Textures\birch_sapling.png",  # Birch Sapling
+        140: r"..\Textures\Oak_log.png",  # Oak Sapling (placeholder)
+        141: r"..\Textures\Oak_log.png",  # Spruce Sapling (placeholder)
         142: r"..\Textures\jungle_sapling.png",  # Jungle Sapling
         143: r"..\Textures\sweet_berries.png",  # Berry Bush
-        150: r"..\Textures\jungle_sapling.png",  # Acacia Sapling (jungle as fallback)
         
-        # ==================== BOATS ====================
-        437: r"..\Textures\oak_boat.png",  # Oak Boat
-        438: r"..\Textures\spruce_boat.png",  # Spruce Boat
-        439: r"..\Textures\birch_boat.png",  # Birch Boat
-        440: r"..\Textures\jungle_boat.png",  # Jungle Boat
-        441: r"..\Textures\acacia_boat.png",  # Acacia Boat
-        154: r"..\Textures\raw_cod.png",  # Bird Meat (raw meat item)
-        
-        # ==================== WOOL COLORS (65-80) ====================
+        # Wool Blocks
         65: r"..\Textures\white_wool.png",  # White Wool
-        66: r"..\Textures\light_gray_wool.png",  # Light Gray Wool
-        67: r"..\Textures\gray_wool.png",  # Gray Wool
-        68: r"..\Textures\black_wool.png",  # Black Wool
-        69: r"..\Textures\brown_wool.png",  # Brown Wool
-        70: r"..\Textures\red_wool.png",  # Red Wool
-        71: r"..\Textures\orange_wool.png",  # Orange Wool
-        72: r"..\Textures\yellow_wool.png",  # Yellow Wool
-        73: r"..\Textures\lime_wool.png",  # Lime Wool
-        74: r"..\Textures\green_wool.png",  # Green Wool
-        75: r"..\Textures\cyan_wool.png",  # Cyan Wool
-        76: r"..\Textures\light_blue_wool.png",  # Light Blue Wool
         77: r"..\Textures\blue_wool.png",  # Blue Wool
-        78: r"..\Textures\purple_wool.png",  # Purple Wool
-        79: r"..\Textures\magenta_wool.png",  # Magenta Wool
-        80: r"..\Textures\pink_wool.png",  # Pink Wool
         
-        # ==================== SPAWN EGGS (360-407) ====================
+        # Birch & Spruce Wood
+        83: r"..\Textures\birch_log.png",  # Birch Wood
+        105: r"..\Textures\birch_planks.png",  # Birch planks
+        34: r"..\Textures\spruce_log.png",  # Spruce Log
+        
+        # Armor - Gold (missing entries)
+        205: r"..\Textures\golden_helmet.png",  # Gold Helmet
+        206: r"..\Textures\golden_chestplate.png",  # Gold Chestplate
+        207: r"..\Textures\golden_leggings.png",  # Gold Leggings
+        208: r"..\Textures\golden_boots.png",  # Gold Boots
+        
+        # Spawn Eggs - Now starting at 360 to avoid conflicts with enchantments
         360: r"..\Textures\zombie_spawn_egg.png",  # Zombie Egg
         361: r"..\Textures\creeper_spawn_egg.png",  # Creeper Egg
         362: r"..\Textures\skeleton_spawn_egg.png",  # Skeleton Egg
@@ -2327,107 +2226,37 @@ try:
         406: r"..\Textures\polar_bear_spawn_egg.png",  # Polar Bear Egg
         407: r"..\Textures\blaze_spawn_egg.png",  # Blaze Egg
         
-        # Old spawn egg mappings (backwards compatibility)
-        311: r"..\Textures\goat_spawn_egg.png",  # Goat Egg
-        313: r"..\Textures\camel_spawn_egg.png",  # Camel Egg
-        315: r"..\Textures\villager_spawn_egg.png",  # Villager Egg
-        320: r"..\Textures\dolphin_spawn_egg.png",  # Dolphin Egg
-        328: r"..\Textures\fox_spawn_egg.png",  # Fox Egg
+        # All Wool Colors (65-80)
+        66: r"..\Textures\light_gray_wool.png",  # Light Gray Wool
+        67: r"..\Textures\gray_wool.png",  # Gray Wool
+        68: r"..\Textures\black_wool.png",  # Black Wool
+        69: r"..\Textures\brown_wool.png",  # Brown Wool
+        70: r"..\Textures\red_wool.png",  # Red Wool
+        71: r"..\Textures\orange_wool.png",  # Orange Wool
+        72: r"..\Textures\yellow_wool.png",  # Yellow Wool
+        73: r"..\Textures\lime_wool.png",  # Lime Wool
+        74: r"..\Textures\green_wool.png",  # Green Wool
+        75: r"..\Textures\cyan_wool.png",  # Cyan Wool
+        76: r"..\Textures\light_blue_wool.png",  # Light Blue Wool
+        78: r"..\Textures\purple_wool.png",  # Purple Wool
+        79: r"..\Textures\magenta_wool.png",  # Magenta Wool
+        80: r"..\Textures\pink_wool.png",  # Pink Wool
+        65: r"..\Textures\white_wool.png",  # White Wool
         330: r"..\Textures\frog_spawn_egg.png",  # Frog Egg
-        333: r"..\Textures\Narwhal_Spawn_egg.png",  # Narwhal Egg (white bg)
-        334: r"..\Textures\Deer_Spawn_Egg.png",  # Deer Egg (white bg)
-        336: r"..\Textures\Bear_Spawn_egg.png",  # Bear Egg (white bg)
-        340: r"..\Textures\Elephant_spawn_egg.png",  # Elephant Egg (white bg)
-        
-        # ==================== ENCHANTMENT BOOKS ====================
-        235: r"..\Textures\enchanted_book.png",  # Protection I
-        236: r"..\Textures\enchanted_book.png",  # Protection II
-        237: r"..\Textures\enchanted_book.png",  # Protection III
-        238: r"..\Textures\enchanted_book.png",  # Protection IV
-        239: r"..\Textures\enchanted_book.png",  # Fire Protection I
-        240: r"..\Textures\enchanted_book.png",  # Fire Protection II
-        241: r"..\Textures\enchanted_book.png",  # Fire Protection III
-        248: r"..\Textures\enchanted_book.png",  # Blast Protection II
-        249: r"..\Textures\enchanted_book.png",  # Blast Protection III
-        250: r"..\Textures\enchanted_book.png",  # Blast Protection IV
-        251: r"..\Textures\enchanted_book.png",  # Feather Falling I
-        252: r"..\Textures\enchanted_book.png",  # Feather Falling II
-        253: r"..\Textures\enchanted_book.png",  # Feather Falling III
-        254: r"..\Textures\enchanted_book.png",  # Feather Falling IV
-        255: r"..\Textures\enchanted_book.png",  # Respiration I
-        256: r"..\Textures\enchanted_book.png",  # Respiration II
-        257: r"..\Textures\enchanted_book.png",  # Respiration III
-        258: r"..\Textures\enchanted_book.png",  # Aqua Affinity
-        259: r"..\Textures\enchanted_book.png",  # Depth Strider I
-        260: r"..\Textures\enchanted_book.png",  # Depth Strider II
-        261: r"..\Textures\enchanted_book.png",  # Depth Strider III
-        262: r"..\Textures\enchanted_book.png",  # Thorns I
-        263: r"..\Textures\enchanted_book.png",  # Thorns II
-        264: r"..\Textures\enchanted_book.png",  # Thorns III
-        265: r"..\Textures\enchanted_book.png",  # Unbreaking I
-        266: r"..\Textures\enchanted_book.png",  # Unbreaking II
-        267: r"..\Textures\enchanted_book.png",  # Unbreaking III
-        268: r"..\Textures\enchanted_book.png",  # Sharpness I
-        269: r"..\Textures\enchanted_book.png",  # Sharpness II
-        270: r"..\Textures\enchanted_book.png",  # Sharpness III
-        271: r"..\Textures\enchanted_book.png",  # Sharpness IV
-        272: r"..\Textures\enchanted_book.png",  # Sharpness V
-        273: r"..\Textures\enchanted_book.png",  # Smite I
-        274: r"..\Textures\enchanted_book.png",  # Smite II
-        275: r"..\Textures\enchanted_book.png",  # Smite III
-        276: r"..\Textures\enchanted_book.png",  # Smite IV
-        277: r"..\Textures\enchanted_book.png",  # Smite V
-        278: r"..\Textures\enchanted_book.png",  # Bane of Arthropods I
-        279: r"..\Textures\enchanted_book.png",  # Bane of Arthropods II
-        280: r"..\Textures\enchanted_book.png",  # Bane of Arthropods III
-        281: r"..\Textures\enchanted_book.png",  # Bane of Arthropods IV
-        282: r"..\Textures\enchanted_book.png",  # Bane of Arthropods V
-        283: r"..\Textures\enchanted_book.png",  # Knockback I
-        284: r"..\Textures\enchanted_book.png",  # Knockback II
-        285: r"..\Textures\enchanted_book.png",  # Fire Aspect I
-        286: r"..\Textures\enchanted_book.png",  # Fire Aspect II
-        287: r"..\Textures\enchanted_book.png",  # Looting I
-        288: r"..\Textures\enchanted_book.png",  # Looting II
-        289: r"..\Textures\enchanted_book.png",  # Looting III
-        290: r"..\Textures\enchanted_book.png",  # Efficiency I
-        291: r"..\Textures\enchanted_book.png",  # Efficiency II
-        292: r"..\Textures\enchanted_book.png",  # Efficiency III
-        293: r"..\Textures\enchanted_book.png",  # Efficiency IV
-        294: r"..\Textures\enchanted_book.png",  # Efficiency V
-        295: r"..\Textures\enchanted_book.png",  # Silk Touch
-        296: r"..\Textures\enchanted_book.png",  # Fortune I
-        297: r"..\Textures\enchanted_book.png",  # Fortune II
-        298: r"..\Textures\enchanted_book.png",  # Fortune III
-        299: r"..\Textures\enchanted_book.png",  # Power I
-        300: r"..\Textures\enchanted_book.png",  # Power II
-        301: r"..\Textures\enchanted_book.png",  # Power III
-        302: r"..\Textures\enchanted_book.png",  # Power IV
-        303: r"..\Textures\enchanted_book.png",  # Power V
-        304: r"..\Textures\enchanted_book.png",  # Punch I
-        305: r"..\Textures\enchanted_book.png",  # Punch II
-        306: r"..\Textures\enchanted_book.png",  # Flame
-        307: r"..\Textures\enchanted_book.png",  # Infinity
-        243: r"..\Textures\enchanted_book.png",  # Projectile Protection I
-        244: r"..\Textures\enchanted_book.png",  # Projectile Protection II
-        245: r"..\Textures\enchanted_book.png",  # Projectile Protection III
-        246: r"..\Textures\enchanted_book.png",  # Projectile Protection IV
-        247: r"..\Textures\enchanted_book.png",  # Blast Protection I
+        333: r"..\Textures\Narwhal_Spawn_egg.png",  # Narwhal Egg (custom - white bg)
     }
     
     # List of spawn eggs with white backgrounds that need transparency
     white_bg_spawn_eggs = [333, 334, 336, 340]  # Narwhal, Deer, Bear, Elephant
     
-    # IMPROVED TEXTURE LOADING with progress tracking and fallbacks
-    loaded_count = 0
-    failed_count = 0
-    
     for block_id, path in texture_mapping.items():
         try:
-            texture = pygame.image.load(path).convert_alpha()
+            texture = pygame.image.load(path)
             texture = pygame.transform.scale(texture, (BLOCK_SIZE, BLOCK_SIZE))
             
             # Make white background transparent for custom spawn eggs
             if block_id in white_bg_spawn_eggs:
+                texture = texture.convert_alpha()
                 # Create a pixel array to modify
                 for x in range(texture.get_width()):
                     for y in range(texture.get_height()):
@@ -2437,37 +2266,27 @@ try:
                             texture.set_at((x, y), (r, g, b, 0))  # Set alpha to 0 (transparent)
             
             BLOCK_TEXTURES[block_id] = texture
-            loaded_count += 1
-            
+            # Debug: Print when totem texture is loaded
+            if block_id == 308:
+                print(f"✅ Loaded Totem of Undying texture from: {path}")
         except Exception as e:
-            # Use safe fallback texture
-            if block_id in BLOCK_TYPES:
-                fallback_color = BLOCK_TYPES[block_id].get("color", (255, 0, 255))  # Magenta for missing
-                fallback_texture = load_texture_safe(path, block_id, fallback_color)
-                if fallback_texture:
-                    BLOCK_TEXTURES[block_id] = fallback_texture
-            failed_count += 1
+            # Debug: Print when totem texture fails to load
+            if block_id == 308:
+                print(f"❌ Failed to load Totem texture: {e}")
+            pass  # Texture not found, will use color fallback
     
-    print(f"📦 Texture Loading: {loaded_count} loaded, {failed_count} fallbacks")
-    
-    # Load destroy stage textures with improved error handling
-    destroy_loaded = 0
+    # Load destroy stage textures
     for stage in range(1, 4):
         try:
-            destroy_texture = pygame.image.load(rf"..\Textures\destroy_stage_{stage}.png").convert_alpha()
+            destroy_texture = pygame.image.load(rf"..\Textures\destroy_stage_{stage}.png")
             destroy_texture = pygame.transform.scale(destroy_texture, (BLOCK_SIZE, BLOCK_SIZE))
             # Make it partially transparent
             destroy_texture.set_alpha(200)
             DESTROY_STAGES[stage] = destroy_texture
-            destroy_loaded += 1
         except:
             pass
-    
-    if destroy_loaded > 0:
-        print(f"🔨 Loaded {destroy_loaded}/3 destroy stages")
-        
 except Exception as e:
-    print(f"❌ Error loading textures: {e}")
+    print(f"Error loading textures: {e}")
 
 def draw_block_sprite(surface, rect, block_id):
     """Helper function to draw a block sprite with texture support.
@@ -2585,6 +2404,7 @@ ANVIL_SLOT_2 = (0, 0, {})  # Second item slot (for combining/repairing)
 ANVIL_OUTPUT = (0, 0, {})  # Output slot
 
 # Sprite groups
+MOBS = pygame.sprite.Group()  # Global mobs group
 DROPPED_ITEMS = pygame.sprite.Group()
 SPLASH_POTIONS = pygame.sprite.Group()
 ARROWS = pygame.sprite.Group()
@@ -2598,6 +2418,10 @@ LIGHT_SOURCES = set()
 SAPLING_GROWTH = {}
 STRONGHOLD_LOCATIONS = []  # List of (x, y) tuples for stronghold positions
 EYE_OF_ENDER_PROJECTILES = pygame.sprite.Group()  # Eyes of ender thrown by player 
+DRAGON_PROJECTILES = pygame.sprite.Group()  # Dragon fireballs
+END_CRYSTALS = pygame.sprite.Group()  # End crystals on obsidian pillars
+END_GATEWAY_PORTAL = None  # Portal that spawns after dragon is defeated
+DRAGON_PERCH_LOCATIONS = []  # Obsidian pillar tops for dragon perching
 
 # --- Chat System ---
 CHAT_MESSAGES = []  # Store chat messages for display
@@ -2610,6 +2434,9 @@ CHAT_TIMER = 0      # Timer for chat auto-hide
 def add_trees(world, height_map, biome_map):
     """Randomly adds simple trees to the world on top of grass blocks. Skips plains and savannah biomes."""
     for col in range(GRID_WIDTH):
+        # Add tall grass and flowers in all biomes with grass
+        add_tall_grass(world, height_map, col, col+1)
+        add_flowers(world, height_map, col, col+1)
         biome_type = biome_map[col]
         # Skip tree spawning in plains and savannah (they have their own tree generation)
         if biome_type in [PLAINS_BIOME, SAVANNAH_BIOME]:
@@ -2714,9 +2541,9 @@ def generate_plains_village(world, height_map, col_start):
     # Check for space and flatness across the entire potential village area
     for col in range(col_start, min(col_start + village_width, GRID_WIDTH)):
         if col >= GRID_WIDTH or world[height_map[col]][col] != GRASS_ID:
-            return 0
+            return 0, []
         if abs(height_map[col] - height_map[col_start]) > 2:
-            return 0
+            return 0, []
             
     ground_row = height_map[col_start]
     current_col = col_start
@@ -2873,12 +2700,7 @@ def generate_plains_village(world, height_map, col_start):
     if 'VILLAGE_LOCATIONS' in globals():
         VILLAGE_LOCATIONS.append((village_center_x, col_start + village_width // 2))
     
-    # Store villagers and iron golems for later addition
-    if not hasattr(generate_plains_village, 'spawned_mobs'):
-        generate_plains_village.spawned_mobs = []
-    generate_plains_village.spawned_mobs.extend(villagers_to_spawn + iron_golems_to_spawn)
-    
-    return current_col - col_start + 3  # Return only block count
+    return current_col - col_start + 3, villagers_to_spawn + iron_golems_to_spawn
 
 
 def generate_pillager_outpost(world, height_map, col_start, mobs):
@@ -2905,7 +2727,7 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     for row in range(ground_row - 2, ground_row):
         for col in range(col_start, col_start + outpost_width):
             if 0 <= row < GRID_HEIGHT and 0 <= col < GRID_WIDTH:
-                world[row][col] = 3  # Stone (stone brick)
+                world[row][col] = 62  # Stone Brick
     
     # Build main tower (hollow inside)
     for h in range(outpost_height):
@@ -2928,9 +2750,9 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     cage_row = ground_row - outpost_height - 3
     for col in range(col_start + 2, col_start + outpost_width - 2):
         if 0 <= cage_row < GRID_HEIGHT and 0 <= col < GRID_WIDTH:
-            world[cage_row][col] = 547  # Iron Bars
-            world[cage_row - 1][col] = 547
-            world[cage_row - 2][col] = 547
+            world[cage_row][col] = 185  # Iron Bars
+            world[cage_row - 1][col] = 185
+            world[cage_row - 2][col] = 185
     
     # Build roof (dark oak stairs pattern)
     roof_row = ground_row - outpost_height - 4
@@ -2963,160 +2785,6 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
         mobs.add(pillager)
     
     return outpost_width
-
-
-def generate_simple_village(world_map, center_col, center_row, biome):
-    """Generate a simple village structure (5-8 houses with paths)."""
-    try:
-        house_count = random.randint(5, 8)
-        village_width = house_count * 7  # ~7 blocks per house
-        col_start = max(0, center_col - village_width // 2)
-        
-        if col_start + village_width >= GRID_WIDTH:
-            return
-        
-        # Build simple houses
-        for i in range(house_count):
-            house_col = col_start + i * 7
-            if house_col + 5 >= GRID_WIDTH or house_col >= len(world_map[0]):
-                continue
-            
-            ground_row = center_row
-            # Simple 5x4 house
-            for r in range(ground_row - 4, ground_row):
-                for c in range(house_col, house_col + 5):
-                    if 0 <= r < GRID_HEIGHT and 0 <= c < GRID_WIDTH:
-                        if c == house_col or c == house_col + 4 or r == ground_row - 4:
-                            world_map[r][c] = PLANK_ID  # Walls
-                        elif r < ground_row - 1:
-                            world_map[r][c] = AIR_ID  # Interior
-        
-        # Add central well
-        well_col = center_col
-        if 0 <= well_col < GRID_WIDTH and well_col < len(world_map[0]):
-            for r in range(center_row - 3, center_row):
-                if 0 <= r < GRID_HEIGHT:
-                    world_map[r][well_col] = STONE_ID
-            if center_row - 4 >= 0:
-                world_map[center_row - 4][well_col] = WATER_ID
-        
-        print(f"🏘️ Simple village spawned at column {center_col}")
-    except Exception as e:
-        print(f"⚠️ Error generating village: {e}")
-
-
-def generate_simple_desert_temple(world_map, center_col, center_row):
-    """Generate a simple desert temple (pyramid structure)."""
-    try:
-        temple_width = 15
-        col_start = max(0, center_col - temple_width // 2)
-        
-        if col_start + temple_width >= GRID_WIDTH:
-            return
-        
-        # Build pyramid shape
-        for level in range(6):
-            row = center_row - level
-            if row < 0 or row >= GRID_HEIGHT:
-                continue
-            width = temple_width - level * 2
-            start = col_start + level
-            for c in range(start, start + width):
-                if 0 <= c < GRID_WIDTH and c < len(world_map[0]):
-                    world_map[row][c] = SANDSTONE_ID
-        
-        print(f"🏜️ Simple desert temple spawned at column {center_col}")
-    except Exception as e:
-        print(f"⚠️ Error generating desert temple: {e}")
-
-
-def generate_simple_jungle_temple(world_map, center_col, center_row):
-    """Generate a simple jungle temple (mossy stone structure)."""
-    try:
-        temple_width = 12
-        col_start = max(0, center_col - temple_width // 2)
-        
-        if col_start + temple_width >= GRID_WIDTH:
-            return
-        
-        # Build stone structure
-        for r in range(center_row - 6, center_row):
-            if r < 0 or r >= GRID_HEIGHT:
-                continue
-            for c in range(col_start, col_start + temple_width):
-                if 0 <= c < GRID_WIDTH and c < len(world_map[0]):
-                    # Walls only
-                    if c == col_start or c == col_start + temple_width - 1 or r == center_row - 6:
-                        world_map[r][c] = STONE_ID  # Mossy cobblestone walls
-                    elif r > center_row - 6:
-                        world_map[r][c] = AIR_ID
-        
-        print(f"🌴 Simple jungle temple spawned at column {center_col}")
-    except Exception as e:
-        print(f"⚠️ Error generating jungle temple: {e}")
-
-
-def check_and_spawn_structures(player_x):
-    """Check and spawn structures in newly loaded chunks."""
-    try:
-        # Calculate chunk size in pixels (160 blocks * BLOCK_SIZE)
-        chunk_pixel_size = 160 * BLOCK_SIZE
-        player_chunk = player_x // chunk_pixel_size
-        
-        # Check chunks within 3 chunk radius
-        for offset in range(-3, 4):
-            chunk_coord = player_chunk + offset
-            
-            # Skip if already processed
-            if chunk_coord in LOADED_CHUNK_COORDS:
-                continue
-            
-            # Mark as processed
-            LOADED_CHUNK_COORDS.add(chunk_coord)
-            
-            # Calculate chunk center position
-            chunk_center_x = (chunk_coord * chunk_pixel_size) + (chunk_pixel_size // 2)
-            center_col = chunk_center_x // BLOCK_SIZE
-            
-            # Skip if outside world bounds
-            if center_col < 0 or center_col >= GRID_WIDTH or center_col >= len(WORLD_MAP[0]):
-                continue
-            
-            # Find ground level at chunk center
-            center_row = GRID_HEIGHT // 2
-            for r in range(GRID_HEIGHT - 1, -1, -1):
-                if WORLD_MAP[r][center_col] != AIR_ID:
-                    center_row = r
-                    break
-            
-            # Check biome at chunk center
-            biome = BIOME_MAP[center_col] if center_col < len(BIOME_MAP) else PLAINS_BIOME
-            
-            # Spawn structures based on biome and random chance
-            rand = random.random()
-            
-            if biome in [PLAINS_BIOME, OAK_FOREST_BIOME, BIRCH_FOREST_BIOME]:
-                if rand < 0.15:  # 15% chance
-                    generate_simple_village(WORLD_MAP, center_col, center_row, biome)
-            
-            elif biome == DESERT_BIOME:
-                if rand < 0.10:  # 10% chance
-                    generate_simple_desert_temple(WORLD_MAP, center_col, center_row)
-            
-            elif biome in [JUNGLE_BIOME, BAMBOO_JUNGLE_BIOME]:
-                if rand < 0.08:  # 8% chance
-                    generate_simple_jungle_temple(WORLD_MAP, center_col, center_row)
-            
-            elif biome == SWAMP_BIOME:
-                if rand < 0.07:  # 7% chance (witch hut would go here)
-                    print(f"🏚️ Witch hut location at column {center_col} (not implemented)")
-            
-            elif biome == OCEAN_BIOME:
-                if rand < 0.05:  # 5% chance (ocean monument would go here)
-                    print(f"🌊 Ocean monument location at column {center_col} (not implemented)")
-    
-    except Exception as e:
-        print(f"⚠️ Error in check_and_spawn_structures: {e}")
 
 
 def generate_desert_temple(world, height_map, col_start):
@@ -3220,11 +2888,12 @@ def generate_snow_igloo(world, height_map, col_start):
     # Check for space and flatness on snow
     for col in range(col_start, col_start + igloo_width):
         if col >= GRID_WIDTH or world[height_map[col]][col] != SNOW_ID:
-            return 0
+            return 0, []
         if abs(height_map[col] - height_map[col_start]) > 1:
-            return 0
+            return 0, []
     
     ground_row = height_map[col_start]
+    penguins_to_spawn = []
     
     print(f"🐧 SNOW IGLOO GENERATED at column {col_start}")
     
@@ -3253,18 +2922,14 @@ def generate_snow_igloo(world, height_map, col_start):
     world[ground_row - 1][door_col] = AIR_ID
     world[ground_row - 2][door_col] = AIR_ID
     
-    # Spawn penguin inside and store for later
+    # Spawn penguin inside
     spawn_x = center_col * BLOCK_SIZE
     spawn_y = (ground_row - 2) * BLOCK_SIZE
     
     if spawn_y > 0 and 0 <= center_col < GRID_WIDTH:
-        penguin = Penguin(spawn_x, spawn_y)
-        # Store penguin for later addition
-        if not hasattr(generate_snow_igloo, 'spawned_mobs'):
-            generate_snow_igloo.spawned_mobs = []
-        generate_snow_igloo.spawned_mobs.append(penguin)
+        penguins_to_spawn.append(Penguin(spawn_x, spawn_y))
     
-    return igloo_width + 3  # Return only block count
+    return igloo_width + 3, penguins_to_spawn
 
 
 def generate_witch_hut(world, height_map, col_start):
@@ -3323,7 +2988,12 @@ def generate_witch_hut(world, height_map, col_start):
     chest_col = col_start + hut_width - 2
     place_chest_with_loot(world, chest_row, chest_col, 'witch_hut')
     
-    # 5. Spawn witch inside the hut (return it to be added later)\n    witch_x = (col_start + hut_width // 2) * BLOCK_SIZE\n    witch_y = (HUT_FLOOR_Y + 1) * BLOCK_SIZE\n    witch = Witch(witch_x, witch_y)\n    \n    # Store witch for later addition\n    if not hasattr(generate_witch_hut, 'spawned_mobs'):\n        generate_witch_hut.spawned_mobs = []\n    generate_witch_hut.spawned_mobs.append(witch)\n\n    return hut_width + 5  # Return only the number of blocks used 
+    # 5. Spawn witch inside the hut
+    witch_x = (col_start + hut_width // 2) * BLOCK_SIZE
+    witch_y = (HUT_FLOOR_Y + 1) * BLOCK_SIZE
+    witch = Witch(witch_x, witch_y)
+
+    return hut_width + 5, witch 
 
 
 def generate_shipwreck(world, height_map, col_start):
@@ -4246,30 +3916,195 @@ def generate_abandoned_house(world, height_map, col_start):
     return house_width
 
 
-# --- Main World Generation Function (with Biome Logic) ---
-def generate_world():
-    """Generates a simple 2D world map, lakes, mobs, and structures across 5 biomes. (FIXED MOB SPAWNING)"""
-    global MOBS, WORLD_MAP, STRUCTURE_NOTIFICATIONS
-    
-    # 🌐 MULTIPLAYER FIX: Check for multiplayer config and load server world
-    multiplayer_config_path = Path("multiplayer_config.json")
-    if multiplayer_config_path.exists():
-        try:
-            import json
-            with open(multiplayer_config_path, 'r') as f:
-                mp_config = json.load(f)
-            
-            if mp_config.get("enabled") and mp_config.get("world_data"):
-                print("🌐 Loading multiplayer world from server...")
-                world_data = mp_config["world_data"]
-                WORLD_MAP = world_data["map"]
-                print(f"✅ Multiplayer world loaded: {world_data['width']}x{world_data['height']}")
-                print(f"   Server: {mp_config.get('server', 'unknown')}")
-                return WORLD_MAP  # Return server's world instead of generating
-        except Exception as e:
-            print(f"⚠️ Failed to load multiplayer world: {e}")
-            print("   Falling back to local world generation...")
+def generate_simple_end_city(world_map, center_col, center_row):
+    """Generate a simple End city structure in outer End islands."""
+    try:
+        city_width = 18
+        col_start = max(0, center_col - city_width // 2)
+        
+        if col_start + city_width >= GRID_WIDTH:
+            return
+        
+        # Build main tower (purpur blocks)
+        tower_height = 12
+        for r in range(center_row - tower_height, center_row):
+            if r < 0 or r >= GRID_HEIGHT:
+                continue
+            for c in range(col_start + 4, col_start + city_width - 4):
+                if 0 <= c < GRID_WIDTH and c < len(world_map[0]):
+                    # Walls only
+                    if c == col_start + 4 or c == col_start + city_width - 5:
+                        # Use End Stone
+                        world_map[r][c] = 186
+                    elif r == center_row - tower_height or r == center_row - 1:
+                        world_map[r][c] = 186
+                    else:
+                        world_map[r][c] = AIR_ID
+        
+        # Add towers at sides
+        for side_offset in [0, city_width - 1]:
+            tower_col = col_start + side_offset
+            for r in range(center_row - 8, center_row):
+                if 0 <= r < GRID_HEIGHT and 0 <= tower_col < GRID_WIDTH and tower_col < len(world_map[0]):
+                    world_map[r][tower_col] = 186
+        
+        print(f"🏛️ End City spawned at column {center_col}")
+    except Exception as e:
+        print(f"⚠️ Error generating End city: {e}")
 
+
+def check_and_spawn_structures(player_x):
+    """Check and spawn structures in newly loaded chunks (End dimension)."""
+    try:
+        # Calculate chunk size in pixels (160 blocks * BLOCK_SIZE)
+        chunk_pixel_size = 160 * BLOCK_SIZE
+        player_chunk = player_x // chunk_pixel_size
+        
+        # Check chunks within 3 chunk radius
+        for offset in range(-3, 4):
+            chunk_coord = player_chunk + offset
+            
+            # Skip if already processed
+            if chunk_coord in LOADED_CHUNK_COORDS:
+                continue
+            
+            # Mark as processed
+            LOADED_CHUNK_COORDS.add(chunk_coord)
+            
+            # Calculate chunk center position
+            chunk_center_x = (chunk_coord * chunk_pixel_size) + (chunk_pixel_size // 2)
+            center_col = chunk_center_x // BLOCK_SIZE
+            
+            # Skip if outside world bounds
+            if center_col < 0 or center_col >= GRID_WIDTH or center_col >= len(WORLD_MAP[0]):
+                continue
+            
+            # Find ground level at chunk center
+            center_row = GRID_HEIGHT // 2
+            for r in range(GRID_HEIGHT - 1, -1, -1):
+                if WORLD_MAP[r][center_col] != AIR_ID:
+                    center_row = r
+                    break
+            
+            # Calculate distance from spawn (0, 0)
+            distance_from_spawn = abs(chunk_center_x)
+            
+            # Spawn End cities in outer islands (distance > 1000 blocks = 25 chunks)
+            if distance_from_spawn > 1000 * BLOCK_SIZE:
+                rand = random.random()
+                if rand < 0.12:  # 12% chance for End cities in outer islands
+                    generate_simple_end_city(WORLD_MAP, center_col, center_row)
+    
+    except Exception as e:
+        print(f"⚠️ Error in check_and_spawn_structures: {e}")
+
+
+# --- Main World Generation Function (The End Dimension) ---
+def generate_end_world():
+    """Generates The End dimension - void with End Stone islands and structures."""
+    print("🌌 Generating The End dimension...")
+    
+    # Fill entire world with void initially 
+    world = [[AIR_ID for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+    
+    # Generate main End island (center) - floating in the middle
+    island_center_x = GRID_WIDTH // 2
+    island_center_y = int(GRID_HEIGHT * 0.6)  # Float in upper portion
+    island_radius = 35
+    
+    print(f"🏝️ Generating main End island at ({island_center_x}, {island_center_y})")
+    
+    for row in range(max(0, island_center_y - island_radius), min(GRID_HEIGHT, island_center_y + island_radius)):
+        for col in range(max(0, island_center_x - island_radius), min(GRID_WIDTH, island_center_x + island_radius)):
+            distance = math.sqrt((col - island_center_x)**2 + (row - island_center_y)**2)
+            if distance <= island_radius:
+                # Create layered island with more natural shape
+                if distance <= island_radius * 0.7:
+                    world[row][col] = END_STONE_ID  # End Stone core
+                elif distance <= island_radius * 0.85:
+                    if random.random() < 0.8:
+                        world[row][col] = END_STONE_ID
+                else:
+                    if random.random() < 0.4:
+                        world[row][col] = END_STONE_ID
+    
+    # Add obsidian pillars with End Crystals around main island
+    print("🔮 Creating obsidian pillars with End Crystals...")
+    pillar_count = 10
+    for i in range(pillar_count):
+        angle = (i / pillar_count) * 2 * math.pi
+        pillar_distance = 25  # Distance from center
+        pillar_x = int(island_center_x + math.cos(angle) * pillar_distance)
+        pillar_y = int(island_center_y + math.sin(angle) * pillar_distance * 0.5)  # Elliptical pattern
+        pillar_height = random.randint(10, 18)
+        
+        if 0 <= pillar_x < GRID_WIDTH:
+            # Build pillar from island surface up
+            pillar_base_row = island_center_y
+            for h in range(pillar_height):
+                pillar_row = pillar_base_row - h
+                if 0 <= pillar_row < GRID_HEIGHT:
+                    world[pillar_row][pillar_x] = OBSIDIAN_ID  # Obsidian pillar
+            
+            # Store pillar top location for dragon perching
+            pillar_top_x = pillar_x * BLOCK_SIZE + BLOCK_SIZE // 2
+            pillar_top_y = (pillar_base_row - pillar_height) * BLOCK_SIZE
+            DRAGON_PERCH_LOCATIONS.append((pillar_top_x, pillar_top_y))
+            
+            # Place End Crystal on top of pillar
+            crystal_x = pillar_top_x
+            crystal_y = pillar_top_y
+            crystal = EndCrystal(crystal_x, crystal_y, i)
+            END_CRYSTALS.add(crystal)
+    
+    print(f"✅ Created {pillar_count} obsidian pillars with End Crystals!")
+    
+    # Generate smaller outer islands
+    for _ in range(15):
+        island_x = random.randint(10, GRID_WIDTH - 10)
+        island_y = random.randint(10, GRID_HEIGHT - 10)
+        # Avoid main island area
+        if math.sqrt((island_x - island_center_x)**2 + (island_y - island_center_y)**2) > 40:
+            small_radius = random.randint(3, 8)
+            for row in range(max(0, island_y - small_radius), min(GRID_HEIGHT, island_y + small_radius)):
+                for col in range(max(0, island_x - small_radius), min(GRID_WIDTH, island_x + small_radius)):
+                    distance = math.sqrt((col - island_x)**2 + (row - island_y)**2)
+                    if distance <= small_radius and random.random() < 0.6:
+                        world[row][col] = END_STONE_ID
+    
+    # Add Dragon Egg at center of main island (removed for now - dragon will drop it)
+    # world[island_center_y][island_center_x] = DRAGON_EGG_ID
+    
+    # Add End portal spawn point (for returning to overworld) 
+    portal_x = island_center_x + 10
+    portal_y = island_center_y
+    if 0 <= portal_x < GRID_WIDTH and 0 <= portal_y < GRID_HEIGHT:
+        world[portal_y][portal_x] = END_PORTAL_ID
+    
+    # Spawn Ender Dragon boss
+    mobs = pygame.sprite.Group()
+    dragon_x = island_center_x * BLOCK_SIZE
+    dragon_y = (island_center_y - 10) * BLOCK_SIZE  # Spawn above the island
+    dragon = EnderDragon(dragon_x, dragon_y)
+    mobs.add(dragon)
+    
+    # Spawn some Endermen on the main island
+    for _ in range(5):
+        enderman_col = island_center_x + random.randint(-15, 15)
+        enderman_row = island_center_y - 1
+        if 0 <= enderman_col < GRID_WIDTH and 0 <= enderman_row < GRID_HEIGHT:
+            enderman_x = enderman_col * BLOCK_SIZE
+            enderman_y = enderman_row * BLOCK_SIZE
+            enderman = Enderman(enderman_x, enderman_y)
+            mobs.add(enderman)
+    
+    print(f"🐉 Ender Dragon spawned at ({dragon_x}, {dragon_y})")
+    return world, mobs, []  # Return world, mobs with dragon, empty biome list
+
+
+def generate_overworld():
+    
+    # Initialize world array
     world = []
     
     # 1. Fill with Sky/Air
@@ -4291,70 +4126,44 @@ def generate_world():
         final_height = max(1, min(GRID_HEIGHT - 3, final_height))
         height_map[col] = final_height
     
-    # --- Determine Biome Regions - GUARANTEED SEQUENTIAL SPAWNING ---
-    # Every biome spawns at least once before repeating
+    # --- Determine Biome Regions (5 biomes) ---
     biome_map = [] 
     
-    # Guaranteed biome sequence: Plains → Forest → Desert → Snow → Swamp → Jungle → Ocean → Mountain → Taiga → Birch Forest → Bamboo Jungle → Savannah
-    BIOME_SEQUENCE = [
-        PLAINS_BIOME,
-        OAK_FOREST_BIOME,
-        DESERT_BIOME,
-        SNOW_BIOME,
-        SWAMP_BIOME,
-        JUNGLE_BIOME,
-        OCEAN_BIOME,
-        MOUNTAIN_BIOME,
-        TAIGA_BIOME,
-        BIRCH_FOREST_BIOME,
-        BAMBOO_JUNGLE_BIOME,
-        SAVANNAH_BIOME
-    ]
+    all_biomes = [OAK_FOREST_BIOME, DESERT_BIOME, SNOW_BIOME, SWAMP_BIOME, TAIGA_BIOME, PLAINS_BIOME, BIRCH_FOREST_BIOME, JUNGLE_BIOME, BAMBOO_JUNGLE_BIOME, SAVANNAH_BIOME, OCEAN_BIOME, MOUNTAIN_BIOME]
+    current_biome = random.choice(all_biomes)  
+    biome_length = random.randint(100, 140)  # Half-chunk size biomes (128 +/- variation)
+    col_counter = 0
     
-    biome_index = 0  # Start with first biome in sequence
-    col = 0
-    
-    print("🌍 GENERATING WORLD WITH GUARANTEED BIOME SPAWNING:")
-    
-    while col < GRID_WIDTH:
-        current_biome = BIOME_SEQUENCE[biome_index]
+    for col in range(GRID_WIDTH):
+        if col_counter >= biome_length:
+            # More balanced biome weights
+            # Order: Oak, Desert, Snow, Swamp, Taiga, Plains, Birch, Jungle, Bamboo, Savannah, Ocean, Mountain
+            biome_weights = [1, 1, 1, 1, 1, 1.5, 1, 0.8, 0.5, 1, 1.2, 1]  # Ocean and mountains slightly more common
+            current_biome = random.choices(all_biomes, weights=biome_weights)[0]
+            
+            # Debug print for jungle biomes
+            if current_biome == JUNGLE_BIOME:
+                print(f"🌴 JUNGLE BIOME starting at column {col}, length will be {biome_length} blocks")
+            elif current_biome == BAMBOO_JUNGLE_BIOME:
+                print(f"🎋 BAMBOO JUNGLE BIOME starting at column {col}, length will be {biome_length} blocks")
+            
+            # Biomes now span approximately half a chunk (128 blocks)
+            if current_biome == PLAINS_BIOME:
+                biome_length = random.randint(120, 150)  # Slightly larger plains
+            elif current_biome in [JUNGLE_BIOME, BAMBOO_JUNGLE_BIOME]:
+                biome_length = random.randint(110, 160)  # Larger jungle biomes
+            elif current_biome == OCEAN_BIOME:
+                biome_length = random.randint(200, 400)  # Medium ocean biome (was 500-1000)
+                print(f"🌊 OCEAN BIOME starting at column {col}, length will be {biome_length} blocks")
+            elif current_biome == MOUNTAIN_BIOME:
+                biome_length = random.randint(150, 250)  # Large mountain ranges
+                print(f"⛰️ MOUNTAIN BIOME starting at column {col}, length will be {biome_length} blocks")
+            else:
+                biome_length = random.randint(100, 140)  # ~Half chunk for others
+            col_counter = 0
         
-        # Determine biome width (200-400 blocks each)
-        if current_biome == OCEAN_BIOME:
-            biome_length = random.randint(300, 500)  # Larger oceans
-        elif current_biome == MOUNTAIN_BIOME:
-            biome_length = random.randint(250, 400)  # Large mountains
-        else:
-            biome_length = random.randint(200, 400)  # Standard biomes
-        
-        # Make sure we don't exceed world width
-        if col + biome_length > GRID_WIDTH:
-            biome_length = GRID_WIDTH - col
-        
-        # Fill biome_map with this biome
-        for i in range(biome_length):
-            if col + i < GRID_WIDTH:
-                biome_map.append(current_biome)
-        
-        # Print biome info
-        biome_names = {
-            PLAINS_BIOME: "Plains",
-            OAK_FOREST_BIOME: "Oak Forest",
-            DESERT_BIOME: "Desert",
-            SNOW_BIOME: "Snow",
-            SWAMP_BIOME: "Swamp",
-            JUNGLE_BIOME: "Jungle",
-            OCEAN_BIOME: "Ocean",
-            MOUNTAIN_BIOME: "Mountain",
-            TAIGA_BIOME: "Taiga",
-            BIRCH_FOREST_BIOME: "Birch Forest",
-            BAMBOO_JUNGLE_BIOME: "Bamboo Jungle",
-            SAVANNAH_BIOME: "Savannah"
-        }
-        print(f"  {biome_names.get(current_biome, 'Unknown')} biome: columns {col}-{col + biome_length - 1} ({biome_length} blocks)")
-        
-        col += biome_length
-        biome_index = (biome_index + 1) % len(BIOME_SEQUENCE)  # Cycle through biomes
+        biome_map.append(current_biome)
+        col_counter += 1
         
     # --- Populate World with Blocks ---
     for col in range(GRID_WIDTH):
@@ -4798,13 +4607,12 @@ def generate_world():
         
         if structure_start_limit < structure_end_limit:
             structure_col_start = random.randint(structure_start_limit, structure_end_limit)
-            blocks_used = 0  # Initialize to prevent TypeError
             
             # PILLAGER OUTPOST (Plains and Taiga) - Guaranteed once per biome
             if current_biome_type in [PLAINS_BIOME, TAIGA_BIOME]:
                 biome_key = f"outpost_{col // 100}"
                 if biome_key not in GENERATED_BIOMES.get('pillager_outpost', set()):
-                    blocks_used = generate_pillager_outpost(WORLD_MAP, height_map, structure_col_start, mobs) or 0
+                    blocks_used = generate_pillager_outpost(WORLD_MAP, height_map, structure_col_start, mobs)
                     if blocks_used > 0:
                         biome_name = "Plains" if current_biome_type == PLAINS_BIOME else "Taiga"
                         STRUCTURE_LOCATIONS['pillager_outpost'].append((structure_col_start, height_map[structure_col_start], biome_name))
@@ -4816,7 +4624,7 @@ def generate_world():
             
             # TAIGA TOWER
             elif current_biome_type == TAIGA_BIOME and random.random() < 0.6:
-                blocks_used = generate_taiga_tower(WORLD_MAP, height_map, structure_col_start) or 0
+                blocks_used = generate_taiga_tower(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     print(f"🗼 Taiga Tower spawned at column {structure_col_start}")
                     STRUCTURE_NOTIFICATIONS.append(["Taiga Tower (Taiga)", structure_col_start, FPS * 10])
@@ -4842,7 +4650,7 @@ def generate_world():
             elif current_biome_type == DESERT_BIOME:
                 biome_key = f"desert_{col // 100}"
                 if biome_key not in GENERATED_BIOMES.get('desert_temple', set()):
-                    blocks_used = generate_desert_temple(WORLD_MAP, height_map, structure_col_start) or 0
+                    blocks_used = generate_desert_temple(WORLD_MAP, height_map, structure_col_start)
                     if blocks_used > 0:
                         STRUCTURE_LOCATIONS['desert_temple'].append((structure_col_start, height_map[structure_col_start], "Desert"))
                         if 'desert_temple' not in GENERATED_BIOMES:
@@ -4853,18 +4661,16 @@ def generate_world():
 
             # Ocean Shipwreck (New)
             elif current_biome_type == OCEAN_BIOME and random.random() < 0.5:
-                blocks_used = generate_shipwreck(WORLD_MAP, height_map, structure_col_start) or 0
+                blocks_used = generate_shipwreck(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     print(f"🚢 Shipwreck spawned at column {structure_col_start}")
                     STRUCTURE_NOTIFICATIONS.append(["Shipwreck (Ocean)", structure_col_start, FPS * 10])
 
             # Snow Igloo (Existing)
             elif current_biome_type == SNOW_BIOME and random.random() < 0.8:
-                blocks_used = generate_snow_igloo(WORLD_MAP, height_map, structure_col_start) or 0
-                if isinstance(blocks_used, tuple):
-                    print(f"DEBUG: Snow igloo returned tuple: {blocks_used}")
-                    blocks_used = blocks_used[0] if blocks_used else 0
+                blocks_used, penguins = generate_snow_igloo(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
+                    mobs.add(*penguins)
                     print(f"🏔️ Snow Igloo spawned at column {structure_col_start}")
                     STRUCTURE_NOTIFICATIONS.append(["Snow Igloo (Snow)", structure_col_start, FPS * 10])
             
@@ -4872,10 +4678,7 @@ def generate_world():
             
             # Ruins - Common in all land biomes (15% chance)
             elif current_biome_type in [PLAINS_BIOME, OAK_FOREST_BIOME, BIRCH_FOREST_BIOME, TAIGA_BIOME] and random.random() < 0.15:
-                blocks_used = generate_ruins(WORLD_MAP, height_map, structure_col_start) or 0
-                if isinstance(blocks_used, tuple):
-                    print(f"DEBUG: Ruins returned tuple: {blocks_used}")
-                    blocks_used = blocks_used[0] if blocks_used else 0
+                blocks_used = generate_ruins(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     STRUCTURE_LOCATIONS['ruins'].append((structure_col_start, height_map[structure_col_start], "Surface"))
                     print(f"🏚️ Ruins spawned at column {structure_col_start}")
@@ -4883,14 +4686,14 @@ def generate_world():
             
             # Abandoned House - Plains and forests (10% chance)
             elif current_biome_type in [PLAINS_BIOME, OAK_FOREST_BIOME, BIRCH_FOREST_BIOME] and random.random() < 0.10:
-                blocks_used = generate_abandoned_house(WORLD_MAP, height_map, structure_col_start) or 0
+                blocks_used = generate_abandoned_house(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     print(f"🏚️ Abandoned House spawned at column {structure_col_start}")
                     STRUCTURE_NOTIFICATIONS.append(["Abandoned House", structure_col_start, FPS * 5])
             
             # Dungeon - Underground (8% chance, any biome)
             elif random.random() < 0.08:
-                blocks_used = generate_dungeon(WORLD_MAP, height_map, structure_col_start) or 0
+                blocks_used = generate_dungeon(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     STRUCTURE_LOCATIONS['dungeon'].append((structure_col_start, height_map[structure_col_start] + 10, "Underground"))
                     print(f"⚔️ Dungeon spawned at column {structure_col_start}")
@@ -4898,7 +4701,7 @@ def generate_world():
             
             # Mineshaft - Underground (12% chance, non-ocean/snow biomes)
             elif current_biome_type not in [OCEAN_BIOME, SNOW_BIOME] and random.random() < 0.12:
-                blocks_used = generate_mineshaft(WORLD_MAP, height_map, structure_col_start) or 0
+                blocks_used = generate_mineshaft(WORLD_MAP, height_map, structure_col_start)
                 if blocks_used > 0:
                     STRUCTURE_LOCATIONS['mineshaft'].append((structure_col_start, height_map[structure_col_start] + 15, "Underground"))
                     print(f"⛏️ Mineshaft spawned at column {structure_col_start}")
@@ -4925,11 +4728,14 @@ def generate_world():
                                 
                                 # Only spawn if terrain is reasonably flat (variance < 15 blocks)
                                 if terrain_variance < 15:
-                                    blocks_used = generate_plains_village(WORLD_MAP, height_map, village_start) or 0
+                                    blocks_used, villagers = generate_plains_village(WORLD_MAP, height_map, village_start)
                                     
                                     if blocks_used > 0:
                                         villages_spawned += 1
                                         last_village_col = village_start
+                                        # Add villagers one by one
+                                        for villager in villagers:
+                                            mobs.add(villager)
                                         structure_col_start = village_start
                                         
                                         # Track structure location
@@ -4939,12 +4745,12 @@ def generate_world():
                                             GENERATED_BIOMES['village'] = set()
                                         GENERATED_BIOMES['village'].add(biome_key)
                                         
-                                        print(f"🏘️ Village #{villages_spawned} spawned at column {village_start} (terrain variance: {terrain_variance})")
+                                        print(f"🏘️ Village #{villages_spawned} spawned at column {village_start} with {len(villagers)} villagers (terrain variance: {terrain_variance})")
                                         STRUCTURE_NOTIFICATIONS.append([f"Village #{villages_spawned} (Plains)", village_start, FPS * 10])
                                         break 
             
         # Update decoration/loop start
-        if blocks_used is not None and blocks_used > 0:
+        if blocks_used > 0:
             decoration_start = structure_col_start + blocks_used
             col = decoration_start
         else:
@@ -5227,7 +5033,14 @@ def generate_world():
                             # Spawn chicken group (smaller)
                             for offset in range(0, 3):
                                 if col + offset < GRID_WIDTH:
-                                    mobs.add(Chicken(spawn_x + offset * BLOCK_SIZE, spawn_y))
+                                    chicken = Chicken(spawn_x + offset * BLOCK_SIZE, spawn_y)
+                                    mobs.add(chicken)
+                                    # 1% chance for chicken jockey
+                                    if random.random() < 0.01:
+                                        baby_zombie = Zombie(spawn_x + offset * BLOCK_SIZE, spawn_y, is_baby=True)
+                                        mobs.add(baby_zombie)
+                                        chicken.mount_mob(baby_zombie)
+                                        print(f"🐔🧟 Chicken Jockey spawned during world generation!")
                         elif r < 0.55:
                             # Spawn pig group (smaller)
                             for offset in range(0, 3):
@@ -5377,7 +5190,7 @@ def generate_world():
                 break
         
         if not too_close:
-            blocks_used = generate_stronghold(WORLD_MAP, height_map, stronghold_col) or 0
+            blocks_used = generate_stronghold(WORLD_MAP, height_map, stronghold_col)
             if blocks_used > 0:
                 STRUCTURE_LOCATIONS['stronghold'].append((stronghold_col, GRID_HEIGHT // 2 + 15, "Underground"))
                 STRONGHOLD_LOCATIONS.append((stronghold_col * BLOCK_SIZE, (GRID_HEIGHT // 2 + 15) * BLOCK_SIZE))
@@ -5423,14 +5236,16 @@ def generate_world():
                 
                 # Try to generate the structure
                 if structure_type == 'village':
-                    blocks_used = generator_func(WORLD_MAP, height_map, spawn_col) or 0
+                    blocks_used, villagers = generator_func(WORLD_MAP, height_map, spawn_col)
                     if blocks_used > 0:
+                        for villager in villagers:
+                            mobs.add(villager)
                         STRUCTURE_LOCATIONS['village'].append((spawn_col, height_map[spawn_col], "Plains"))
                         VILLAGE_LOCATIONS.append((spawn_col, spawn_col))
                         print(f"  ✅ Forced {structure_name} at column {spawn_col}")
                         spawned = True
                 elif structure_type in ['dungeon', 'mineshaft', 'ruins']:
-                    blocks_used = generator_func(WORLD_MAP, height_map, spawn_col) or 0
+                    blocks_used = generator_func(WORLD_MAP, height_map, spawn_col)
                     if blocks_used > 0:
                         if structure_type == 'dungeon':
                             STRUCTURE_LOCATIONS['dungeon'].append((spawn_col, height_map[spawn_col] + 10, "Underground"))
@@ -5442,7 +5257,7 @@ def generate_world():
                         spawned = True
                 else:
                     # Desert temple, witch hut, pillager outpost
-                    blocks_used = generator_func(WORLD_MAP, height_map, spawn_col) or 0
+                    blocks_used = generator_func(WORLD_MAP, height_map, spawn_col)
                     if blocks_used > 0:
                         STRUCTURE_LOCATIONS[structure_type].append((spawn_col, height_map[spawn_col], biome_map[spawn_col]))
                         print(f"  ✅ Forced {structure_name} at column {spawn_col}")
@@ -5454,27 +5269,6 @@ def generate_world():
                 print(f"  ⚠️ Failed to force spawn {structure_name} after {max_attempts} attempts")
     
     print("\\n✅ Structure guarantee pass complete!")
-
-    # Add any mobs spawned by structure generators
-    if hasattr(generate_witch_hut, 'spawned_mobs'):
-        for mob in generate_witch_hut.spawned_mobs:
-            mobs.add(mob)
-        generate_witch_hut.spawned_mobs.clear()  # Clear for next world generation
-    
-    if hasattr(generate_snow_igloo, 'spawned_mobs'):
-        for mob in generate_snow_igloo.spawned_mobs:
-            mobs.add(mob)
-        generate_snow_igloo.spawned_mobs.clear()
-    
-    if hasattr(generate_plains_village, 'spawned_mobs'):
-        for mob in generate_plains_village.spawned_mobs:
-            mobs.add(mob)
-        generate_plains_village.spawned_mobs.clear()
-    
-    # 🌸 Add flowers to grass blocks across all biomes
-    print("\\n🌸 Adding decorative flowers...")
-    add_flowers(world, height_map, 0, GRID_WIDTH)
-    print(f"✅ Flowers added across world!")
 
     MOBS = mobs
     return world, mobs, biome_map
@@ -5556,46 +5350,23 @@ def generate_new_chunk(chunk_id):
         
         new_biome_data = []
         
-        # Use guaranteed biome sequence for new chunks
-        BIOME_SEQUENCE = [PLAINS_BIOME, OAK_FOREST_BIOME, DESERT_BIOME, SNOW_BIOME, SWAMP_BIOME, 
-                          JUNGLE_BIOME, OCEAN_BIOME, MOUNTAIN_BIOME, TAIGA_BIOME, BIRCH_FOREST_BIOME, 
-                          BAMBOO_JUNGLE_BIOME, SAVANNAH_BIOME]
-        
-        # Determine starting biome based on existing biome data
-        if len(BIOME_MAP) > 0:
-            last_biome = BIOME_MAP[-1]
-            try:
-                last_index = BIOME_SEQUENCE.index(last_biome)
-                biome_index = (last_index + 1) % len(BIOME_SEQUENCE)
-            except:
-                biome_index = 0
-        else:
-            biome_index = 0
-        
-        current_biome = BIOME_SEQUENCE[biome_index]
-        biome_length = random.randint(200, 400)  # Match initial generation
-        if current_biome == OCEAN_BIOME:
-            biome_length = random.randint(300, 500)
-        elif current_biome == MOUNTAIN_BIOME:
-            biome_length = random.randint(250, 400)
-        
+        # Create biome pattern for the new chunk
+        current_biome = random.choice([OAK_FOREST_BIOME, PLAINS_BIOME, DESERT_BIOME, TAIGA_BIOME, SNOW_BIOME, SWAMP_BIOME])
+        biome_length = random.randint(100, 140)
         col_counter = 0
         
         for col_offset in range(CHUNK_SIZE):
             col = col_offset
             
-            # Change biome if needed (guaranteed sequence)
+            # Change biome if needed
             if col_counter >= biome_length:
-                biome_index = (biome_index + 1) % len(BIOME_SEQUENCE)
-                current_biome = BIOME_SEQUENCE[biome_index]
-                
-                # Set biome length based on type
+                biome_weights = [1, 1, 1, 1, 1, 1.5, 1, 0.8, 0.5, 1, 1.2, 1]  # Ocean and mountains slightly more common
+                all_biomes = [OAK_FOREST_BIOME, DESERT_BIOME, SNOW_BIOME, SWAMP_BIOME, TAIGA_BIOME, PLAINS_BIOME, BIRCH_FOREST_BIOME, JUNGLE_BIOME, BAMBOO_JUNGLE_BIOME, SAVANNAH_BIOME, OCEAN_BIOME, MOUNTAIN_BIOME]
+                current_biome = random.choices(all_biomes, weights=biome_weights)[0]
                 if current_biome == OCEAN_BIOME:
-                    biome_length = random.randint(300, 500)
-                elif current_biome == MOUNTAIN_BIOME:
-                    biome_length = random.randint(250, 400)
+                    biome_length = random.randint(500, 1000)
                 else:
-                    biome_length = random.randint(200, 400)
+                    biome_length = random.randint(100, 140)
                 col_counter = 0
             
             new_biome_data.append(current_biome)
@@ -5823,7 +5594,14 @@ def generate_new_chunk(chunk_id):
                     if random.random() < 0.5:
                         MOBS.add(Pig(spawn_x, spawn_y))
                     else:
-                        MOBS.add(Chicken(spawn_x, spawn_y))
+                        chicken = Chicken(spawn_x, spawn_y)
+                        MOBS.add(chicken)
+                        # 1% chance for chicken jockey
+                        if random.random() < 0.01:
+                            baby_zombie = Zombie(spawn_x, spawn_y, is_baby=True)
+                            MOBS.add(baby_zombie)
+                            chicken.mount_mob(baby_zombie)
+                            print(f"🐔🧟 Chicken Jockey spawned during daily respawn!")
                 elif biome_type == OCEAN_BIOME:
                     # Ocean mob spawning with different rarities
                     rand = random.random()
@@ -6055,33 +5833,12 @@ class DroppedItem(pygame.sprite.Sprite):
         self.gravity = 0.5
         self.lifetime = FPS * 300  # 5 minutes before despawn
         
-        # 🎭 PARODY: Bouncy animation variables
-        self.bounce_timer = 0
-        self.spin_angle = 0
-        self.original_image = self.image.copy()  # Store for rotation
-        
     def update(self):
         """Apply gravity and collision."""
         self.lifetime -= 1
         if self.lifetime <= 0:
             self.kill()
             return
-        
-        # 🎭 PARODY: Items spin and bounce in the air (like Mario coins!)
-        self.bounce_timer += 1
-        self.spin_angle = (self.bounce_timer * 5) % 360  # Rotate continuously
-        
-        # Create rotating image
-        if hasattr(self, 'original_image'):
-            self.image = pygame.transform.rotate(self.original_image, self.spin_angle)
-            old_center = self.rect.center
-            self.rect = self.image.get_rect()
-            self.rect.center = old_center
-        
-        # Floating bounce animation when on ground
-        if self.vel_y == 0:
-            float_offset = math.sin(self.bounce_timer * 0.1) * 3
-            self.rect.y += int(float_offset)
         
         # Apply gravity
         self.vel_y += self.gravity
@@ -6369,12 +6126,6 @@ class Player(pygame.sprite.Sprite):
         self.max_charge_time = FPS * 2  # 2 seconds max charge
         self.charge_hit_mobs = set()  # Track which mobs were hit during this charge
         # -----------------------------------------------------------
-
-    def switch_active_slot(self, slot_index):
-        """Switches the active hotbar slot."""
-        if 0 <= slot_index <= 8:
-            self.active_slot = slot_index
-            self.held_block = self.hotbar_slots[self.active_slot][0]
     
     def update_animations(self):
         """Update player animations including blinking, walking bobbing, and arm swinging."""
@@ -6417,6 +6168,12 @@ class Player(pygame.sprite.Sprite):
         
         # Update mouth state (open during swing)
         self.mouth_open = self.is_swinging and self.arm_swing_timer > self.arm_swing_duration * 0.3
+
+    def switch_active_slot(self, slot_index):
+        """Switches the active hotbar slot."""
+        if 0 <= slot_index <= 8:
+            self.active_slot = slot_index
+            self.held_block = self.hotbar_slots[self.active_slot][0]
             
     def add_to_inventory(self, block_id, amount=1):
         """Adds a block to inventory - tries hotbar first, then main inventory."""
@@ -6578,9 +6335,10 @@ class Player(pygame.sprite.Sprite):
             # Apply remaining damage to health
             if amount > 0:
                 self.health -= amount
-                # Play damage sound
-                pycraft_sounds.play_player_damage()
                 print(f"💔 Player took {amount} damage! Health: {self.health}")
+                
+                # Play damage sound effect
+                SOUND_MANAGER.play_sound('player_hurt', 0.6)
             
             self.damage_flash_timer = FPS // 2
             print(f"Health: {self.health} | Absorption: {self.absorption} | Creative: {self.creative_mode} | Flash Timer: {self.damage_flash_timer}")
@@ -6595,6 +6353,8 @@ class Player(pygame.sprite.Sprite):
             
             if self.health <= 0:
                 print("💀 Player has died!")
+                # Play death sound
+                SOUND_MANAGER.play_sound('player_death', 0.8)
                 # Don't kill the player sprite, just trigger death screen
                 self.health = 0  # Ensure health doesn't go negative
         else:
@@ -6708,12 +6468,6 @@ class Player(pygame.sprite.Sprite):
             print("  /time <day|night|value> - Set time")
             print("  /tp <x> <y> - Teleport to coordinates")
             print("  /locate <structure> - Find nearest structure")
-            print("  /fly - Toggle flying (creative only)")
-            print("  /speed <value> - Set movement speed (1-20)")
-            print("  /weather <clear|rain|storm> - Change weather")
-            print("  /clear - Clear inventory")
-            print("  /xp <amount> - Add experience points")
-            print("  /effect <name> [duration] - Apply status effect")
             print("    Available: village, pillager_outpost, desert_temple, witch_hut, stronghold, dungeon, mineshaft, ruins")
         
         elif cmd == "locate":
@@ -6740,72 +6494,11 @@ class Player(pygame.sprite.Sprite):
                         
                         if nearest:
                             struct_x, struct_y, biome = nearest
-        
-        elif cmd == "fly":
-            # Toggle flying in creative mode
-            if self.creative_mode:
-                self.is_flying = not self.is_flying
-                print(f"✈️ Flying: {'ON' if self.is_flying else 'OFF'}")
-            else:
-                print("❌ Flying is only available in creative mode")
-        
-        elif cmd == "speed":
-            # Set movement speed: /speed <value>
-            if len(parts) >= 2:
-                try:
-                    speed = float(parts[1])
-                    self.speed = max(1, min(speed, 20))  # Clamp between 1 and 20
-                    self.base_speed = self.speed
-                    print(f"⚡ Speed set to {self.speed}")
-                except ValueError:
-                    print("❌ Invalid speed value")
-            else:
-                print("❌ Usage: /speed <value>")
-        
-        elif cmd == "weather":
-            # Change weather: /weather <clear|rain|storm>
-            if len(parts) >= 2:
-                weather = parts[1].lower()
-                if weather == "clear":
-                    print("☀️ Weather set to clear")
-                elif weather == "rain":
-                    print("🌧️ Weather set to rain")
-                elif weather == "storm":
-                    print("⛈️ Weather set to storm")
+                            print(f"📍 Nearest {structure_type} is at ({struct_x}, {struct_y}) in {biome} biome")
+                            print(f"   Distance: {int(min_dist)} blocks")
+                            print(f"   Teleport with: /tp {struct_x} {struct_y}")
                 else:
-                    print("❌ Usage: /weather <clear|rain|storm>")
-        
-        elif cmd == "clear":
-            # Clear inventory
-            self.hotbar_slots = [(0, 0, {}) for _ in range(9)]
-            self.inventory = [(0, 0, {}) for _ in range(27)]
-            self.held_block = 0
-            print("🗑️ Inventory cleared")
-        
-        elif cmd == "xp":
-            # Add XP: /xp <amount>
-            if len(parts) >= 2:
-                try:
-                    amount = int(parts[1])
-                    self.add_xp(amount)
-                    print(f"✨ Added {amount} XP")
-                except ValueError:
-                    print("❌ Invalid XP amount")
-        
-        elif cmd == "effect":
-            # Apply status effect: /effect <effect> <duration>
-            if len(parts) >= 2:
-                effect = parts[1].lower()
-                duration = int(parts[2]) * FPS if len(parts) >= 3 else FPS * 30  # Default 30 seconds
-                
-                if effect in ["speed", "haste", "strength", "jump", "resistance", "fire_resistance", "water_breathing", "invisibility", "night_vision", "health_boost", "absorption", "saturation", "regeneration"]:
-                    self.effects[effect] = duration
-                    print(f"✨ Applied {effect} for {duration//FPS} seconds")
-                elif effect == "clear":
-                    self.effects = {}
-                    print("🧹 Cleared all effects")
-                else:
-                    print(f"❌ Unknown effect: {effect}")
+                    print(f"❌ Unknown structure type. Available: village, pillager_outpost, desert_temple, witch_hut, stronghold, dungeon, mineshaft, ruins")
         
         else:
             print(f"❌ Unknown command: /{cmd}")
@@ -6844,9 +6537,139 @@ class Player(pygame.sprite.Sprite):
         print("Player has died!")
         self.kill()
 
+    def start_swing_animation(self):
+        """Start arm swing animation when attacking or using tools."""
+        self.is_swinging = True
+        self.arm_swing_timer = 0
+        self.swing_direction = self.direction
+        self.mouth_open = True  # Open mouth during swing
+        
+        # Play swing sound
+        SOUND_MANAGER.play_sound('swing', 0.3)
+        
+        # Play footstep sound if moving
+        if abs(self.vel_x) > 0.5:
+            SOUND_MANAGER.play_sound('footstep', 0.2)
+    
+    def update_animations(self):
+        """Update all animation timers and calculate body part positions."""
+        # Blinking animation
+        self.blink_timer += 1
+        if self.blink_timer >= self.blink_interval:
+            self.is_blinking = True
+            self.blink_timer = 0
+            self.blink_interval = random.randint(120, 180)  # Random next blink
+        
+        if self.is_blinking:
+            if self.blink_timer >= self.blink_duration:
+                self.is_blinking = False
+                self.blink_timer = 0
+        
+        # Walking animation with improved joint movement
+        if abs(self.vel_x) > 0.5:  # Only animate when actually moving
+            self.animation_timer += 1
+            self.step_timer += 1
+            
+            # Head bobbing (reduced for more natural look)
+            self.bob_offset = math.sin(self.animation_timer * 0.3) * 1.0
+            
+            # Improved leg movement with proper pivot points
+            leg_swing = math.sin(self.animation_timer * 0.4) * 4
+            self.left_leg_offset = leg_swing * 0.8  # Slightly reduced for more natural look
+            self.right_leg_offset = -leg_swing * 0.8
+            
+            # Enhanced arm swing during walking (only if not attacking)
+            if not self.is_swinging:
+                arm_swing = math.sin(self.animation_timer * 0.4) * 10  # Reduced degrees for subtlety
+                self.left_arm_angle = arm_swing
+                self.right_arm_angle = -arm_swing
+            
+            # Play footstep sound occasionally
+            if self.step_timer % 20 == 0:
+                SOUND_MANAGER.play_sound('footstep', 0.1)
+        else:
+            # Reset to neutral position when not moving
+            self.animation_timer = 0
+            self.bob_offset = 0
+            self.left_leg_offset = 0
+            self.right_leg_offset = 0
+            if not self.is_swinging:
+                self.left_arm_angle = 0
+                self.right_arm_angle = 0
+        
+        # Enhanced attack/tool swing animation
+        if self.is_swinging:
+            self.arm_swing_timer += 1
+            
+            # Calculate swing arc with easing (0 to 90 degrees)
+            progress = self.arm_swing_timer / self.arm_swing_duration
+            # Use easing for more natural movement
+            eased_progress = 1 - (1 - progress) ** 2  # Ease out
+            
+            if progress <= 0.5:
+                # First half: swing up
+                angle = eased_progress * 2 * 90  # 0 to 90 degrees
+            else:
+                # Second half: swing down with different easing
+                ease_down = (progress - 0.5) * 2  # 0 to 1
+                angle = 90 - (ease_down ** 1.5) * 90  # 90 to 0 degrees with faster ending
+            
+            # Apply swing to dominant arm with improved pivot
+            if self.swing_direction > 0:  # Right swing
+                self.right_arm_angle = -angle  # Negative for clockwise
+            else:  # Left swing
+                self.left_arm_angle = angle  # Positive for counter-clockwise
+            
+            # End swing animation and close mouth
+            if self.arm_swing_timer >= self.arm_swing_duration:
+                self.is_swinging = False
+                self.arm_swing_timer = 0
+                self.left_arm_angle = 0
+                self.right_arm_angle = 0
+                self.mouth_open = False  # Close mouth after swing
+    
+    def render_body_part_with_pivot(self, surface, part_surface, pivot_x, pivot_y, angle=0):
+        """Render a body part with rotation around a specific pivot point."""
+        if angle != 0:
+            # Rotate around the pivot point for more natural joint movement
+            rotated_part = pygame.transform.rotate(part_surface, angle)
+            
+            # Calculate offset to maintain pivot point
+            original_center = (pivot_x, pivot_y)
+            rotated_rect = rotated_part.get_rect()
+            offset_x = original_center[0] - rotated_rect.centerx
+            offset_y = original_center[1] - rotated_rect.centery
+            
+            surface.blit(rotated_part, (pivot_x - rotated_rect.width//2 + offset_x, 
+                                       pivot_y - rotated_rect.height//2 + offset_y))
+        else:
+            surface.blit(part_surface, (pivot_x - part_surface.get_width()//2, 
+                                       pivot_y - part_surface.get_height()//2))
+    
+    def render_body_part(self, surface, part_surface, x, y, angle=0):
+        """Render a body part with optional rotation."""
+        if angle != 0:
+            rotated_part = pygame.transform.rotate(part_surface, angle)
+            # Adjust position to account for rotation offset
+            rect = rotated_part.get_rect(center=(x + part_surface.get_width()//2, y + part_surface.get_height()//2))
+            surface.blit(rotated_part, rect)
+        else:
+            surface.blit(part_surface, (x, y))
+
     def get_image(self):
-        """Returns the player image with damage flash effect if needed."""
-        original_image = self.image.copy()
+        """Returns the animated player image with separate body parts."""
+        # Update animations first
+        self.update_animations()
+        
+        # Create new surface for animated player
+        animated_image = pygame.Surface([BLOCK_SIZE, BLOCK_SIZE * 2], pygame.SRCALPHA)
+        
+        # Get skin colors
+        skin_data = PLAYER_SKINS.get(self.skin_name, PLAYER_SKINS["Steve"])
+        skin_color = skin_data["skin"]
+        hair_color = skin_data["hair"]
+        shirt_color = skin_data["shirt"]
+        pants_color = skin_data["pants"]
         
         # Check if player is swimming (in water)
         center_col = self.rect.centerx // BLOCK_SIZE
@@ -6857,92 +6680,168 @@ class Player(pygame.sprite.Sprite):
             if WORLD_MAP[center_row][center_col] in FLUID_BLOCKS:
                 in_water = True
         
-        # Rotate player to horizontal when swimming
+        # If swimming, use rotated version
         if in_water and abs(self.vel_x) > 0.5:
-            # Rotate 90 degrees to be fully horizontal when swimming
             if self.vel_x > 0:
-                original_image = pygame.transform.rotate(original_image, -90)  # Horizontal right
+                return pygame.transform.rotate(self.base_image, -90)  # Horizontal right
             else:
-                original_image = pygame.transform.rotate(original_image, 90)  # Horizontal left
+                return pygame.transform.rotate(self.base_image, 90)  # Horizontal left
         
-        # Draw armor and tools on player (if equipped and not swimming rotated)
-        # ONLY render armor when experimental textures are enabled
-        if USE_EXPERIMENTAL_TEXTURES and not (in_water and abs(self.vel_x) > 0.5):
+        # Create individual body part surfaces
+        head_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
+        body_surface = pygame.Surface((30, int(BLOCK_SIZE * 0.7)), pygame.SRCALPHA)
+        left_arm_surface = pygame.Surface((6, int(BLOCK_SIZE * 0.5)), pygame.SRCALPHA)
+        right_arm_surface = pygame.Surface((6, int(BLOCK_SIZE * 0.5)), pygame.SRCALPHA)
+        left_leg_surface = pygame.Surface((10, int(BLOCK_SIZE * 0.8)), pygame.SRCALPHA)
+        right_leg_surface = pygame.Surface((10, int(BLOCK_SIZE * 0.8)), pygame.SRCALPHA)
+        
+        # Draw body parts with enhanced details
+        # Head (with hair, animated eyes, animated mouth)
+        pygame.draw.rect(head_surface, skin_color, (0, 0, 20, 20))
+        pygame.draw.rect(head_surface, hair_color, (0, 0, 20, 6))  # Hair
+        
+        # Animated eyes (blinking)
+        if self.is_blinking:
+            # Draw closed eyes (horizontal lines)
+            pygame.draw.rect(head_surface, (0, 0, 0), (4, 10, 4, 1))  # Left eye closed
+            pygame.draw.rect(head_surface, (0, 0, 0), (12, 10, 4, 1))  # Right eye closed
+        else:
+            # Draw open eyes
+            pygame.draw.rect(head_surface, (255, 255, 255), (4, 8, 4, 3))  # Left eye
+            pygame.draw.rect(head_surface, (0, 0, 0), (5, 9, 2, 2))  # Left pupil
+            pygame.draw.rect(head_surface, (255, 255, 255), (12, 8, 4, 3))  # Right eye
+            pygame.draw.rect(head_surface, (0, 0, 0), (13, 9, 2, 2))  # Right pupil
+        
+        # Animated mouth (opens during swing)
+        if self.mouth_open:
+            # Open mouth (oval shape)
+            pygame.draw.ellipse(head_surface, (20, 10, 5), (7, 14, 6, 4))
+            pygame.draw.ellipse(head_surface, (0, 0, 0), (8, 15, 4, 2))  # Mouth interior
+        else:
+            # Closed mouth (line)
+            pygame.draw.rect(head_surface, (50, 30, 10), (6, 15, 8, 2))
+        
+        # Body (shirt)
+        pygame.draw.rect(body_surface, shirt_color, (0, 0, 30, int(BLOCK_SIZE * 0.7)))
+        
+        # Arms (skin color)
+        pygame.draw.rect(left_arm_surface, skin_color, (0, 0, 6, int(BLOCK_SIZE * 0.5)))
+        pygame.draw.rect(right_arm_surface, skin_color, (0, 0, 6, int(BLOCK_SIZE * 0.5)))
+        
+        # Legs (pants)
+        pygame.draw.rect(left_leg_surface, pants_color, (0, 0, 10, int(BLOCK_SIZE * 0.8)))
+        pygame.draw.rect(right_leg_surface, pants_color, (0, 0, 10, int(BLOCK_SIZE * 0.8)))
+        
+        # Position and render body parts with animations
+        # Legs (rendered first, behind body)
+        self.render_body_part(animated_image, left_leg_surface, 
+                            8 + self.left_leg_offset, int(BLOCK_SIZE * 1.2))
+        self.render_body_part(animated_image, right_leg_surface, 
+                            22 + self.right_leg_offset, int(BLOCK_SIZE * 1.2))
+        
+        # Body (center, static)
+        animated_image.blit(body_surface, (5, int(BLOCK_SIZE * 0.5)))
+        
+        # Arms (with rotation for swinging)
+        self.render_body_part(animated_image, left_arm_surface, 
+                            0, int(BLOCK_SIZE * 0.6), self.left_arm_angle)
+        self.render_body_part(animated_image, right_arm_surface, 
+                            34, int(BLOCK_SIZE * 0.6), self.right_arm_angle)
+        
+        # Head (with bobbing animation)
+        animated_image.blit(head_surface, (10, 2 + int(self.bob_offset)))
+        
+        # Head (with bobbing animation)
+        animated_image.blit(head_surface, (10, 2 + int(self.bob_offset)))
+        
+        # Draw armor and equipment (if equipped and experimental textures enabled)
+        if USE_EXPERIMENTAL_TEXTURES:
             # Helmet (on head)
             if self.armor_slots['helmet'] != 0 and self.armor_slots['helmet'] in BLOCK_TEXTURES:
                 try:
                     helmet_texture = BLOCK_TEXTURES[self.armor_slots['helmet']].copy()
-                    helmet_texture = pygame.transform.scale(helmet_texture, (30, 12))  # Larger helmet
-                    original_image.blit(helmet_texture, (5, 0))
+                    helmet_texture = pygame.transform.scale(helmet_texture, (30, 12))
+                    animated_image.blit(helmet_texture, (5, int(self.bob_offset)))
                 except:
                     pass
             
-            # Chestplate (single combined texture covering body and arms)
+            # Chestplate
             if self.armor_slots['chestplate'] != 0 and self.armor_slots['chestplate'] in BLOCK_TEXTURES:
                 try:
                     chest_texture = BLOCK_TEXTURES[self.armor_slots['chestplate']].copy()
-                    # Scale to cover entire torso area (body + arms in one piece)
                     chestplate = pygame.transform.scale(chest_texture, (40, int(BLOCK_SIZE * 0.7)))
-                    original_image.blit(chestplate, (0, int(BLOCK_SIZE * 0.5)))
+                    animated_image.blit(chestplate, (0, int(BLOCK_SIZE * 0.5)))
                 except:
                     pass
             
-            # Leggings (one texture per leg, not duplicated)
+            # Leggings
             if self.armor_slots['leggings'] != 0 and self.armor_slots['leggings'] in BLOCK_TEXTURES:
                 try:
                     leg_texture = BLOCK_TEXTURES[self.armor_slots['leggings']].copy()
-                    # Single scaled texture used for both legs
-                    leg_armor = pygame.transform.scale(leg_texture, (10, int(BLOCK_SIZE * 0.6)))
-                    original_image.blit(leg_armor, (8, int(BLOCK_SIZE * 1.2)))  # Left leg
-                    original_image.blit(leg_armor, (22, int(BLOCK_SIZE * 1.2)))  # Right leg
+                    leggings = pygame.transform.scale(leg_texture, (25, int(BLOCK_SIZE * 0.8)))
+                    animated_image.blit(leggings, (7, int(BLOCK_SIZE * 1.2)))
                 except:
                     pass
             
-            # Boots (one texture per foot, not duplicated)
+            # Boots
             if self.armor_slots['boots'] != 0 and self.armor_slots['boots'] in BLOCK_TEXTURES:
                 try:
                     boot_texture = BLOCK_TEXTURES[self.armor_slots['boots']].copy()
-                    # Single scaled texture used for both boots
-                    boot_armor = pygame.transform.scale(boot_texture, (10, int(BLOCK_SIZE * 0.2)))
-                    original_image.blit(boot_armor, (8, int(BLOCK_SIZE * 1.8)))  # Left foot
-                    original_image.blit(boot_armor, (22, int(BLOCK_SIZE * 1.8)))  # Right foot
+                    boots = pygame.transform.scale(boot_texture, (25, 10))
+                    animated_image.blit(boots, (7, int(BLOCK_SIZE * 1.9)))
                 except:
                     pass
-            
-            # Draw held tool/weapon in hand (only with experimental textures)
-            # IMPROVED: Show held item even if not in BLOCK_TEXTURES
-            if self.held_block != 0:
-                if self.held_block in BLOCK_TEXTURES:
-                    try:
-                        tool_texture = BLOCK_TEXTURES[self.held_block].copy()
-                        tool_scaled = pygame.transform.scale(tool_texture, (24, 24))
-                        # Position on right side extending past player
-                        original_image.blit(tool_scaled, (36, int(BLOCK_SIZE * 0.8)))
-                    except Exception as e:
-                        # Fallback: Draw colored square if texture fails
-                        if self.held_block in BLOCK_TYPES:
-                            color = BLOCK_TYPES[self.held_block].get("color", (255, 255, 255))
-                            fallback_surf = pygame.Surface((24, 24))
-                            fallback_surf.fill(color)
-                            # Add border so it's visible
-                            pygame.draw.rect(fallback_surf, (0, 0, 0), (0, 0, 24, 24), 2)
-                            original_image.blit(fallback_surf, (36, int(BLOCK_SIZE * 0.8)))
-                else:
-                    # Item doesn't have texture - use colored square from BLOCK_TYPES
-                    if self.held_block in BLOCK_TYPES:
-                        color = BLOCK_TYPES[self.held_block].get("color", (255, 255, 255))
-                        fallback_surf = pygame.Surface((24, 24))
-                        fallback_surf.fill(color)
-                        # Add border so it's clearly visible
-                        pygame.draw.rect(fallback_surf, (0, 0, 0), (0, 0, 24, 24), 2)
-                        original_image.blit(fallback_surf, (36, int(BLOCK_SIZE * 0.8)))
         
-        if self.damage_flash_timer > 0 and self.damage_flash_timer % 3 < 2:
-            overlay = pygame.Surface(original_image.get_size()).convert_alpha()
-            overlay.fill((255, 0, 0, 150)) 
-            original_image.blit(overlay, (0, 0))
-            
-        return original_image
+        # Draw held item with proper positioning and swing animation (IMPROVED VISIBILITY)
+        if self.held_block != 0:
+            try:
+                # Try texture first, fallback to colored rectangle
+                if self.held_block in BLOCK_TEXTURES:
+                    item_texture = BLOCK_TEXTURES[self.held_block].copy()
+                    item_size = int(BLOCK_SIZE * 0.8)  # Larger size for better visibility
+                    item_texture = pygame.transform.scale(item_texture, (item_size, item_size))
+                else:
+                    # Fallback: create colored rectangle for items without textures
+                    item_size = int(BLOCK_SIZE * 0.8)
+                    item_texture = pygame.Surface((item_size, item_size))
+                    # Use block color or default brown for tools/items
+                    color = BLOCK_TYPES.get(self.held_block, {}).get("color", (139, 69, 19))  # Brown fallback
+                    item_texture.fill(color)
+                    # Add simple border for visibility
+                    pygame.draw.rect(item_texture, (0, 0, 0), item_texture.get_rect(), 2)
+                
+                # Calculate item position based on swing animation
+                base_item_x = 35 if self.direction > 0 else -5
+                base_item_y = int(BLOCK_SIZE * 0.8)
+                
+                if self.is_swinging:
+                    # Move item during swing animation
+                    swing_progress = self.arm_swing_timer / self.arm_swing_duration
+                    swing_offset_x = math.sin(swing_progress * math.pi) * 15 * self.swing_direction
+                    swing_offset_y = -math.sin(swing_progress * math.pi) * 10
+                    
+                    item_x = base_item_x + swing_offset_x
+                    item_y = base_item_y + swing_offset_y
+                    
+                    # Rotate item during swing
+                    angle = -self.right_arm_angle if self.swing_direction > 0 else -self.left_arm_angle
+                    if angle != 0:
+                        item_texture = pygame.transform.rotate(item_texture, angle)
+                else:
+                    item_x = base_item_x
+                    item_y = base_item_y
+                
+                animated_image.blit(item_texture, (item_x, item_y))
+            except:
+                pass
+        
+        # Apply damage flash effect
+        if self.damage_flash_timer > 0:
+            flash_surface = pygame.Surface(animated_image.get_size(), pygame.SRCALPHA)
+            flash_surface.fill((255, 100, 100, 128))  # Red tint with transparency
+            animated_image.blit(flash_surface, (0, 0), special_flags=pygame.BLEND_ALPHA_SDL2)
+        
+        return animated_image
 
     def update(self):
         """Applies gravity, movement, and updates health/hunger stats."""
@@ -7020,19 +6919,6 @@ class Player(pygame.sprite.Sprite):
                     self.is_swimming = False
                 self.is_swimming = True
                 
-                # Play swimming sound occasionally when moving
-                if keys and (keys[pygame.K_a] or keys[pygame.K_d] or keys[pygame.K_w] or keys[pygame.K_s]):
-                    if random.randint(1, 40) == 1:  # Occasional swimming sound
-                        # Check if in lava or water
-                        center_row = self.rect.centery // BLOCK_SIZE
-                        center_col = self.rect.centerx // BLOCK_SIZE
-                        if 0 <= center_row < GRID_HEIGHT and 0 <= center_col < GRID_WIDTH:
-                            block_id = WORLD_MAP[center_row][center_col]
-                            if block_id == 9:  # Lava
-                                sound_manager.play_sound('swimming_lava')
-                            else:  # Water
-                                sound_manager.play_sound('swimming_water')
-                
                 if self.is_crouching:
                     self.vel_y += self.gravity * 0.8  # Sink faster when crouching
                     if self.vel_y > 4:  # Terminal velocity when sinking
@@ -7069,27 +6955,6 @@ class Player(pygame.sprite.Sprite):
             
             self.rect.y += self.vel_y
             self.collide_y()
-            
-            # Play footstep sounds when moving on ground (not swimming, not in air)
-            if not in_water and abs(self.vel_x) > 0.5 and abs(self.vel_y) < 0.5:  # Moving horizontally on ground
-                if random.randint(1, 20) == 1:  # Occasional footstep sound
-                    # Determine footstep sound based on block below player
-                    player_col = self.rect.centerx // BLOCK_SIZE
-                    player_row = (self.rect.centery + BLOCK_SIZE // 2) // BLOCK_SIZE  # Check block below feet
-                    if 0 <= player_row < GRID_HEIGHT and 0 <= player_col < GRID_WIDTH:
-                        block_below = WORLD_MAP[player_row][player_col]
-                        if block_below == 1:  # Grass
-                            sound_manager.play_sound('footstep_grass')
-                        elif block_below in [3, 4, 15]:  # Stone blocks  
-                            sound_manager.play_sound('footstep_stone')
-                        elif block_below in [7, 21, 22]:  # Wood blocks
-                            sound_manager.play_sound('footstep_wood') 
-                        elif block_below == 5:  # Gravel
-                            sound_manager.play_sound('footstep_gravel')
-                        elif block_below == 2:  # Dirt
-                            sound_manager.play_sound('footstep_mud')
-                        else:
-                            sound_manager.play_sound('footstep_grass')  # Default
             
             self.rect.left = max(0, self.rect.left)
             self.rect.right = min(len(WORLD_MAP[0]) * BLOCK_SIZE, self.rect.right)
@@ -7625,10 +7490,10 @@ class Player(pygame.sprite.Sprite):
                 self.switch_active_slot(i)
 
 class Mob(pygame.sprite.Sprite):
-    """Base class for all non-player entities (Mobs)."""
+    """Base class for all non-player entities (Mobs) with universal animation support."""
     def __init__(self, x, y, width, height, color):
         super().__init__()
-        self.image = pygame.Surface([width, height], pygame.SRCALPHA)
+        self.image = pygame.Surface([width, height])
         self.image.fill(color)
         self.rect = self.image.get_rect(topleft=(x, y))
         
@@ -7758,7 +7623,7 @@ class Mob(pygame.sprite.Sprite):
                 # Gradually return eyes to center
                 self.eye_offset_x *= 0.9
                 self.eye_offset_y *= 0.9
-    
+        
     def basic_update(self, WORLD_MAP):
         """Performance-optimized update for distant mobs - only essential physics."""
         # Apply gravity
@@ -7768,35 +7633,14 @@ class Mob(pygame.sprite.Sprite):
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
         
-        # Enhanced boundary checks to prevent falling through world
-        # Check bottom boundary
+        # Basic boundary checks
         if self.rect.bottom >= GRID_HEIGHT * BLOCK_SIZE:
-            self.rect.bottom = GRID_HEIGHT * BLOCK_SIZE - 1
+            self.rect.bottom = GRID_HEIGHT * BLOCK_SIZE
             self.vel_y = 0
             self.is_on_ground = True
         
-        # Check void (too far below world)
-        if self.rect.top > GRID_HEIGHT * BLOCK_SIZE + 100:
-            self.take_damage(999, None)  # Kill mob if fell into void
-        
-        # Check world edges
-        world_width = len(WORLD_MAP[0]) * BLOCK_SIZE if WORLD_MAP and len(WORLD_MAP) > 0 else GRID_WIDTH * BLOCK_SIZE
-        if self.rect.right < 0:
-            self.rect.left = 0
-        elif self.rect.left > world_width:
-            self.rect.right = world_width
-        
     def take_damage(self, damage, all_mobs=None):
         self.health -= damage
-        # Play mob hurt sound based on mob type
-        mob_type = self.__class__.__name__.lower()
-        if hasattr(self, 'mob_sound_played'):
-            pass  # Prevent sound spam
-        else:
-            # Default generic hurt sound for now - can customize per mob later
-            pycraft_sounds.play_player_damage()  # Using damage sound as placeholder
-            self.mob_sound_played = True
-        
         self.damage_flash_timer = FPS // 3  # Flash for 1/3 second
         
         # 30% chance to dismount rider when taking damage
@@ -7809,7 +7653,7 @@ class Mob(pygame.sprite.Sprite):
 
     def die(self, all_mobs=None):
         """Handle mob death: drop items (if any) and remove the mob sprite."""
-        # Add mob to respawn queue
+        # Add mob to respawn queue (End)
         mob_type = self.__class__.__name__
         
         # Determine biome where mob died
@@ -7894,9 +7738,10 @@ class Mob(pygame.sprite.Sprite):
         return self.image
     
     def update(self, world_map, player=None, all_mobs=None):
-        """Applies physics and checks collision."""
-        # Update animations (AKRAM DLC)
-        self.update_animations()
+        """Applies physics and checks collision. INCLUDES AKRam DLC ANIMATIONS."""
+        # Update AKRAM DLC animations automatically for ALL mobs
+        if AKRAM_DLC_ENABLED:
+            self.update_animations()
         
         # Update damage flash timer
         if self.damage_flash_timer > 0:
@@ -7914,20 +7759,6 @@ class Mob(pygame.sprite.Sprite):
         if self.rider and self.rider in MOBS:
             self.rider.rect.centerx = self.rect.centerx
             self.rider.rect.bottom = self.rect.top + self.mount_offset_y
-
-        # --- SAFETY: Prevent falling into void (kill mob if too far down or outside world) ---
-        if self.rect.bottom > GRID_HEIGHT * BLOCK_SIZE + 100:
-            print(f"⚠️ {self.__class__.__name__} fell into void and died")
-            self.health = 0
-            self.die(all_mobs)
-            return
-        
-        # Check if mob is outside world bounds
-        if self.rect.centerx < 0 or self.rect.centerx >= GRID_WIDTH * BLOCK_SIZE:
-            print(f"⚠️ {self.__class__.__name__} went outside world bounds")
-            # Teleport back to valid position
-            self.rect.centerx = max(BLOCK_SIZE, min(self.rect.centerx, (GRID_WIDTH - 1) * BLOCK_SIZE))
-            self.vel_x = 0
 
         # --- INSTANT DEATH IN LAVA ---
         global LAVA_ID
@@ -8024,29 +7855,24 @@ class Mob(pygame.sprite.Sprite):
     def collide_y(self):
         """Handles vertical collision with solid blocks (ground detection)."""
         if self.vel_y == 0:
+            self.is_on_ground = False
             return
 
         is_falling = self.vel_y > 0
         
         if is_falling:
-            target_y = self.rect.bottom + self.vel_y
+            target_y = self.rect.bottom
         else: 
-            target_y = self.rect.top + self.vel_y
+            target_y = self.rect.top
 
-        # Check collision points
+        # Reset ground state before checking
+        if is_falling:
+            self.is_on_ground = False
+        
+        # Check collision points - check both left and right sides
         for x_offset in [self.rect.left + 1, self.rect.right - 1]:
             col = math.floor(x_offset / BLOCK_SIZE)
             row = math.floor(target_y / BLOCK_SIZE)
-            
-            # CRITICAL: Bounds check to prevent falling through world edges
-            if row < 0 or row >= GRID_HEIGHT or col < 0 or col >= GRID_WIDTH:
-                if is_falling and row >= GRID_HEIGHT:
-                    # Hit bottom of world - place on bedrock
-                    self.rect.bottom = GRID_HEIGHT * BLOCK_SIZE
-                    self.is_on_ground = True
-                    self.vel_y = 0
-                    return
-                continue
             
             if 0 <= row < GRID_HEIGHT and 0 <= col < len(WORLD_MAP[0]):
                 block_id = WORLD_MAP[row][col]
@@ -8056,15 +7882,11 @@ class Mob(pygame.sprite.Sprite):
                     if is_falling:
                         self.rect.bottom = row * BLOCK_SIZE
                         self.is_on_ground = True
+                        self.vel_y = 0
                     else:
                         self.rect.top = (row + 1) * BLOCK_SIZE
-                    self.vel_y = 0
+                        self.vel_y = 0
                     return
-                elif is_falling:
-                     self.is_on_ground = False
-            
-        if is_falling:
-            self.is_on_ground = False
 
 class Sheep(Mob):
     """A passive mob that wanders randomly and drops wool."""
@@ -8144,13 +7966,13 @@ class Sheep(Mob):
         # Try to load sheep texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                sheep_texture = pygame.image.load(r"..\Textures\Sheep_Face.png").convert_alpha()
+                sheep_texture = pygame.image.load(r"..\Textures\Sheep_Face.png")
                 sheep_texture = pygame.transform.scale(sheep_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE)))
                 self.image = sheep_texture
                 
                 # Load hurt texture
                 try:
-                    hurt_texture = pygame.image.load(r"..\Textures\Sheep_Hurt.png").convert_alpha()
+                    hurt_texture = pygame.image.load(r"..\Textures\Sheep_Hurt.png")
                     hurt_texture = pygame.transform.scale(hurt_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE)))
                     self.hurt_texture = hurt_texture
                 except:
@@ -8212,9 +8034,6 @@ class Sheep(Mob):
         return False
                 
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         # Handle baby growth
         if self.is_baby:
             self.baby_timer += 1
@@ -8227,6 +8046,23 @@ class Sheep(Mob):
                 if hasattr(self, 'hurt_texture'):
                     self.hurt_texture = pygame.transform.scale(self.hurt_texture, (BLOCK_SIZE, BLOCK_SIZE))
                 self.rect = self.image.get_rect(topleft=(old_x, old_y))
+        
+        # Update universal animations (blinking, bobbing)
+        self.update_animations()
+        
+        # Apply blinking animation to sheep texture
+        if hasattr(self, 'original_image') and self.original_image is not None:
+            current_image = self.original_image.copy()
+        else:
+            self.original_image = self.image.copy()
+            current_image = self.image.copy()
+            
+        # Add blinking effect by darkening eye area during blink
+        if self.is_blinking and not USE_EXPERIMENTAL_TEXTURES:
+            # For drawn sheep, darken eye area
+            pygame.draw.rect(current_image, (80, 60, 40), (BLOCK_SIZE - 8, 8, 2, 2))  # Darker eye when blinking
+        
+        self.image = current_image
         
         # Handle love mode and breeding
         if self.love_mode:
@@ -8263,21 +8099,6 @@ class Sheep(Mob):
         
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
-        
-        # 🎭 PARODY ANIMATION: Sheep bounce/hop when moving (VISUAL ONLY) - AKRAM DLC ONLY
-        # Applied AFTER physics update to avoid affecting collision
-        if AKRAM_DLC_ENABLED and hasattr(self, 'vel_x') and abs(self.vel_x) > 0.1 and self.is_on_ground:
-            # Exaggerated bounce amplitude (visual offset only)
-            bounce_height = math.sin(self.animation_timer * 0.3) * 4  # Reduced from 8
-            # Store in separate visual offset instead of modifying rect
-            if not hasattr(self, 'visual_offset_y'):
-                self.visual_offset_y = 0
-            self.visual_offset_y = -int(abs(bounce_height))
-            
-            # Play funny bouncy sound occasionally
-            if int(bounce_height) == 0 and random.random() < 0.05:
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['sheep', 'sheep_shear'], volume=0.3)
         
     def die(self, all_mobs=None):
         """Drops colored wool and mutton when killed."""
@@ -8347,9 +8168,17 @@ class Goat(Mob):
         # Try to load goat texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                goat_texture = pygame.image.load(r"..\Textures\Goat.png").convert_alpha()
+                goat_texture = pygame.image.load(r"..\Textures\Goat.png")
                 goat_texture = pygame.transform.scale(goat_texture, (w, h))
                 self.image = goat_texture
+                
+                # Load hurt texture
+                try:
+                    hurt_texture = pygame.image.load(r"..\Textures\Goat_Hurt.png")
+                    hurt_texture = pygame.transform.scale(hurt_texture, (w, h))
+                    self.hurt_texture = hurt_texture
+                except:
+                    pass
             except:
                 pass  # Keep the drawn image if texture fails to load
     
@@ -8423,9 +8252,6 @@ class Goat(Mob):
                     self.wander_timer = 0
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         self.ai_move(player, WORLD_MAP)
         super().update(WORLD_MAP, player, MOBS)
 
@@ -8497,13 +8323,13 @@ class Cow(Mob):
         # Try to load cow texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                cow_texture = pygame.image.load(r"..\Textures\cowLook.png").convert_alpha()
+                cow_texture = pygame.image.load(r"..\Textures\cowLook.png")
                 cow_texture = pygame.transform.scale(cow_texture, (int(BLOCK_SIZE * 2.5), int(BLOCK_SIZE * 1.5)))
                 self.image = cow_texture
                 
                 # Load hurt texture
                 try:
-                    hurt_texture = pygame.image.load(r"..\Textures\cowHurt.png").convert_alpha()
+                    hurt_texture = pygame.image.load(r"..\Textures\cowHurt.png")
                     hurt_texture = pygame.transform.scale(hurt_texture, (int(BLOCK_SIZE * 2.5), int(BLOCK_SIZE * 1.5)))
                     self.hurt_texture = hurt_texture
                 except:
@@ -8566,9 +8392,6 @@ class Cow(Mob):
         return False
                 
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         # Handle baby growth
         if self.is_baby:
             self.baby_timer += 1
@@ -8583,6 +8406,35 @@ class Cow(Mob):
                 if hasattr(self, 'hurt_texture'):
                     self.hurt_texture = pygame.transform.scale(self.hurt_texture, (adult_width, adult_height))
                 self.rect = self.image.get_rect(topleft=(old_x, old_y))
+        
+        # Update AKRAM DLC animations (blinking, bobbing)
+        if AKRAM_DLC_ENABLED:
+            self.update_animations()
+            
+            # Apply blinking and bobbing animations
+            if hasattr(self, 'original_image') and self.original_image is not None:
+                current_image = self.original_image.copy()
+            else:
+                self.original_image = self.image.copy()
+                current_image = self.image.copy()
+                
+            # Add blinking effect for drawn cow
+            if self.is_blinking and not USE_EXPERIMENTAL_TEXTURES:
+                # Darken eye areas during blink
+                w = int(BLOCK_SIZE * 2.5)
+                pygame.draw.rect(current_image, (100, 50, 20), (w - 17, 9, 3, 2))  # Left eye
+                pygame.draw.rect(current_image, (100, 50, 20), (w - 12, 9, 3, 2))  # Right eye
+            
+            # Apply subtle bobbing offset to simulate breathing
+            if abs(self.bob_offset) > 0.1:
+                offset_y = int(self.bob_offset)
+                if offset_y != 0:
+                    # Shift image slightly for breathing effect
+                    shifted_image = pygame.Surface((current_image.get_width(), current_image.get_height() + abs(offset_y) * 2), pygame.SRCALPHA)
+                    shifted_image.blit(current_image, (0, max(0, offset_y)))
+                    current_image = shifted_image
+            
+            self.image = current_image
         
         # Handle love mode and breeding
         if self.love_mode:
@@ -8618,19 +8470,6 @@ class Cow(Mob):
         
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
-        
-        # 🎭 PARODY ANIMATION: Cow head bobs when eating grass (VISUAL ONLY) - AKRAM DLC ONLY
-        if AKRAM_DLC_ENABLED and self.is_on_ground and abs(self.vel_x) < 0.1:
-            # Head bobbing animation when stationary (eating)
-            head_bob = math.sin(self.animation_timer * 0.15) * 2  # Reduced from 4
-            if not hasattr(self, 'visual_offset_y'):
-                self.visual_offset_y = 0
-            self.visual_offset_y = int(head_bob)
-            
-            # Play moo sound occasionally
-            if random.random() < 0.005:  # 0.5% chance
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['cow_ambient'], volume=0.25)
         
     def die(self, all_mobs=None):
         """Drops beef and leather when killed."""
@@ -8705,9 +8544,17 @@ class Camel(Mob):
         # Try to load camel texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                camel_texture = pygame.image.load(r"..\Textures\Camel.png").convert_alpha()
+                camel_texture = pygame.image.load(r"..\Textures\Camel.png")
                 camel_texture = pygame.transform.scale(camel_texture, (w, h))
                 self.image = camel_texture
+                
+                # Load hurt texture
+                try:
+                    hurt_texture = pygame.image.load(r"..\Textures\Camel_Hurt.png")
+                    hurt_texture = pygame.transform.scale(hurt_texture, (w, h))
+                    self.hurt_texture = hurt_texture
+                except:
+                    pass
             except:
                 pass  # Keep the drawn image if texture fails to load
 
@@ -8755,7 +8602,7 @@ class Camel(Mob):
         self.kill()
                 
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
         
         if self.mount_cooldown > 0:
@@ -8881,25 +8728,8 @@ class Chicken(Mob):
                 self.direction = random.choice([-1, 1])
                 
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
-        
-        # 🎭 PARODY ANIMATION: Chicken head peck and wing flap (VISUAL ONLY) - AKRAM DLC ONLY
-        if AKRAM_DLC_ENABLED and hasattr(self, 'animation_timer'):
-            # Rapid head pecking motion (visual offset only)
-            peck_motion = math.sin(self.animation_timer * 0.5) * 2
-            if not hasattr(self, 'visual_offset_y'):
-                self.visual_offset_y = 0
-            self.visual_offset_y = int(peck_motion)
-            
-            # Random wing flaps (actual physics - makes chicken hop)
-            if random.random() < 0.02 and self.is_on_ground:
-                self.vel_y = -3
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['chicken_ambient'], volume=0.2)
         
     def die(self, all_mobs=None):
         """Drops chicken when killed."""
@@ -9205,13 +9035,13 @@ class Pig(Mob):
         # Try to load pig texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                pig_texture = pygame.image.load(r"..\Textures\PigLook3.png").convert_alpha()
+                pig_texture = pygame.image.load(r"..\Textures\PigLook3.png")
                 pig_texture = pygame.transform.scale(pig_texture, (w, h))
                 self.image = pig_texture
                 
                 # Load hurt texture
                 try:
-                    hurt_texture = pygame.image.load(r"..\Textures\PigDamage.png").convert_alpha()
+                    hurt_texture = pygame.image.load(r"..\Textures\PigDamage.png")
                     hurt_texture = pygame.transform.scale(hurt_texture, (w, h))
                     self.hurt_texture = hurt_texture
                 except:
@@ -9255,19 +9085,8 @@ class Pig(Mob):
                 self.direction = random.choice([-1, 1])
                 
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
-        # 🎭 PARODY ANIMATION: Pig snout wiggles side-to-side (sniffing!)
-        if AKRAM_DLC_ENABLED and hasattr(self, 'animation_timer'):
-            # Wiggle left and right using visual offset (doesn't affect collisions)
-            self.visual_offset_x = int(math.sin(self.animation_timer * 0.4) * 2)
-            
-            # Occasional oink sound
-            if random.random() < 0.008:  # 0.8% chance
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['pig_ambient'], volume=0.3)
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
         
@@ -9367,9 +9186,8 @@ class Cod(Mob):
             # Gravity handles falling back to water
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
     
@@ -9450,9 +9268,8 @@ class Salmon(Mob):
             # Gravity handles falling back to water
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
     
@@ -9539,9 +9356,8 @@ class TropicalFish(Mob):
             # Gravity handles falling back to water
     
     def update(self, world_map, player, all_mobs=None):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
     
@@ -9620,9 +9436,8 @@ class Dolphin(Mob):
                 self.vel_y = self.swim_direction_y * (self.speed * 0.3)
     
     def update(self, world_map, player, all_mobs=None):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
 
@@ -9719,9 +9534,8 @@ class Shark(Mob):
             self.vel_x = self.swim_direction_x * self.speed
     
     def update(self, world_map, player, all_mobs=None):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.target_player = player
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
@@ -9775,9 +9589,8 @@ class Whale(Mob):
                 self.direction = random.choice([-1, 1])
     
     def update(self, world_map, player, all_mobs=None):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
 
@@ -9861,9 +9674,8 @@ class Nautilus(Mob):
             self.vel_y = self.swim_direction_y * self.speed * 0.5
     
     def update(self, world_map, player, all_mobs=None):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         
         # If rider exists, keep them positioned on top
@@ -10009,7 +9821,7 @@ class ZombieNautilus(Mob):
             self.vel_x = self.direction * (self.speed * 0.3)
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
         
         if self.attack_timer > 0:
@@ -10084,9 +9896,17 @@ class Rabbit(Mob):
         # Try to load rabbit texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                rabbit_texture = pygame.image.load(r"..\Textures\Rabbit_Mob.png").convert_alpha()
+                rabbit_texture = pygame.image.load(r"..\Textures\Rabbit_Mob.png")
                 rabbit_texture = pygame.transform.scale(rabbit_texture, (w, h))
                 self.image = rabbit_texture
+                
+                # Load hurt texture
+                try:
+                    hurt_texture = pygame.image.load(r"..\Textures\Rabbit_Hurt.png")
+                    hurt_texture = pygame.transform.scale(hurt_texture, (w, h))
+                    self.hurt_texture = hurt_texture
+                except:
+                    pass
             except:
                 pass  # Keep the drawn image if texture fails to load
     
@@ -10111,9 +9931,8 @@ class Rabbit(Mob):
             self.vel_x = self.direction * (self.speed * 0.3)  # Slow walk between hops
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
-        
         self.ai_move()
         super().update(WORLD_MAP, player, MOBS)
     
@@ -10261,7 +10080,7 @@ class Horse(Mob):
             print("🐴 Dismounted horse!")
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
         
         if self.mount_cooldown > 0:
@@ -10288,7 +10107,7 @@ class Horse(Mob):
 
 
 class Boat(pygame.sprite.Sprite):
-    """A placeable rideable boat that floats on water with water current pushing."""
+    """A placeable rideable boat that floats on water."""
     def __init__(self, x, y):
         super().__init__()
         self.width = int(BLOCK_SIZE * 1.5)
@@ -10308,11 +10127,8 @@ class Boat(pygame.sprite.Sprite):
         self.rider = None
         self.mount_cooldown = 0
         self.direction = 1
-        self.bob_offset = 0  # For water bobbing animation
-        self.bob_timer = 0
-        self.splash_cooldown = 0
         
-        # Draw boat shape (parody/fun style)
+        # Draw boat shape
         wood_color = (139, 90, 43)  # Brown wood
         dark_wood = (100, 60, 30)
         
@@ -10335,10 +10151,6 @@ class Boat(pygame.sprite.Sprite):
         bench_color = (120, 80, 50)
         pygame.draw.rect(self.image, bench_color, (10, 12, self.width - 20, 5))
         
-        # Add funny face on front (parody element!)
-        pygame.draw.circle(self.image, (255, 200, 0), (self.width - 10, 10), 3)  # Eye
-        pygame.draw.arc(self.image, (255, 100, 0), (self.width - 20, 8, 15, 8), 0, 3.14, 2)  # Smile
-        
         # Outline
         pygame.draw.rect(self.image, dark_wood, (0, 0, self.width, self.height), 2)
     
@@ -10348,10 +10160,7 @@ class Boat(pygame.sprite.Sprite):
             self.rider = player
             player.mounted_boat = self
             self.mount_cooldown = 30
-            print("🚣 Entered boat! Time to sail!")
-            # Play splash sound
-            if 'SOUND_MANAGER' in globals():
-                SOUND_MANAGER.play_sound('splash')
+            print("🚣 Entered boat!")
             return True
         return False
     
@@ -10360,77 +10169,39 @@ class Boat(pygame.sprite.Sprite):
         if self.rider:
             self.rider.mounted_boat = None
             self.rider = None
-            print("🚣 Exited boat! Back on land!")
-            # Play splash sound
-            if 'SOUND_MANAGER' in globals():
-                SOUND_MANAGER.play_sound('splash')
+            print("🚣 Exited boat!")
     
     def update(self, WORLD_MAP):
-        """Update boat physics with water current pushing."""
+        """Update boat physics and position."""
         if self.mount_cooldown > 0:
             self.mount_cooldown -= 1
-        
-        if self.splash_cooldown > 0:
-            self.splash_cooldown -= 1
         
         # Check if in water
         boat_col = self.rect.centerx // BLOCK_SIZE
         boat_row = self.rect.centery // BLOCK_SIZE
         
         in_water = False
-        water_flow_direction = 0  # -1 = left, 1 = right, 0 = none
-        
         if 0 <= boat_row < len(WORLD_MAP) and 0 <= boat_col < len(WORLD_MAP[0]):
             block_below = WORLD_MAP[boat_row][boat_col]
-            # Check if on water (5 = water, 31 = swamp water, 170-179 = water flow)
-            if block_below in [5, 31] or 170 <= block_below <= 179:
+            # Check if on water (18 = water, 31 = swamp water, 170-179 = water flow)
+            if block_below in [18, 31] or 170 <= block_below <= 179:
                 in_water = True
-                
-                # === WATER CURRENT PUSHING ===
-                # Water flow blocks push the boat!
-                if block_below in range(170, 180):  # Regular water flow (170-174)
-                    # Check flow direction by looking at adjacent blocks
-                    if boat_col > 0:
-                        left_block = WORLD_MAP[boat_row][boat_col - 1]
-                        if left_block == 5 or left_block in range(170, block_below):  # Source or stronger water on left
-                            water_flow_direction = 1  # Push right
-                    if boat_col < len(WORLD_MAP[0]) - 1:
-                        right_block = WORLD_MAP[boat_row][boat_col + 1]
-                        if right_block == 5 or right_block in range(170, block_below):  # Source or stronger water on right
-                            water_flow_direction = -1  # Push left
         
         # Physics
         if in_water:
             # Buoyancy - boat floats
             self.vel_y += self.buoyancy
             self.vel_y = max(-2, min(2, self.vel_y))  # Limit vertical speed
-            
-            # === WATER CURRENT EFFECT ===
-            if water_flow_direction != 0:
-                # Push boat with water current!
-                push_strength = 0.3
-                self.vel_x += water_flow_direction * push_strength
-                
-                # Play splash sound occasionally
-                if self.splash_cooldown == 0 and abs(self.vel_x) > 1:
-                    if 'SOUND_MANAGER' in globals() and random.random() < 0.05:
-                        SOUND_MANAGER.play_sound('splash', 0.3)
-                        self.splash_cooldown = 30
-            
-            # Bobbing animation on water (parody element!)
-            self.bob_timer += 1
-            self.bob_offset = math.sin(self.bob_timer * 0.1) * 2
         else:
             # Gravity when not in water
             self.vel_y += self.gravity
-            self.bob_offset = 0
         
         # Apply friction
         self.vel_x *= 0.9
         
-        # Update position with bobbing
+        # Update position
         self.rect.x += int(self.vel_x)
-        self.rect.y += int(self.vel_y + self.bob_offset)
+        self.rect.y += int(self.vel_y)
         
         # Collision with terrain
         self.check_collision(WORLD_MAP)
@@ -10587,9 +10358,6 @@ class ZombieHorse(Mob):
                     self.vel_x = self.direction * self.speed * 0.3
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         if self.attack_timer > 0:
             self.attack_timer -= 1
         
@@ -10830,7 +10598,7 @@ class Fox(Mob):
     
     # CORRECTED: Takes all 3 required arguments
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
+        # Update universal animations (blinking, bobbing)
         self.update_animations()
         
         # NOTE: self.on_ground/self.is_on_ground must be set by super().update or Mob physics logic
@@ -10909,13 +10677,13 @@ class Wolf(Mob):
         # Try to load wolf texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                wolf_texture = pygame.image.load(r"..\Textures\Wolf_face.png").convert_alpha()
+                wolf_texture = pygame.image.load(r"..\Textures\Wolf_face.png")
                 wolf_texture = pygame.transform.scale(wolf_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE * 1.2)))
                 self.image = wolf_texture
                 
                 # Load hurt texture
                 try:
-                    hurt_texture = pygame.image.load(r"..\Textures\Wolf_hurt6.png").convert_alpha()
+                    hurt_texture = pygame.image.load(r"..\Textures\Wolf_hurt6.png")
                     hurt_texture = pygame.transform.scale(hurt_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE * 1.2)))
                     self.hurt_texture = hurt_texture
                 except:
@@ -10959,9 +10727,6 @@ class Wolf(Mob):
         
     # CRITICAL FIX: The update method must accept all three arguments!
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         # 1. Apply base physics and movement
         # NOTE: Ensure your base Mob.update() also correctly handles these arguments.
         super().update(world_map, player) 
@@ -11113,16 +10878,13 @@ class Frog(Mob):
         # Try to load frog texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                frog_texture = pygame.image.load(r"..\Textures\Frog.png").convert_alpha()
+                frog_texture = pygame.image.load(r"..\Textures\Frog.png")
                 frog_texture = pygame.transform.scale(frog_texture, (w, h))
                 self.image = frog_texture
             except:
                 pass  # Keep the drawn image if texture fails to load
         
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         super().update(world_map, player) # Call first to apply physics/gravity
         
         # Frog jump logic
@@ -11172,9 +10934,6 @@ class Turtle(Mob):
         pygame.draw.rect(self.image, flipper_color, (w * 3 // 4, h * 2 // 3, w // 4, h // 6))  # Right front
         
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         super().update(world_map, player)  # Apply physics/gravity
         
         # Check if in water
@@ -11242,9 +11001,6 @@ class Monkey(Mob):
         pygame.draw.rect(self.image, (255, 255, 0), (w // 6, h // 3 + 8, 4, 10))
         
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         super().update(world_map, player)
         
         # Check if on vines, ladder, or tree blocks (wood)
@@ -11321,9 +11077,6 @@ class Slime(Mob):
 
     # CRITICAL FIX: Ensure all three arguments are present here!
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         # Call base Mob update for physics and movement first
         super().update(world_map, player) 
         
@@ -11385,6 +11138,67 @@ class Slime(Mob):
                 player.take_damage(self.attack_damage - 3, attacker=self)
                 self.attack_timer = self.attack_cooldown
 
+class AnimatedMob:
+    """Base class for animated mobs with blinking and movement animations"""
+    def __init__(self, x, y, mob_type):
+        self.base_x = x
+        self.base_y = y
+        self.mob_type = mob_type
+        
+        # Animation system
+        self.blink_timer = 0
+        self.blink_interval = random.randint(100, 200)
+        self.is_blinking = False
+        self.blink_duration = 5
+        
+        # Movement animation
+        self.bob_timer = 0
+        self.bob_offset = 0
+        self.leg_timer = 0
+        self.leg_offset = 0
+        
+        # Face direction animation
+        self.face_direction = 1  # 1 for right, -1 for left
+        self.turn_timer = 0
+        
+    def update_animations(self):
+        """Update all mob animations"""
+        # Blinking animation
+        self.blink_timer += 1
+        if self.blink_timer >= self.blink_interval:
+            self.is_blinking = True
+            self.blink_timer = 0
+            self.blink_interval = random.randint(100, 200)
+        
+        if self.is_blinking:
+            if self.blink_timer >= self.blink_duration:
+                self.is_blinking = False
+                self.blink_timer = 0
+        
+        # Gentle bobbing animation
+        self.bob_timer += 1
+        self.bob_offset = math.sin(self.bob_timer * 0.05) * 0.5
+        
+        # Leg animation for walking mobs
+        if hasattr(self, 'vel_x') and abs(self.vel_x) > 0.1:
+            self.leg_timer += 1
+            self.leg_offset = math.sin(self.leg_timer * 0.3) * 2
+        else:
+            self.leg_offset = 0
+    
+    def render_animated_eyes(self, surface, x, y, eye_color=(255, 255, 255)):
+        """Render animated eyes with blinking"""
+        if self.is_blinking:
+            # Closed eyes (lines)
+            pygame.draw.line(surface, (0, 0, 0), (x, y+1), (x+2, y+1), 1)
+            pygame.draw.line(surface, (0, 0, 0), (x+4, y+1), (x+6, y+1), 1)
+        else:
+            # Open eyes
+            pygame.draw.rect(surface, eye_color, (x, y, 3, 3))
+            pygame.draw.rect(surface, (0, 0, 0), (x+1, y+1, 1, 1))  # Left pupil
+            pygame.draw.rect(surface, eye_color, (x+4, y, 3, 3))
+            pygame.draw.rect(surface, (0, 0, 0), (x+5, y+1, 1, 1))  # Right pupil
+
 class Zombie(Mob):
     """A hostile mob that chases and damages the player."""
     def __init__(self, x, y, biome_type=0):
@@ -11404,6 +11218,24 @@ class Zombie(Mob):
         self.underwater_timer = 0  # Timer for zombie -> drowned conversion
         self.conversion_time = FPS * 20  # 20 seconds at 60 FPS = 1200 frames
         self.on_fire = False  # Track fire status for water avoidance
+        
+        # Initialize comprehensive animation system
+        self.blink_timer = 0
+        self.blink_interval = random.randint(120, 180)
+        self.is_blinking = False
+        self.blink_duration = 6
+        self.bob_timer = 0
+        self.bob_offset = 0
+        self.leg_timer = 0
+        self.leg_offset = 0
+        self.arm_swing_timer = 0
+        self.arm_swing_offset = 0
+        self.head_turn_timer = 0
+        self.head_turn_offset = 0
+        self.face_direction = 1
+        self.groan_timer = 0
+        self.walk_frame = 0
+        self.walking_animation_timer = 0
         
         # Enhanced drawing with body parts
         self.image.fill((0, 0, 0, 0))
@@ -11481,37 +11313,12 @@ class Zombie(Mob):
             except:
                 pass  # Keep the drawn zombie if texture fails to load
 
-        self.rect = self.image.get_rect(topleft=(x, y))
-
-        # Animation system
-        self.animation_timer = 0
-        self.walk_animation_speed = 8  # Frames per animation cycle
-        self.arm_swing_timer = 0
-        self.arm_swing_duration = 20  # Frames for full swing
-        self.is_swinging = False
-        self.swing_direction = 1  # 1 for right, -1 for left
-        self.bob_offset = 0  # Head bob during walking
-        self.step_timer = 0
-        
-        # Enhanced facial animations
-        self.blink_timer = 0
-        self.blink_interval = random.randint(120, 180)  # Random blink timing
-        self.is_blinking = False
-        self.blink_duration = 6  # Frames to keep eyes closed
-        self.mouth_open = False  # Open mouth when swinging
-        
-        # Animation offsets for redraw
-        self.base_image = self.image.copy()  # Store the base image
-        self.leg_offset = 0
-        self.arm_swing_offset = 0
-        self.head_turn_offset = 0
-                
     def attack(self, target):
         """Zombie attacks the target (player or villager) on contact."""
         if self.attack_timer <= 0:
             target.take_damage(self.attack_damage, all_mobs=None, attacker=self)
             self.attack_timer = self.attack_cooldown
-            self.start_swing_animation()  # Trigger attack animation
+            SOUND_MANAGER.play_sound('mob_hurt', 0.4)  # Zombie groan
             print(f"🧟 Zombie attacked for {self.attack_damage} damage!")
         
     def die(self, all_mobs=None):
@@ -11522,6 +11329,29 @@ class Zombie(Mob):
     
     def ai_move(self, player, WORLD_MAP, MOBS=None):
         """Hostile AI: Chase player/villagers if in range (ONLY AT NIGHT), otherwise wander. Avoid water unless on fire."""
+        
+        # Update all animations (inherited from base Mob class)
+        # self.update_animations() is called by parent Mob.update() automatically
+        
+        # Walking animation and effects
+        if abs(self.vel_x) > 0.1:
+            self.walking_animation_timer += 1
+            self.walk_frame = (self.walking_animation_timer // 10) % 4  # 4-frame walk cycle
+            
+            # Zombie groaning while walking
+            self.groan_timer += 1
+            if self.groan_timer >= 120:  # Every 2 seconds
+                if 'sound_manager' in globals():
+                    sound_manager.play_sound('mob_hurt', 0.2)
+                self.groan_timer = 0
+        else:
+            self.walk_frame = 0
+            
+        # Update facing direction based on movement
+        if self.vel_x > 0:
+            self.face_direction = 1
+        elif self.vel_x < 0:
+            self.face_direction = -1
         
         # Ignore creative mode players
         if player.creative_mode:
@@ -11613,162 +11443,6 @@ class Zombie(Mob):
                 WORLD_MAP[check_row][check_col] == 0):
                 self.vel_x = 0 
 
-    def update(self, WORLD_MAP, player, MOBS): # <-- CORRECTED SIGNATURE
-        if self.attack_timer > 0:
-            self.attack_timer -= 1
-        
-        # Check if zombie is underwater (for drowned conversion)
-        center_x = int(self.rect.centerx // BLOCK_SIZE)
-        head_y = int((self.rect.top + 5) // BLOCK_SIZE)  # Check head position
-        is_underwater = False
-        if 0 <= head_y < GRID_HEIGHT and 0 <= center_x < GRID_WIDTH:
-            is_underwater = WORLD_MAP[head_y][center_x] in FLUID_BLOCKS
-        
-        # Check if near nautilus (instant conversion to drowned)
-        near_nautilus = False
-        for mob in MOBS:
-            if isinstance(mob, Nautilus):
-                distance = math.sqrt((mob.rect.centerx - self.rect.centerx)**2 + (mob.rect.centery - self.rect.centery)**2)
-                if distance < BLOCK_SIZE * 3:  # Within 3 blocks
-                    near_nautilus = True
-                    break
-        
-        # Instant conversion if near nautilus
-        if near_nautilus:
-            drowned = Drowned(self.rect.x, self.rect.y)
-            drowned.converted_from_zombie = True  # Mark as friendly
-            MOBS.add(drowned)
-            self.kill()  # Remove zombie
-            print(f"🧟‍♂️ Zombie converted to Drowned near Nautilus!")
-            return
-        
-        # Convert to Drowned after 20 seconds underwater
-        if is_underwater:
-            self.underwater_timer += 1
-            if self.underwater_timer >= self.conversion_time:
-                # Transform into Drowned (friendly conversion)
-                drowned = Drowned(self.rect.x, self.rect.y)
-                drowned.converted_from_zombie = True  # Mark as friendly
-                MOBS.add(drowned)
-                self.kill()  # Remove zombie
-                return  # Don't continue updating
-        else:
-            # Reset timer when not underwater
-            self.underwater_timer = 0
-            
-        self.ai_move(player, WORLD_MAP, MOBS)
-        
-        # 🎭 PARODY ANIMATION: Silly zombie walk (like Ministry of Silly Walks!) - AKRAM DLC ONLY
-        if AKRAM_DLC_ENABLED and abs(self.vel_x) > 0.1:
-            # Exaggerated leg movements
-            silly_leg_swing = math.sin(self.animation_timer * 0.2) * 15  # HUGE swing
-            self.leg_offset = silly_leg_swing
-            
-            # Head tilts side to side
-            self.head_turn_offset = math.cos(self.animation_timer * 0.15) * 5
-            
-            # Arms flail randomly
-            if random.random() < 0.1:  # 10% chance each frame
-                self.arm_swing_offset = random.choice([-20, -10, 10, 20])
-            
-            # Play goofy zombie sounds occasionally
-            if random.random() < 0.01:  # 1% chance
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['zombie_ambient', 'zombie_hurt'], volume=0.2)
-        
-        super().update(WORLD_MAP, player, MOBS)
-        
-        # Check for collision with target and attack
-        # Find the target (player or nearest villager) that was chased in ai_move
-        target = player
-        if MOBS:
-            closest_dist = math.sqrt((player.rect.centerx - self.rect.centerx)**2 + (player.rect.centery - self.rect.centery)**2)
-            for mob in MOBS:
-                if isinstance(mob, Villager):
-                    dist = math.sqrt((mob.rect.centerx - self.rect.centerx)**2 + (mob.rect.centery - self.rect.centery)**2)
-                    if dist < closest_dist:
-                        target = mob
-                        closest_dist = dist
-        
-        # Attack if touching the target
-        if self.rect.colliderect(target.rect):
-            self.attack(target)
-            
-        # Update animations and redraw
-        self.update_animations()
-        self.redraw_animated_sprite()
-    
-    def start_swing_animation(self):
-        """Start arm swing animation when attacking or using tools."""
-        self.is_swinging = True
-        self.arm_swing_timer = 0
-        self.mouth_open = True  # Open mouth during swing for more emotion
-
-    def update_animations(self):
-        """Update all animation timers and calculate body part positions."""
-        # Blinking animation
-        self.blink_timer += 1
-        if self.blink_timer >= self.blink_interval:
-            self.is_blinking = True
-            self.blink_timer = 0
-            self.blink_interval = random.randint(120, 180)  # Random next blink
-        
-        if self.is_blinking:
-            if self.blink_timer >= self.blink_duration:
-                self.is_blinking = False
-                self.blink_timer = 0
-        
-        # Walking animation with improved joint movement
-        if abs(self.vel_x) > 0.5:  # Only animate when actually moving
-            self.animation_timer += 1
-            self.step_timer += 1
-            
-            # Head bobbing (reduced for more natural look)
-            self.bob_offset = math.sin(self.animation_timer * 0.3) * 1.0
-            
-            # Improved leg movement with proper pivot points
-            leg_swing = math.sin(self.animation_timer * 0.4) * 4
-            self.leg_offset = leg_swing * 0.8  # Slightly reduced for more natural look
-            
-            # Enhanced arm swing during walking (only if not attacking)
-            if not self.is_swinging:
-                arm_swing = math.sin(self.animation_timer * 0.4) * 10  # Reduced degrees for subtlety
-                self.arm_swing_offset = arm_swing
-        else:
-            # Reset to neutral position when not moving
-            self.animation_timer = 0
-            self.bob_offset = 0
-            self.leg_offset = 0
-            if not self.is_swinging:
-                self.arm_swing_offset = 0
-        
-        # Enhanced attack/tool swing animation
-        if self.is_swinging:
-            self.arm_swing_timer += 1
-            
-            # Calculate swing arc with easing (0 to 90 degrees)
-            progress = self.arm_swing_timer / self.arm_swing_duration
-            # Use easing for more natural movement
-            eased_progress = 1 - (1 - progress) ** 2  # Ease out
-            
-            if progress <= 0.5:
-                # First half: swing up
-                angle = eased_progress * 2 * 90  # 0 to 90 degrees
-            else:
-                # Second half: swing down with different easing
-                ease_down = (progress - 0.5) * 2  # 0 to 1
-                angle = 90 - (ease_down ** 1.5) * 90  # 90 to 0 degrees with faster ending
-            
-            # Apply swing to arm
-            self.arm_swing_offset = -angle if self.swing_direction > 0 else angle
-            
-            # End swing animation and close mouth
-            if self.arm_swing_timer >= self.arm_swing_duration:
-                self.is_swinging = False
-                self.arm_swing_offset = 0
-                self.mouth_open = False
-                self.arm_swing_timer = 0
-
     def redraw_animated_sprite(self):
         """Redraw zombie sprite with walking animations and blinking"""
         # Clear the image
@@ -11826,6 +11500,72 @@ class Zombie(Mob):
         
         # Mouth
         pygame.draw.rect(self.image, (0, 0, 0), (14 + head_turn, 17 + bob_y, 12, 2))
+    
+    def update(self, WORLD_MAP, player, MOBS): # <-- CORRECTED SIGNATURE
+        if self.attack_timer > 0:
+            self.attack_timer -= 1
+        
+        # Check if zombie is underwater (for drowned conversion)
+        center_x = int(self.rect.centerx // BLOCK_SIZE)
+        head_y = int((self.rect.top + 5) // BLOCK_SIZE)  # Check head position
+        is_underwater = False
+        if 0 <= head_y < GRID_HEIGHT and 0 <= center_x < GRID_WIDTH:
+            is_underwater = WORLD_MAP[head_y][center_x] in FLUID_BLOCKS
+        
+        # Check if near nautilus (instant conversion to drowned)
+        near_nautilus = False
+        for mob in MOBS:
+            if isinstance(mob, Nautilus):
+                distance = math.sqrt((mob.rect.centerx - self.rect.centerx)**2 + (mob.rect.centery - self.rect.centery)**2)
+                if distance < BLOCK_SIZE * 3:  # Within 3 blocks
+                    near_nautilus = True
+                    break
+        
+        # Instant conversion if near nautilus
+        if near_nautilus:
+            drowned = Drowned(self.rect.x, self.rect.y)
+            drowned.converted_from_zombie = True  # Mark as friendly
+            MOBS.add(drowned)
+            self.kill()  # Remove zombie
+            print(f"🧟‍♂️ Zombie converted to Drowned near Nautilus!")
+            return
+        
+        # Convert to Drowned after 20 seconds underwater
+        if is_underwater:
+            self.underwater_timer += 1
+            if self.underwater_timer >= self.conversion_time:
+                # Transform into Drowned (friendly conversion)
+                drowned = Drowned(self.rect.x, self.rect.y)
+                drowned.converted_from_zombie = True  # Mark as friendly
+                MOBS.add(drowned)
+                self.kill()  # Remove zombie
+                return  # Don't continue updating
+        else:
+            # Reset timer when not underwater
+            self.underwater_timer = 0
+            
+        self.ai_move(player, WORLD_MAP, MOBS)
+        
+        # Redraw sprite with animations
+        self.redraw_animated_sprite()
+        
+        super().update(WORLD_MAP, player, MOBS)
+        
+        # Check for collision with target and attack
+        # Find the target (player or nearest villager) that was chased in ai_move
+        target = player
+        if MOBS:
+            closest_dist = math.sqrt((player.rect.centerx - self.rect.centerx)**2 + (player.rect.centery - self.rect.centery)**2)
+            for mob in MOBS:
+                if isinstance(mob, Villager):
+                    dist = math.sqrt((mob.rect.centerx - self.rect.centerx)**2 + (mob.rect.centery - self.rect.centery)**2)
+                    if dist < closest_dist:
+                        target = mob
+                        closest_dist = dist
+        
+        # Attack if touching the target
+        if self.rect.colliderect(target.rect):
+            self.attack(target)
 
 class Drowned(Mob):
     """An underwater zombie variant that spawns in water, with cyan skin and blue eyes. Can spawn with trident. Can spawn riding and controlling nautili."""
@@ -12015,9 +11755,6 @@ class Drowned(Mob):
                 self.vel_x = 0
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         if self.attack_timer > 0:
             self.attack_timer -= 1
             
@@ -12667,18 +12404,6 @@ class Creeper(Mob):
     def explode(self, player, all_mobs=None):
         """Handles the explosion effect: damages the player, knocks them back, damages mobs, AND destroys blocks."""
         
-        # 🎭 PARODY: Play cartoonish explosion sound and show "BOOM!" text
-        if SOUND_MANAGER:
-            # Play multiple funny sounds at once
-            if hasattr(SOUND_MANAGER, 'play_random_sound'):
-                SOUND_MANAGER.play_random_sound(['explosion', 'creeper_death'], volume=0.8)
-            # Also try playing funny achievement sound for comedy
-            if hasattr(SOUND_MANAGER, 'play_sound'):
-                try:
-                    SOUND_MANAGER.play_sound('achievement', volume=0.3)
-                except:
-                    pass
-        
         # Damage player
         damage_distance = math.sqrt(
             (self.rect.centerx - player.rect.centerx)**2 + 
@@ -12739,25 +12464,6 @@ class Creeper(Mob):
                         WORLD_MAP[r][c] = 0 # Set to Air        
     
     def update(self, WORLD_MAP, player, MOBS): # <--- CORRECTED SIGNATURE
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
-        # 🎭 PARODY ANIMATION: Creeper wobbles when approaching (like jello!) - AKRAM DLC ONLY
-        if AKRAM_DLC_ENABLED and hasattr(self, 'animation_timer'):
-            # Exaggerated wobble side-to-side (visual only, don't modify collision rect)
-            wobble_amount = math.sin(self.animation_timer * 0.5) * 3  # Side to side
-            self.visual_offset_x = int(wobble_amount)
-            
-            # Vertical wobble (bobbing) - visual only
-            vertical_wobble = math.cos(self.animation_timer * 0.4) * 2
-            self.visual_offset_y = int(vertical_wobble)
-            
-            # Scale wiggle when fusing (gets bigger/smaller)
-            if self.fuse_timer > 0 and self.fuse_timer % 3 == 0:
-                # Play dramatic "sssss" sound
-                if SOUND_MANAGER and hasattr(SOUND_MANAGER, 'play_random_sound'):
-                    SOUND_MANAGER.play_random_sound(['creeper_fuse'], volume=0.4)
-        
         # Ignore creative mode players
         if player.creative_mode:
             self.vel_x = 0
@@ -13029,10 +12735,10 @@ class Enderman(Mob):
         """Update enderman with teleportation logic."""
         if self.attack_timer > 0:
             self.attack_timer -= 1
-        
+
         if self.teleport_timer > 0:
             self.teleport_timer -= 1
-        
+
         # Water hurts Enderman - take damage and teleport away
         center_col = self.rect.centerx // BLOCK_SIZE
         center_row = self.rect.centery // BLOCK_SIZE
@@ -13041,21 +12747,608 @@ class Enderman(Mob):
             if not hasattr(self, 'water_damage_timer'):
                 self.water_damage_timer = 0
             self.water_damage_timer += 1
-            if self.water_damage_timer >= FPS // 2:  # Damage every half second
+            if self.water_damage_timer >= FPS // 2:
                 self.water_damage_timer = 0
                 self.take_damage(1, MOBS)
-                # Teleport away from water
                 if self.teleport_timer <= 0:
                     self.teleport(WORLD_MAP)
-        
+
         self.ai_move(player, WORLD_MAP)
         super().update(WORLD_MAP, player, None)
+
+    def die(self, all_mobs=None):
+        """Drops ender pearls when killed."""
         if 'DROPPED_ITEMS' in globals():
             # Drop 0-1 ender pearls
             pearl_count = random.randint(0, 1)
             if pearl_count > 0:
                 DROPPED_ITEMS.add(DroppedItem(self.rect.centerx, self.rect.bottom - 10, 222, pearl_count))  # Ender Pearl (ID 222)
         self.kill()
+
+class EnderDragon(Mob):
+    """The Ender Dragon - Final boss of The End dimension"""
+    def __init__(self, x, y):
+        # Massive boss - 6 blocks wide, 4 blocks tall
+        super().__init__(x, y, BLOCK_SIZE * 6, BLOCK_SIZE * 4, (40, 20, 40))
+        
+        # Boss stats
+        self.max_health = 200  # 100 hearts - Epic boss health
+        self.health = 200
+        self.speed = 3.0
+        self.aggro_range = BLOCK_SIZE * 80  # Massive detection range
+        self.attack_damage = 15  # 7.5 hearts per attack
+        self.attack_cooldown = FPS * 2  # Attacks every 2 seconds
+        self.attack_timer = 0
+        self.drop_id = 230  # Dragon Egg
+        self.direction = 1
+        self.flying = True
+        
+        # Boss mechanics
+        self.phase = 1  # 1: Flying phase, 2: Perched phase, 3: Final rage phase
+        self.phase_timer = 0
+        self.perch_timer = 0
+        self.perching = False  # Whether dragon is currently perched
+        self.perch_cooldown = FPS * 15  # Time before can perch again
+        self.perch_duration = FPS * 8  # How long to stay perched
+        self.current_perch = None  # Current pillar being perched on
+        self.rage_mode = False
+        self.invulnerable = False  # Invulnerable while crystals exist
+        
+        # Flight patterns
+        self.flight_pattern = "circle"  # circle, dive, hover
+        self.flight_timer = 0
+        self.target_x = x
+        self.target_y = y
+        self.circle_angle = 0
+        self.circle_radius = BLOCK_SIZE * 20
+        
+        # Attack patterns
+        self.fireball_timer = 0
+        self.fireball_cooldown = FPS * 3
+        self.dive_attack_timer = 0
+        self.breath_attack_timer = 0
+        
+        # Boss visual effects
+        self.wing_flap_timer = 0
+        self.particle_timer = 0
+        
+        # Create dragon visual
+        self.image.fill((0, 0, 0, 0))
+        self.image.set_colorkey((0, 0, 0))
+        
+        # Dragon colors
+        dragon_body = (40, 20, 60)  # Dark purple
+        dragon_wing = (60, 30, 90)  # Lighter purple
+        dragon_eye = (255, 50, 50)  # Red glowing eyes
+        dragon_horn = (80, 80, 80)  # Gray horns
+        
+        # Draw dragon body (main bulk)
+        pygame.draw.ellipse(self.image, dragon_body, (BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE * 4, BLOCK_SIZE * 2))
+        
+        # Draw dragon head (front)
+        pygame.draw.ellipse(self.image, dragon_body, (0, int(BLOCK_SIZE * 0.5), int(BLOCK_SIZE * 2), int(BLOCK_SIZE * 2)))
+        
+        # Draw wings (spread wide)
+        pygame.draw.ellipse(self.image, dragon_wing, (int(BLOCK_SIZE * 1.5), 0, BLOCK_SIZE * 3, int(BLOCK_SIZE * 0.8)))
+        pygame.draw.ellipse(self.image, dragon_wing, (int(BLOCK_SIZE * 1.5), int(BLOCK_SIZE * 3.2), BLOCK_SIZE * 3, int(BLOCK_SIZE * 0.8)))
+        
+        # Draw tail
+        pygame.draw.ellipse(self.image, dragon_body, (BLOCK_SIZE * 4, int(BLOCK_SIZE * 1.2), int(BLOCK_SIZE * 1.5), int(BLOCK_SIZE * 1.6)))
+        
+        # Draw horns
+        pygame.draw.rect(self.image, dragon_horn, (int(BLOCK_SIZE * 0.3), int(BLOCK_SIZE * 0.2), 8, 20))
+        pygame.draw.rect(self.image, dragon_horn, (int(BLOCK_SIZE * 1.2), int(BLOCK_SIZE * 0.2), 8, 20))
+        
+        # Glowing red eyes
+        pygame.draw.circle(self.image, dragon_eye, (int(BLOCK_SIZE * 0.4), int(BLOCK_SIZE * 1)), 6)
+        pygame.draw.circle(self.image, dragon_eye, (int(BLOCK_SIZE * 1.1), int(BLOCK_SIZE * 1)), 6)
+        
+        # Boss health bar setup
+        self.show_health_bar = True
+        self.health_bar_width = 400
+        self.health_bar_height = 20
+        
+        print("🐉 ENDER DRAGON HAS AWAKENED!")
+    
+    def update_phase(self, player):
+        """Update dragon's combat phase based on health"""
+        health_percentage = self.health / self.max_health
+        
+        if health_percentage > 0.66:
+            self.phase = 1  # Flying phase - circles around
+            self.flight_pattern = "circle"
+        elif health_percentage > 0.33:
+            self.phase = 2  # Aggressive phase - dive attacks
+            self.flight_pattern = "dive"
+        else:
+            self.phase = 3  # Rage phase - rapid attacks, erratic movement
+            self.rage_mode = True
+            self.flight_pattern = "rage"
+    
+    def circle_flight(self, center_x, center_y):
+        """Flying in a circle pattern"""
+        self.circle_angle += 0.02  # Rotation speed
+        self.target_x = center_x + math.cos(self.circle_angle) * self.circle_radius
+        self.target_y = center_y + math.sin(self.circle_angle) * self.circle_radius
+    
+    def dive_attack(self, player):
+        """Dive attack toward player"""
+        if self.dive_attack_timer <= 0:
+            # Target player position
+            self.target_x = player.rect.centerx
+            self.target_y = player.rect.centery - BLOCK_SIZE * 2
+            self.dive_attack_timer = FPS * 3
+            print("🐉 Dragon dive attack!")
+    
+    def fireball_attack(self, player):
+        """Launch fireball at player"""
+        if self.fireball_timer <= 0:
+            # Create fireball projectile
+            fb_x = self.rect.centerx
+            fb_y = self.rect.centery
+            
+            # Calculate direction to player
+            dx = player.rect.centerx - fb_x
+            dy = player.rect.centery - fb_y
+            distance = math.sqrt(dx**2 + dy**2)
+            
+            if distance > 0:
+                vel_x = (dx / distance) * 8  # Fireball speed
+                vel_y = (dy / distance) * 8
+                
+                # Add fireball projectile to global group
+                fireball = DragonFireball(fb_x, fb_y, vel_x, vel_y)
+                DRAGON_PROJECTILES.add(fireball)
+                
+                self.fireball_timer = self.fireball_cooldown
+                print("🔥 Dragon breathes fire!")
+    
+    def breath_attack(self, player, WORLD_MAP):
+        """Dragon breath that destroys blocks"""
+        if self.breath_attack_timer <= 0:
+            breath_range = 5
+            dragon_col = self.rect.centerx // BLOCK_SIZE
+            dragon_row = self.rect.centery // BLOCK_SIZE
+            
+            # Destroy blocks in a cone toward player
+            for r in range(max(0, dragon_row - breath_range), min(GRID_HEIGHT, dragon_row + breath_range)):
+                for c in range(max(0, dragon_col - breath_range), min(GRID_WIDTH, dragon_col + breath_range)):
+                    if WORLD_MAP[r][c] == END_STONE_ID:  # Only destroy End Stone
+                        distance = math.sqrt((c - dragon_col)**2 + (r - dragon_row)**2)
+                        if distance <= breath_range and random.random() < 0.3:
+                            WORLD_MAP[r][c] = 0  # Destroy block
+            
+            self.breath_attack_timer = FPS * 8  # Long cooldown
+            print("💨 Dragon breath destroys the terrain!")
+    
+    def ai_move(self, player, WORLD_MAP):
+        """Advanced dragon AI with multiple attack patterns and perching"""
+        if player.creative_mode:
+            return
+        
+        # Check if dragon is invulnerable (crystals still exist)
+        if END_CRYSTALS and len(END_CRYSTALS) > 0:
+            self.invulnerable = True
+        else:
+            self.invulnerable = False
+        
+        # Handle perching behavior
+        if self.perching:
+            self.perch_timer -= 1
+            self.vel_x = 0
+            self.vel_y = 0  # Stay still while perched
+            
+            # Shoot fireballs while perched
+            if self.fireball_timer <= 0 and random.randint(1, 30) == 1:
+                self.fireball_attack(player)
+            
+            # End perching
+            if self.perch_timer <= 0:
+                self.perching = False
+                self.perch_cooldown = FPS * 15
+                self.current_perch = None
+                print("🐉 Dragon takes flight!")
+            return
+        
+        # Try to perch if cooldown is ready and health is low
+        if self.perch_cooldown <= 0 and self.health < self.max_health * 0.6 and DRAGON_PERCH_LOCATIONS:
+            if random.randint(1, 200) == 1:  # Random chance to perch
+                self.try_perch()
+                return
+        
+        if self.perch_cooldown > 0:
+            self.perch_cooldown -= 1
+        
+        # Update phase based on health
+        self.update_phase(player)
+        
+        # Update timers
+        if self.fireball_timer > 0:
+            self.fireball_timer -= 1
+        if self.dive_attack_timer > 0:
+            self.dive_attack_timer -= 1
+        if self.breath_attack_timer > 0:
+            self.breath_attack_timer -= 1
+        
+        # Flight pattern logic
+        if self.phase == 1:  # Circle phase
+            center_x = GRID_WIDTH * BLOCK_SIZE // 2
+            center_y = GRID_HEIGHT * BLOCK_SIZE // 2
+            self.circle_flight(center_x, center_y)
+            
+            # Shoot fireballs while circling
+            if self.fireball_timer <= 0 and random.randint(1, 60) == 1:
+                self.fireball_attack(player)
+        
+        elif self.phase == 2:  # Dive phase
+            if random.randint(1, 100) <= 3:  # 3% chance per frame
+                self.dive_attack(player)
+            else:
+                # Hover near player
+                self.target_x = player.rect.centerx + random.randint(-200, 200)
+                self.target_y = player.rect.centery - BLOCK_SIZE * 3
+            
+            # More frequent fireballs in phase 2
+            if self.fireball_timer <= 0 and random.randint(1, 40) == 1:
+                self.fireball_attack(player)
+        
+        elif self.phase == 3:  # Rage phase
+            # Erratic movement
+            if random.randint(1, 60) == 1:  # Change direction randomly
+                self.target_x = player.rect.centerx + random.randint(-400, 400)
+                self.target_y = player.rect.centery + random.randint(-200, 100)
+            
+            # Constant fireball barrage in rage mode
+            if self.fireball_timer <= 0 and random.randint(1, 20) == 1:
+                self.fireball_attack(player)
+        
+        # Move toward target
+        dx = self.target_x - self.rect.centerx
+        dy = self.target_y - self.rect.centery
+        distance = math.sqrt(dx**2 + dy**2)
+        
+        if distance > 10:
+            self.vel_x = (dx / distance) * self.speed
+            self.vel_y = (dy / distance) * self.speed
+        else:
+            self.vel_x = 0
+            self.vel_y = 0
+        
+        # Attack when close to player
+        distance_to_player = math.sqrt((player.rect.centerx - self.rect.centerx)**2 + 
+                                     (player.rect.centery - self.rect.centery)**2)
+        
+        if distance_to_player <= BLOCK_SIZE * 3 and self.attack_timer <= 0:
+            self.attack(player)
+    
+    def try_perch(self):
+        """Attempt to perch on a pillar"""
+        if not DRAGON_PERCH_LOCATIONS:
+            return
+        
+        # Choose random pillar
+        perch_location = random.choice(DRAGON_PERCH_LOCATIONS)
+        self.current_perch = perch_location
+        self.perching = True
+        self.perch_timer = self.perch_duration
+        
+        # Move to pillar top
+        self.rect.centerx = perch_location[0]
+        self.rect.bottom = perch_location[1]
+        
+        print(f"🐉 Dragon perches on pillar at ({perch_location[0]}, {perch_location[1]})!")
+    
+    def attack(self, target):
+        """Dragon melee attack"""
+        if self.attack_timer <= 0:
+            target.take_damage(self.attack_damage, attacker=self)
+            self.attack_timer = self.attack_cooldown
+            print(f"🐉 Ender Dragon attacks for {self.attack_damage} damage!")
+    
+    def take_damage(self, damage, all_mobs=None):
+        """Dragon takes damage and becomes more aggressive - invulnerable while crystals exist"""
+        # Check invulnerability
+        if self.invulnerable:
+            print("🔮 The Ender Dragon is shielded by the End Crystals! Destroy them first!")
+            return
+        
+        super().take_damage(damage, all_mobs)
+        
+        # Speed up attacks when damaged
+        if self.health <= self.max_health * 0.5:
+            self.attack_cooldown = FPS * 1  # Faster attacks
+            self.fireball_cooldown = FPS * 2  # Faster fireballs
+        
+        print(f"🐉 Ender Dragon takes {damage} damage! ({self.health}/{self.max_health} HP)")
+    
+    def draw_health_bar(self, screen, player):
+        """Draw boss health bar at top of screen"""
+        if not self.show_health_bar:
+            return
+        
+        # Health bar position (top center of screen)
+        bar_x = (SCREEN_WIDTH - self.health_bar_width) // 2
+        bar_y = 20
+        
+        # Health percentage
+        health_percent = self.health / self.max_health
+        
+        # Background bar
+        pygame.draw.rect(screen, (50, 50, 50), (bar_x - 2, bar_y - 2, self.health_bar_width + 4, self.health_bar_height + 4))
+        pygame.draw.rect(screen, (100, 100, 100), (bar_x, bar_y, self.health_bar_width, self.health_bar_height))
+        
+        # Health bar (color changes based on health)
+        if health_percent > 0.66:
+            health_color = (255, 100, 100)  # Red
+        elif health_percent > 0.33:
+            health_color = (255, 150, 0)    # Orange
+        else:
+            health_color = (200, 0, 0)      # Dark red
+        
+        health_width = int(self.health_bar_width * health_percent)
+        pygame.draw.rect(screen, health_color, (bar_x, bar_y, health_width, self.health_bar_height))
+        
+        # Boss name and health text
+        font = pygame.font.Font(None, 24)
+        name_text = font.render("Ender Dragon", True, (255, 255, 255))
+        health_text = font.render(f"{self.health}/{self.max_health}", True, (255, 255, 255))
+        
+        screen.blit(name_text, (bar_x, bar_y - 25))
+        screen.blit(health_text, (bar_x + self.health_bar_width - health_text.get_width(), bar_y - 25))
+    
+    def update(self, WORLD_MAP, player, MOBS):
+        """Update dragon with flying physics"""
+        # Update animations (AKRAM DLC)
+        self.update_animations()
+        
+        if self.attack_timer > 0:
+            self.attack_timer -= 1
+        
+        # Dragon flies, so ignore normal gravity
+        self.rect.x += self.vel_x
+        self.rect.y += self.vel_y
+        
+        # Keep dragon within world bounds
+        self.rect.x = max(0, min(self.rect.x, GRID_WIDTH * BLOCK_SIZE - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, GRID_HEIGHT * BLOCK_SIZE - self.rect.height))
+        
+        self.ai_move(player, WORLD_MAP)
+    
+    def die(self, all_mobs=None):
+        """Dragon death - drops dragon egg, spawns End Gateway portal, and experience"""
+        global END_GATEWAY_PORTAL
+        
+        print("🎉 THE ENDER DRAGON HAS BEEN DEFEATED!")
+        
+        # Trigger "Free the End" achievement
+        unlock_achievement("free_the_end")
+        
+        # Spawn End Gateway Portal at center of main island
+        center_x = GRID_WIDTH * BLOCK_SIZE // 2
+        center_y = int(GRID_HEIGHT * 0.6) * BLOCK_SIZE
+        END_GATEWAY_PORTAL = EndGatewayPortal(center_x, center_y)
+        print("🌟 An End Gateway Portal has appeared!")
+        
+        if 'DROPPED_ITEMS' in globals():
+            # Drop Dragon Egg (guaranteed)
+            DROPPED_ITEMS.add(DroppedItem(self.rect.centerx, self.rect.bottom - 10, 230, 1))  # Dragon Egg
+            
+            # Drop lots of experience orbs
+            for i in range(50):  # 50 experience orbs
+                xp_x = self.rect.centerx + random.randint(-100, 100)
+                xp_y = self.rect.centery + random.randint(-50, 50)
+                DROPPED_ITEMS.add(DroppedItem(xp_x, xp_y, 999, 10))  # 10 XP per orb
+        
+        self.kill()
+
+class DragonFireball(pygame.sprite.Sprite):
+    """Dragon fireball projectile"""
+    def __init__(self, x, y, vel_x, vel_y):
+        super().__init__()
+        self.image = pygame.Surface((20, 20))
+        self.image.fill((255, 100, 0))  # Orange fireball
+        pygame.draw.circle(self.image, (255, 200, 0), (10, 10), 8)  # Yellow center
+        self.rect = self.image.get_rect(center=(x, y))
+        
+        self.vel_x = vel_x
+        self.vel_y = vel_y
+        self.damage = 8  # 4 hearts of damage
+        self.lifetime = FPS * 5  # 5 seconds max
+    
+    def update(self, WORLD_MAP, player, mobs):
+        """Update fireball movement and collisions"""
+        self.rect.x += self.vel_x
+        self.rect.y += self.vel_y
+        
+        self.lifetime -= 1
+        if self.lifetime <= 0:
+            self.explode(WORLD_MAP)
+            return
+        
+        # Check collision with player
+        if self.rect.colliderect(player.rect):
+            player.take_damage(self.damage)
+            self.explode(WORLD_MAP)
+            return
+        
+        # Check collision with blocks
+        col = self.rect.centerx // BLOCK_SIZE
+        row = self.rect.centery // BLOCK_SIZE
+        
+        if 0 <= col < GRID_WIDTH and 0 <= row < GRID_HEIGHT:
+            if WORLD_MAP[row][col] != 0:
+                self.explode(WORLD_MAP)
+    
+    def explode(self, WORLD_MAP):
+        """Explode and damage nearby blocks"""
+        explosion_range = 2
+        center_col = self.rect.centerx // BLOCK_SIZE
+        center_row = self.rect.centery // BLOCK_SIZE
+        
+        for r in range(max(0, center_row - explosion_range), min(GRID_HEIGHT, center_row + explosion_range)):
+            for c in range(max(0, center_col - explosion_range), min(GRID_WIDTH, center_col + explosion_range)):
+                distance = math.sqrt((c - center_col)**2 + (r - center_row)**2)
+                if distance <= explosion_range and random.random() < 0.5:
+                    if WORLD_MAP[r][c] == END_STONE_ID:  # Only destroy End Stone
+                        WORLD_MAP[r][c] = 0
+        
+        print("💥 Dragon fireball explodes!")
+        self.kill()
+
+# --- End Crystal Class ---
+class EndCrystal(pygame.sprite.Sprite):
+    """End Crystals that heal the Ender Dragon and sit on top of obsidian pillars"""
+    def __init__(self, x, y, pillar_id):
+        super().__init__()
+        self.pillar_id = pillar_id
+        
+        # Visual
+        self.image = pygame.Surface((BLOCK_SIZE, BLOCK_SIZE * 2))
+        self.image.set_colorkey((0, 0, 0))
+        self.image.fill((0, 0, 0))
+        
+        # Crystal colors
+        crystal_core = (255, 100, 255)  # Bright magenta
+        crystal_glow = (200, 50, 200)   # Purple glow
+        bedrock_base = (50, 50, 50)     # Dark gray bedrock
+        
+        # Draw bedrock base
+        pygame.draw.rect(self.image, bedrock_base, (BLOCK_SIZE//4, int(BLOCK_SIZE*1.5), BLOCK_SIZE//2, BLOCK_SIZE//2))
+        
+        # Draw crystal (diamond shape)
+        crystal_points = [
+            (BLOCK_SIZE//2, 5),  # Top point
+            (BLOCK_SIZE//4, BLOCK_SIZE//2),  # Left point
+            (BLOCK_SIZE//2, BLOCK_SIZE - 5),  # Bottom point
+            (BLOCK_SIZE*3//4, BLOCK_SIZE//2)  # Right point
+        ]
+        pygame.draw.polygon(self.image, crystal_glow, crystal_points)
+        
+        # Inner crystal shine
+        inner_points = [
+            (BLOCK_SIZE//2, 15),
+            (BLOCK_SIZE//3, BLOCK_SIZE//2),
+            (BLOCK_SIZE//2, BLOCK_SIZE - 15),
+            (BLOCK_SIZE*2//3, BLOCK_SIZE//2)
+        ]
+        pygame.draw.polygon(self.image, crystal_core, inner_points)
+        
+        self.rect = self.image.get_rect(midbottom=(x, y))
+        
+        # Stats
+        self.health = 5  # Can be destroyed
+        self.max_health = 5
+        self.heal_amount = 1  # HP healed per tick
+        self.heal_cooldown = FPS * 2  # Heal every 2 seconds
+        self.heal_timer = 0
+        self.heal_range = BLOCK_SIZE * 30  # Range to heal dragon
+        
+        # Animation
+        self.bob_timer = random.randint(0, 100)
+        self.rotation_angle = 0
+        
+        print(f"🔮 End Crystal {pillar_id} placed at ({x}, {y})")
+    
+    def update(self, dragon=None):
+        """Heal the dragon if in range and animate"""
+        # Bobbing animation
+        self.bob_timer += 1
+        bob_offset = math.sin(self.bob_timer * 0.05) * 3
+        self.rect.y = self.rect.y - int(bob_offset - math.sin((self.bob_timer - 1) * 0.05) * 3)
+        
+        # Heal dragon if exists and in range
+        if dragon and dragon.health < dragon.max_health:
+            distance = math.sqrt((dragon.rect.centerx - self.rect.centerx)**2 + 
+                               (dragon.rect.centery - self.rect.centery)**2)
+            
+            if distance <= self.heal_range:
+                self.heal_timer += 1
+                if self.heal_timer >= self.heal_cooldown:
+                    dragon.health = min(dragon.max_health, dragon.health + self.heal_amount)
+                    self.heal_timer = 0
+                    # Visual healing beam effect could be added here
+    
+    def take_damage(self, damage):
+        """Crystal takes damage and can be destroyed"""
+        self.health -= damage
+        if self.health <= 0:
+            print(f"💥 End Crystal {self.pillar_id} destroyed!")
+            # Create explosion effect
+            self.explode()
+            self.kill()
+    
+    def explode(self):
+        """Explosion when crystal is destroyed"""
+        # Deal damage to nearby entities
+        explosion_range = BLOCK_SIZE * 5
+        if 'player' in globals():
+            player = globals()['player']
+            distance = math.sqrt((player.rect.centerx - self.rect.centerx)**2 + 
+                               (player.rect.centery - self.rect.centery)**2)
+            if distance <= explosion_range:
+                damage = max(1, int(10 * (1 - distance / explosion_range)))
+                player.take_damage(damage)
+                print(f"💥 Crystal explosion deals {damage} damage!")
+
+# --- End Gateway Portal Class ---
+class EndGatewayPortal(pygame.sprite.Sprite):
+    """Portal that spawns after defeating the Ender Dragon, leads to End Cities"""
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((BLOCK_SIZE * 3, BLOCK_SIZE * 4))
+        self.image.set_colorkey((0, 0, 0))
+        self.image.fill((0, 0, 0))
+        
+        # Portal colors - yellow/gold
+        portal_outer = (255, 215, 0)  # Gold
+        portal_inner = (255, 255, 100)  # Light yellow
+        portal_core = (255, 255, 255)  # White center
+        
+        # Draw portal frame (bedrock)
+        bedrock_color = (50, 50, 50)
+        pygame.draw.rect(self.image, bedrock_color, (0, 0, BLOCK_SIZE * 3, BLOCK_SIZE * 4), 5)
+        
+        # Draw swirling portal effect (simplified)
+        for i in range(3):
+            radius = (3 - i) * 15
+            color_val = 255 - (i * 50)
+            pygame.draw.circle(self.image, (color_val, color_val, 100), 
+                             (int(BLOCK_SIZE * 1.5), int(BLOCK_SIZE * 2)), radius)
+        
+        self.rect = self.image.get_rect(center=(x, y))
+        self.activation_range = BLOCK_SIZE * 2
+        self.active = True
+        self.animation_timer = 0
+        
+        print(f"🌟 End Gateway Portal spawned at ({x}, {y})!")
+    
+    def update(self, player):
+        """Animate portal and check for player collision"""
+        self.animation_timer += 1
+        
+        # Check if player enters portal
+        if self.active:
+            distance = math.sqrt((player.rect.centerx - self.rect.centerx)**2 + 
+                               (player.rect.centery - self.rect.centery)**2)
+            
+            if distance <= self.activation_range:
+                # Teleport player to outer End islands
+                self.teleport_to_end_city(player)
+    
+    def teleport_to_end_city(self, player):
+        """Teleport player to End City islands area"""
+        # Teleport far away to the outer End islands
+        teleport_x = random.randint(GRID_WIDTH * BLOCK_SIZE // 2 + 1000, GRID_WIDTH * BLOCK_SIZE - 200)
+        teleport_y = random.randint(100, GRID_HEIGHT * BLOCK_SIZE // 2)
+        
+        player.rect.x = teleport_x
+        player.rect.y = teleport_y
+        player.vel_y = 0
+        player.vel_x = 0
+        
+        print(f"🌌 Teleported to End City islands at ({teleport_x}, {teleport_y})!")
+        # Achievement for reaching End Cities
+        unlock_achievement("the_city_at_the_end_of_the_game")
 
 # --- Arrow Projectile Class ---
 class Arrow(pygame.sprite.Sprite):
@@ -13625,9 +13918,6 @@ class Skeleton(Mob):
                 self.vel_x = 0 
 
     def update(self, WORLD_MAP, player, MOBS, arrows_group): # <--- ADDED arrows_group
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         if self.attack_timer > 0:
             self.attack_timer -= 1
             
@@ -13895,25 +14185,6 @@ class Deer(Mob):
         # Tail
         pygame.draw.rect(self.image, (120, 80, 40), (2, h - 28, 4, 6))
 
-        # Try to load deer texture with white background removal
-        if USE_EXPERIMENTAL_TEXTURES:
-            try:
-                deer_texture = pygame.image.load(r"..\Textures\deer.png")
-                deer_texture = pygame.transform.scale(deer_texture, (w, h))
-                
-                # Remove white background - make white pixels transparent
-                deer_texture = deer_texture.convert_alpha()
-                for x in range(deer_texture.get_width()):
-                    for y in range(deer_texture.get_height()):
-                        r, g, b, a = deer_texture.get_at((x, y))
-                        # Make pure white pixels transparent
-                        if r == 255 and g == 255 and b == 255:
-                            deer_texture.set_at((x, y), (r, g, b, 0))  # Set alpha to 0 (transparent)
-                
-                self.image = deer_texture
-            except:
-                pass  # Keep the drawn image if texture fails to load
-
     def ai_move(self):
         """Simple wandering AI."""
         self.move_timer += 1
@@ -14025,9 +14296,6 @@ class Panda(Mob):
                 self.move_timer = 0
     
     def update(self, world_map, player, all_mobs):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         self.ai_move()
         super().update(world_map, player, all_mobs)
 
@@ -15295,9 +15563,6 @@ class Vindicator(Mob):
                 print(f"🪓 Vindicator struck with iron axe!")
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         self.attack_timer = max(0, self.attack_timer - 1)
         self.ai_move(player, WORLD_MAP)
         super().update(WORLD_MAP, player, MOBS)
@@ -15425,9 +15690,6 @@ class Evoker(Mob):
                 print(f"🦷 Evoker cast Fang spell!")
     
     def update(self, WORLD_MAP, player, MOBS):
-        # Update animations (AKRAM DLC)
-        self.update_animations()
-        
         self.attack_timer = max(0, self.attack_timer - 1)
         self.summon_timer = max(0, self.summon_timer - 1)
         self.ai_move(player, WORLD_MAP)
@@ -15494,6 +15756,9 @@ class Vex(Mob):
             pygame.draw.rect(self.image, (120, 120, 150), (w-3, h//3, 3, h//3))
     
     def update(self, WORLD_MAP, player, MOBS):
+        # Update animations (AKRAM DLC)
+        self.update_animations()
+        
         self.lifetime -= 1
         if self.lifetime <= 0:
             self.kill()
@@ -16611,6 +16876,9 @@ class Blaze(Mob):
             self.attack_timer = self.attack_cooldown
     
     def update(self, WORLD_MAP, player, MOBS):
+        # Update animations (AKRAM DLC)
+        self.update_animations()
+        
         self.attack_timer = max(0, self.attack_timer - 1)
         self.ai_move(player, WORLD_MAP)
         
@@ -16683,6 +16951,9 @@ class Ghast(Mob):
             self.attack_timer = self.attack_cooldown
     
     def update(self, WORLD_MAP, player, MOBS):
+        # Update animations (AKRAM DLC)
+        self.update_animations()
+        
         self.attack_timer = max(0, self.attack_timer - 1)
         self.ai_move(player, WORLD_MAP)
         
@@ -16911,30 +17182,13 @@ def draw_item_sprite(screen, rect, item_id):
     pygame.draw.rect(screen, base_color, item_rect)
 
 def update_water_flow():
-    """Optimized water and lava flow system for large worlds - only updates near player."""
+    """Water and lava flow and spread horizontally, weakening with each block (stops after 5 blocks)."""
     global WORLD_MAP
-    
-    # Get player position for chunk-based updates
-    if 'player' not in globals():
-        return
-    
-    player_col = player.rect.centerx // BLOCK_SIZE
-    player_row = player.rect.centery // BLOCK_SIZE
-    
-    # Only update water/lava within 64 blocks of player (performance optimization)
-    update_radius = 64
-    min_col = max(0, player_col - update_radius)
-    max_col = min(GRID_WIDTH, player_col + update_radius)
-    min_row = max(0, player_row - update_radius)
-    max_row = min(GRID_HEIGHT, player_row + update_radius)
     
     changes = []
     
-    for row in range(min_row, min(max_row, GRID_HEIGHT - 1)):
-        for col in range(min_col, max_col):
-            if col >= GRID_WIDTH:
-                continue
-                
+    for row in range(GRID_HEIGHT - 1):
+        for col in range(GRID_WIDTH):
             block_type = WORLD_MAP[row][col]
             
             # Check if this is water or lava
@@ -17200,52 +17454,12 @@ def draw_world(camera_x, camera_y, player=None):
                         bright_y = screen_y + random.randint(BLOCK_SIZE // 2, BLOCK_SIZE)
                         bright_size = random.randint(2, 5)
                         pygame.draw.rect(screen, (255, 255, 100), (bright_x, bright_y, bright_size, bright_size))
-                
-                # End Portal Frame hover effect (ID 544)
-                if block_id == 544:
-                    # Check if mouse is hovering over this block
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    mouse_world_x = mouse_x + camera_x
-                    mouse_world_y = mouse_y + camera_y
-                    
-                    if (screen_x <= mouse_x <= screen_x + BLOCK_SIZE and
-                        screen_y <= mouse_y <= screen_y + BLOCK_SIZE):
-                        # Draw glowing hover effect
-                        glow_surface = pygame.Surface((BLOCK_SIZE, BLOCK_SIZE), pygame.SRCALPHA)
-                        glow_surface.fill((128, 0, 255, 100))  # Purple glow
-                        screen.blit(glow_surface, (screen_x, screen_y))
-                        
-                        # Draw "Press E" text
-                        font = pygame.font.Font(None, 20)
-                        text = font.render("Press E for 3D Portal", True, (255, 255, 255))
-                        text_rect = text.get_rect(center=(screen_x + BLOCK_SIZE // 2, screen_y - 20))
-                        
-                        # Text background
-                        bg_rect = text_rect.inflate(10, 4)
-                        pygame.draw.rect(screen, (0, 0, 0, 180), bg_rect)
-                        screen.blit(text, text_rect)
 
 def calculate_camera_offset(player_rect):
-    """Calculates the camera offset based on perspective mode.
-    0 = First-person (at player eyes)
-    1 = Third-person back (default, behind player)
-    2 = Third-person front (selfie mode, in front of player)
-    """
-    # Read global PERSPECTIVE_MODE (no global declaration needed for read-only)
-    if PERSPECTIVE_MODE == 0:
-        # First-person: Camera at player's eye level
-        camera_x = player_rect.centerx - SCREEN_WIDTH // 2
-        camera_y = player_rect.top - SCREEN_HEIGHT // 2 + BLOCK_SIZE // 2
-    elif PERSPECTIVE_MODE == 2:
-        # Third-person front (selfie mode): Camera in front of player
-        camera_x = player_rect.centerx - SCREEN_WIDTH // 2
-        camera_y = player_rect.centery - SCREEN_HEIGHT // 2 - BLOCK_SIZE * 2
-    else:
-        # Third-person back (default): Camera behind and above player
-        camera_x = player_rect.centerx - SCREEN_WIDTH // 2
-        camera_y = player_rect.centery - SCREEN_HEIGHT // 2
+    """Calculates the camera offset to center on the player."""
+    camera_x = player_rect.centerx - SCREEN_WIDTH // 2
+    camera_y = player_rect.centery - SCREEN_HEIGHT // 2
     
-    # Clamp to world boundaries
     camera_x = max(0, min(camera_x, GRID_WIDTH * BLOCK_SIZE - SCREEN_WIDTH))
     camera_y = max(0, min(camera_y, GRID_HEIGHT * BLOCK_SIZE - SCREEN_HEIGHT))
     
@@ -17511,17 +17725,16 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                         # Normal mining (instant for now, will add hold-to-mine later)
                         WORLD_MAP[target_row][target_col] = 0
                         
-                        # Multiplayer: notify server of block break
-                        if multiplayer_enabled and multiplayer_client.connected:
-                            multiplayer_client.send_block_change(target_col, target_row, 0)
-                        
-                        # Play block breaking sound based on block type
-                        if block_id in [7, 21, 22, 40, 41, 128]:  # Wood/logs
-                            pycraft_sounds.play_block_break('wood')
-                        elif block_id in [1, 2, 3, 4, 15]:  # Stone blocks
-                            pycraft_sounds.play_block_break('stone')
-                        else:  # Default block breaking sound
-                            pycraft_sounds.play_block_break('stone')
+                        # Play appropriate breaking sound
+                        block_name = block_data.get('name', '').lower()
+                        if any(material in block_name for material in ['stone', 'brick', 'ore', 'cobble']):
+                            SOUND_MANAGER.play_sound('break_stone', 0.5)
+                        elif any(material in block_name for material in ['wood', 'log', 'plank', 'craft']):
+                            SOUND_MANAGER.play_sound('break_wood', 0.4)
+                        elif 'glass' in block_name:
+                            SOUND_MANAGER.play_sound('break_glass', 0.3)
+                        else:
+                            SOUND_MANAGER.play_sound('break_stone', 0.4)
                         
                         # Achievement triggers
                         # Getting Wood - mine any log
@@ -18373,8 +18586,17 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                         if multiplayer_enabled and multiplayer_client.connected:
                             multiplayer_client.send_block_change(target_col, target_row, held_id)
                         
-                        # Play block placing sound
-                        pycraft_sounds.play_block_place()
+                        # Play appropriate placement sound
+                        block_data = BLOCK_TYPES.get(held_id, {})
+                        block_name = block_data.get('name', '').lower()
+                        if any(material in block_name for material in ['stone', 'brick', 'ore', 'cobble']):
+                            SOUND_MANAGER.play_sound('place_block', 0.4)
+                        elif any(material in block_name for material in ['wood', 'log', 'plank', 'craft']):
+                            SOUND_MANAGER.play_sound('place_block', 0.3)
+                        elif 'glass' in block_name:
+                            SOUND_MANAGER.play_sound('place_block', 0.2)
+                        else:
+                            SOUND_MANAGER.play_sound('place_block', 0.35)
                         
                         # Check for golem spawning patterns after placing block
                         check_golem_spawning(WORLD_MAP, target_row, target_col)
@@ -18401,10 +18623,6 @@ def unlock_achievement(achievement_id, player=None):
     
     achievement["unlocked"] = True
     ACHIEVEMENT_POPUP = {"achievement_id": achievement_id, "time": pygame.time.get_ticks() / 1000.0}
-    
-    # Play achievement sound
-    pycraft_sounds.play_achievement()
-    
     print(f"🏆 Achievement Unlocked: {achievement['name']} - {achievement['desc']}")
 
 def check_achievement_progress(achievement_id, progress_value=None, player=None):
@@ -18884,9 +19102,11 @@ def draw_hud(player):
     player_col = player.rect.centerx // BLOCK_SIZE
     player_row = player.rect.centery // BLOCK_SIZE
     
-    # Display ABSOLUTE position (easier to read with large world)
-    player_block_x = player_col
-    player_block_y = player_row
+    # Calculate relative position from world center for display
+    spawn_col = GRID_WIDTH // 2
+    spawn_row = GRID_HEIGHT // 2
+    player_block_x = player_col - spawn_col
+    player_block_y = player_row - spawn_row
     
     # Get current biome
     biome_names = {
@@ -18970,13 +19190,12 @@ def draw_hud(player):
         instruction = FONT_SMALL.render("Press ENTER to execute, ESC to cancel", True, (200, 200, 200))
         screen.blit(instruction, (cmd_box_x, cmd_box_y - 20))
     
-    # === Draw FPS Counter (ALWAYS VISIBLE) ===
+    # Draw FPS Counter below coordinates panel
     fps_y = coords_y + coords_text.get_height() + biome_text.get_height() + block_text.get_height() + mob_count_text.get_height() + 10
     fps = int(clock.get_fps())
-    fps_text = FONT_SMALL.render(f"FPS: {fps}", True, (255, 255, 0))  # Bright yellow
+    fps_text = FONT_SMALL.render(f"FPS: {fps}", True, (255, 255, 0))
     fps_bg_rect = pygame.Rect(coords_x - 5, fps_y - 2, fps_text.get_width() + 10, fps_text.get_height() + 4)
-    pygame.draw.rect(screen, (0, 0, 0), fps_bg_rect)  # Solid black background
-    pygame.draw.rect(screen, (255, 255, 0), fps_bg_rect, 2)  # Yellow border
+    pygame.draw.rect(screen, (0, 0, 0, 180), fps_bg_rect)
     screen.blit(fps_text, (coords_x, fps_y))
     
     # Draw Mob Trackers below FPS
@@ -19025,54 +19244,12 @@ def draw_hud(player):
     if nearest_meat:
         mob_name = nearest_meat.__class__.__name__
         distance_blocks = int(meat_distance // BLOCK_SIZE)
-        
-        # Determine food type
-        food_type = "?"
-        if isinstance(nearest_meat, Cow):
-            food_type = "Beef"
-        elif isinstance(nearest_meat, Pig):
-            food_type = "Pork"
-        elif isinstance(nearest_meat, Sheep):
-            food_type = "Mutton"
-        elif isinstance(nearest_meat, Chicken):
-            food_type = "Chicken"
-        elif isinstance(nearest_meat, Rabbit):
-            food_type = "Rabbit"
-        
-        meat_color = (100, 200, 100)  # Green for food
-        
-        meat_text = FONT_SMALL.render(f"🍖 {mob_name} ({food_type}): {distance_blocks} blocks", True, meat_color)
-        
-        # Draw background
+        meat_color = (255, 192, 128)  # Light orange for meat mobs
+        meat_text = FONT_SMALL.render(f"🍖 {mob_name}: {distance_blocks} blocks", True, meat_color)
         meat_bg = pygame.Rect(coords_x - 5, tracker_y - 5, meat_text.get_width() + 10, meat_text.get_height() + 10)
         pygame.draw.rect(screen, (0, 0, 0, 180), meat_bg)
         pygame.draw.rect(screen, meat_color, meat_bg, 2)
-        
         screen.blit(meat_text, (coords_x, tracker_y))
-        tracker_y += 25
-    
-    # Draw Aquatic Mob Tracker
-    nearest_aquatic, aquatic_distance = get_nearest_aquatic_mob(player, MOBS)
-    if nearest_aquatic:
-        mob_name = nearest_aquatic.__class__.__name__
-        distance_blocks = int(aquatic_distance // BLOCK_SIZE)
-        
-        # Color based on mob type
-        if isinstance(nearest_aquatic, (Shark, Drowned)):
-            aquatic_color = (255, 100, 100)  # Red for hostile
-        elif isinstance(nearest_aquatic, Dolphin):
-            aquatic_color = (100, 200, 255)  # Light blue for friendly
-        else:
-            aquatic_color = (100, 150, 255)  # Blue for neutral
-        
-        aquatic_text = FONT_SMALL.render(f"🌊 {mob_name}: {distance_blocks} blocks", True, aquatic_color)
-        
-        # Draw background
-        aquatic_bg = pygame.Rect(coords_x - 5, tracker_y - 5, aquatic_text.get_width() + 10, aquatic_text.get_height() + 10)
-        pygame.draw.rect(screen, (0, 0, 0, 180), aquatic_bg)
-        pygame.draw.rect(screen, aquatic_color, aquatic_bg, 2)
-        
-        screen.blit(aquatic_text, (coords_x, tracker_y))
         tracker_y += 25
     
     # Draw Nearest Mob Overall
@@ -20826,14 +21003,14 @@ def get_sky_color():
     global TIME_PHASE
     
     if TIME_PHASE == DAY_PHASE:
-        return (135, 206, 235)  # Bright blue sky
+        return (10, 5, 20)  # Dark purple void of The End
     elif TIME_PHASE == EVENING_PHASE:
         return (255, 140, 60)  # Orange evening sky
     elif TIME_PHASE == NIGHT_PHASE:
         return (10, 10, 30)  # Dark night sky
     elif TIME_PHASE == DAWN_PHASE:
         return (255, 182, 193)  # Pink dawn sky
-    return (135, 206, 235)  # Default to day
+    return (10, 5, 20)  # Default to End void
 
 def draw_crafting_table_gui(screen, player):
     """Draws the crafting table GUI with 3x3 grid and output slot."""
@@ -21355,6 +21532,72 @@ def calculate_anvil_output():
     else:
         ANVIL_OUTPUT = (0, 0, {})
 
+def respawn_dead_mobs():
+    """Respawns mobs from the dead mobs queue every 60 seconds."""
+    global DEAD_MOBS_QUEUE
+    
+    if len(DEAD_MOBS_QUEUE) == 0:
+        return
+    
+    print(f"🔄 RESPAWNING {len(DEAD_MOBS_QUEUE)} DEAD MOBS...")
+    
+    # Import all mob classes dynamically
+    mob_classes = {
+        'Enderman': Enderman, 'EnderDragon': EnderDragon
+    }
+    
+    mobs_respawned = 0
+    failed_spawns = []
+    
+    # Process all mobs in the queue
+    for mob_type, mob_biome, death_x in DEAD_MOBS_QUEUE[:]:
+        # Find a valid spawn location in the same biome
+        spawn_col = None
+        spawn_row = None
+        
+        # Search for matching biome
+        if mob_biome is not None and len(BIOME_MAP) > 0:
+            # Find columns with matching biome
+            matching_biome_cols = [i for i, b in enumerate(BIOME_MAP) if b == mob_biome]
+            
+            if matching_biome_cols:
+                # Pick random column in this biome
+                spawn_col = random.choice(matching_biome_cols)
+                
+                # Find ground level
+                for row in range(GRID_HEIGHT // 3, GRID_HEIGHT - 5):
+                    if WORLD_MAP[row][spawn_col] != AIR_ID and WORLD_MAP[row - 1][spawn_col] == AIR_ID:
+                        spawn_row = row - 2  # Spawn 2 blocks above ground
+                        break
+        
+        # If no valid spawn found, use random location
+        if spawn_col is None or spawn_row is None:
+            spawn_col = random.randint(50, GRID_WIDTH - 50)
+            spawn_row = GRID_HEIGHT // 2
+        
+        spawn_x = spawn_col * BLOCK_SIZE
+        spawn_y = spawn_row * BLOCK_SIZE
+        
+        # Create mob instance
+        if mob_type in mob_classes:
+            try:
+                mob_class = mob_classes[mob_type]
+                new_mob = mob_class(spawn_x, spawn_y)
+                MOBS.add(new_mob)
+                mobs_respawned += 1
+                print(f"  ✅ Respawned {mob_type} at column {spawn_col}")
+            except Exception as e:
+                failed_spawns.append((mob_type, str(e)))
+        else:
+            failed_spawns.append((mob_type, "Unknown mob type"))
+    
+    # Clear the queue
+    DEAD_MOBS_QUEUE.clear()
+    
+    print(f"✅ Respawned {mobs_respawned} mobs from death queue")
+    if failed_spawns:
+        print(f"⚠️ Failed to respawn {len(failed_spawns)} mobs")
+
 def respawn_daily_mobs():
     """Respawns passive and neutral mobs throughout the world each day."""
     print("🌍 DAILY MOB RESPAWN triggered!")
@@ -21539,85 +21782,8 @@ def respawn_daily_mobs():
     
     print(f"   ✅ Respawned {mobs_spawned} passive/neutral mobs across the world")
 
-def respawn_dead_mobs():
-    """Respawns mobs from the dead mobs queue every 60 seconds."""
-    global DEAD_MOBS_QUEUE
-    
-    if len(DEAD_MOBS_QUEUE) == 0:
-        return
-    
-    print(f"🔄 RESPAWNING {len(DEAD_MOBS_QUEUE)} DEAD MOBS...")
-    
-    # Import all mob classes dynamically
-    mob_classes = {
-        'Cow': Cow, 'Pig': Pig, 'Sheep': Sheep, 'Chicken': Chicken, 'Horse': Horse,
-        'Rabbit': Rabbit, 'Fox': Fox, 'Wolf': Wolf, 'Deer': Deer, 'Bear': Bear,
-        'Camel': Camel, 'Panda': Panda,
-        'Turtle': Turtle, 'Frog': Frog, 'Goat': Goat, 'Penguin': Penguin,
-        'Zombie': Zombie, 'Skeleton': Skeleton, 'Creeper': Creeper, 'Spider': Spider,
-        'CaveSpider': CaveSpider, 'Enderman': Enderman, 'Witch': Witch, 'Slime': Slime,
-        'Drowned': Drowned,
-        'Cod': Cod, 'Salmon': Salmon, 'TropicalFish': TropicalFish, 'Dolphin': Dolphin,
-        'Villager': Villager,
-        'Lion': Lion, 'Rhino': Rhino, 'Ostrich': Ostrich,
-        'Elephant': Elephant, 'Monkey': Monkey, 'Bird': Bird, 'Shark': Shark,
-        'Whale': Whale, 'Nautilus': Nautilus
-    }
-    
-    mobs_respawned = 0
-    failed_spawns = []
-    
-    # Process all mobs in the queue
-    for mob_type, mob_biome, death_x in DEAD_MOBS_QUEUE[:]:
-        # Find a valid spawn location in the same biome
-        spawn_col = None
-        spawn_row = None
-        
-        # Search for matching biome
-        if mob_biome is not None and len(BIOME_MAP) > 0:
-            # Find columns with matching biome
-            matching_biome_cols = [i for i, b in enumerate(BIOME_MAP) if b == mob_biome]
-            
-            if matching_biome_cols:
-                # Pick random column in this biome
-                spawn_col = random.choice(matching_biome_cols)
-                
-                # Find ground level
-                for row in range(GRID_HEIGHT // 3, GRID_HEIGHT - 5):
-                    if WORLD_MAP[row][spawn_col] != AIR_ID and WORLD_MAP[row - 1][spawn_col] == AIR_ID:
-                        spawn_row = row - 2  # Spawn 2 blocks above ground
-                        break
-        
-        # If no valid spawn found, use random location
-        if spawn_col is None or spawn_row is None:
-            spawn_col = random.randint(50, GRID_WIDTH - 50)
-            spawn_row = GRID_HEIGHT // 2
-        
-        spawn_x = spawn_col * BLOCK_SIZE
-        spawn_y = spawn_row * BLOCK_SIZE
-        
-        # Create mob instance
-        if mob_type in mob_classes:
-            try:
-                mob_class = mob_classes[mob_type]
-                new_mob = mob_class(spawn_x, spawn_y)
-                MOBS.add(new_mob)
-                mobs_respawned += 1
-                print(f"  ✅ Respawned {mob_type} at column {spawn_col}")
-            except Exception as e:
-                failed_spawns.append((mob_type, str(e)))
-        else:
-            failed_spawns.append((mob_type, "Unknown mob type"))
-    
-    # Clear the queue
-    DEAD_MOBS_QUEUE.clear()
-    
-    print(f"✅ Respawned {mobs_respawned} mobs from death queue")
-    if failed_spawns:
-        print(f"⚠️ Failed to respawn {len(failed_spawns)} mobs")
-
 def spawn_night_mobs():
-    """Spawns hostile mobs 30 blocks above the player in a radius around them."""
+    """Spawns hostile mobs around the player during night time.""" 
     print("=" * 60)
     print("🌙 SPAWN_NIGHT_MOBS FUNCTION CALLED!")
     print("=" * 60)
@@ -21832,7 +21998,15 @@ def update_time_of_day():
     WEATHER_TIMER += 1
     if WEATHER_TIMER >= FPS * 60 * 2:  # 2 minutes
         WEATHER_TIMER = 0
-        
+        if AKRAM_DLC_ENABLED:
+            # Random weather changes
+            if CURRENT_SEASON == "winter":
+                WEATHER_STATE = random.choice(["clear", "snow", "snow"])
+            elif CURRENT_SEASON in ["spring", "fall"]:
+                WEATHER_STATE = random.choice(["clear", "clear", "rain"])
+            else:  # summer
+                WEATHER_STATE = random.choice(["clear", "clear", "clear", "rain"])
+    
     # --- MOB RESPAWN SYSTEM ---
     # Increment respawn timer and respawn dead mobs every 60 seconds
     global RESPAWN_TIMER
@@ -21880,30 +22054,14 @@ def update_time_of_day():
 # Respawn timer
 RESPAWN_TIMER = 0
 RESPAWN_INTERVAL = 18000  # 5 minutes
-spawn_frame_counter = 0  # Frame counter for mob spawning optimization
-mob_ai_frame_counter = 0  # Frame counter for mob AI update throttling
 
 # Structure spawn notifications
 STRUCTURE_NOTIFICATIONS = []
 
 # Raid system
 ACTIVE_RAID = None  # Current raid instance
-VILLAGE_LOCATIONS = []  # Track village locations for raid triggering
 
 # Structure tracking for /locate command
-STRUCTURE_LOCATIONS = {
-    'village': [],  # [(x, y, biome), ...]
-    'pillager_outpost': [],
-    'desert_temple': [],
-    'witch_hut': [],
-    'jungle_temple': [],
-    'stronghold': [],
-    'dungeon': [],
-    'mineshaft': [],
-    'ruins': []
-}
-GENERATED_BIOMES = {}  # Track which biomes have been generated to guarantee one structure per biome
-
 # Chest storage system - maps (row, col) to list of (item_id, count) tuples
 WORLD_CHESTS = {}  # {(row, col): [(item_id, count), ...]}
 CURRENT_CHEST_POS = None  # Currently open chest position
@@ -22078,11 +22236,11 @@ def place_chest_with_loot(world, row, col, loot_table_type):
         return True
     return False
 
-# Initial World and Mob Generation
-WORLD_MAP, MOBS, BIOME_MAP = generate_world()
+# Initial World and Mob Generation (The End)
+WORLD_MAP, MOBS, BIOME_MAP = generate_end_world()
 
-# Find a safe spawn spot - SET TO X = 0
-spawn_col = 0  # Base coordinates x = 0
+# Find a safe spawn spot - RANDOMIZED
+spawn_col = random.randint(GRID_WIDTH // 4, 3 * GRID_WIDTH // 4)  # Random column in middle half of world
 spawn_row = GRID_HEIGHT // 2
 for r in range(GRID_HEIGHT):
     if WORLD_MAP[r][spawn_col] != 0:
@@ -22141,6 +22299,29 @@ all_sprites.add(MOBS)
 OPEN_DOORS = []
 
 # --- Menu System Integration ---
+# Global frame counters for mob spawning optimization
+spawn_frame_counter = 0
+mob_ai_frame_counter = 0
+
+# Village locations for raid system (needs to be before world generation)
+VILLAGE_LOCATIONS = []  # Track village locations for raid triggering
+
+# Structure tracking for /locate command (needs to be before world generation)
+STRUCTURE_LOCATIONS = {
+    'village': [],  # [(x, y, biome), ...]
+    'pillager_outpost': [],
+    'desert_temple': [],
+    'witch_hut': [],
+    'jungle_temple': [],
+    'stronghold': [],
+    'dungeon': [],
+    'mineshaft': [],
+    'ruins': []
+}
+
+# Track biomes for structure generation
+GENERATED_BIOMES = {}  # Track which biomes have been generated to guarantee one structure per biome
+
 CURRENT_MENU_STATE = MENU_STATE_MAIN
 if STORED_USERNAME is None:
     CURRENT_MENU_STATE = MENU_STATE_USERNAME
@@ -22398,7 +22579,6 @@ if "--multiplayer" in sys.argv:
             server_host = sys.argv[mp_index + 1]
             server_port = int(sys.argv[mp_index + 2])
             
-            # Get username
             mp_username = "Player"
             if "--username" in sys.argv:
                 u_idx = sys.argv.index("--username")
@@ -22411,8 +22591,6 @@ if "--multiplayer" in sys.argv:
                 multiplayer_enabled = True
                 MULTIPLAYER_USERNAME = multiplayer_client.username
                 print(f"Connected as '{MULTIPLAYER_USERNAME}'!")
-                
-                # Use server's world instead of generating
                 WORLD_MAP = multiplayer_client.world_data
                 GRID_WIDTH = multiplayer_client.world_width
                 GRID_HEIGHT = multiplayer_client.world_height
@@ -22447,52 +22625,6 @@ elif "--akram-dlc" in sys.argv:
     print("🔥 AKRAM DLC ENABLED: Full PyCraft experience with custom features!")
 else:
     print("🔥 AKRAM DLC: Default enabled (use --vanilla to disable)")
-
-# --- UPDATE NEWS & CHANGELOG ---
-GAME_VERSION = "Alpha 4.6 - Overworld Edition"
-LAST_UPDATE = "January 26, 2026"
-
-UPDATE_NEWS = [
-    "=== AKRAM DLC UPDATE v4.6 - January 2026 ===",
-    "",
-    "🎮 NEW FEATURES:",
-    "  • Universal mob animation system with blinking",
-    "  • Eye tracking - mobs look at players/items/mobs",
-    "  • Enhanced idle bobbing and breathing animations",
-    "  • Fixed jungle leaves & acacia leaves textures",
-    "  • Performance optimization system",
-    "  💬 Chat system - Press 'T' to open chat",
-    "  📰 Update news system - Press 'N' to view",
-    "",
-    "⚡ PERFORMANCE IMPROVEMENTS:",
-    "  • Distance-based mob updates (3-tier system)",
-    "  • Reduced mob spawn limits (150 mobs)",
-    "  • Optimized particle system",
-    "  • Frame skip for distant mobs",
-    "  • 100 FPS balanced gameplay",
-    "",
-    "🌍 OVERWORLD FEATURES:",
-    "  • All biomes with unique mobs",
-    "  • Enderman spawn in dark areas",
-    "  • Village trading system",
-    "  • Complete crafting & enchanting",
-    "",
-    "🔧 BUG FIXES:",
-    "  • Fixed BLOCK_COLORS undefined error",
-    "  • Fixed texture ID conflicts",
-    "  • Fixed End Stone texture (was lapis)",
-    "  • Fixed sound system errors",
-    "  • Optimized eye tracking range",
-    "  • Improved collision detection",
-    "",
-    "CONTROLS:",
-    "  • Press 'T' to open chat",
-    "  • Press 'N' to view update news",
-    "  • Press ESC to close menus",
-    ""
-]
-
-SHOW_UPDATE_NEWS = False  # Toggle with 'N' key
 
 # Save DLC setting to file for other components to use
 try:
@@ -22650,13 +22782,11 @@ while running:
                 for skin_name, btn_rect in skin_buttons.items():
                     if btn_rect.collidepoint(event.pos):
                         selected_skin = skin_name
-                        pycraft_sounds.play_ui_click()
                         print(f"🎨 Skin selected: {skin_name}")
                         break
                 
                 # Check continue button
                 if continue_rect.collidepoint(event.pos) and len(username_input) > 0:
-                    pycraft_sounds.play_ui_click()
                     save_username(username_input)
                     save_skin_preference(selected_skin)
                     STORED_USERNAME = username_input
@@ -22682,7 +22812,7 @@ while running:
         
         # Draw version text in bottom right corner
         version_font = pygame.font.Font(None, 24)
-        version_text = version_font.render("Version Alpha 4", True, (180, 180, 180))
+        version_text = version_font.render(GAME_VERSION, True, (180, 180, 180))
         screen.blit(version_text, (SCREEN_WIDTH - version_text.get_width() - 10, SCREEN_HEIGHT - version_text.get_height() - 10))
         
         # Draw buttons manually
@@ -22709,14 +22839,11 @@ while running:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if singleplayer_btn.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     CURRENT_MENU_STATE = MENU_STATE_WORLD_SELECT
                 elif news_btn.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     CURRENT_MENU_STATE = MENU_STATE_ARTICLES
                     ARTICLES_SCROLL_OFFSET = 0  # Reset scroll
                 elif quit_btn.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     running = False
         
         pygame.display.flip()
@@ -22772,11 +22899,9 @@ while running:
                         print(f"⚠️ Could not get IP: {e}")
                     CURRENT_MENU_STATE = MENU_STATE_WORLD_SELECT
                 elif join_btn.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     print("🌐 Joining server...")
                     # TODO: Add IP input screen
                 elif back_btn.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     CURRENT_MENU_STATE = MENU_STATE_MAIN
         
         pygame.display.flip()
@@ -22898,8 +23023,8 @@ while running:
                 elif event.key == pygame.K_RETURN and world_name_input:
                     # Create new world
                     CURRENT_WORLD_NAME = world_name_input
-                    # Generate new worlds            
-                    WORLD_MAP, MOBS, BIOME_MAP = generate_world()
+                    # Generate new End world            
+                    WORLD_MAP, MOBS, BIOME_MAP = generate_end_world()
                     GRID_WIDTH = len(WORLD_MAP[0])
                     # Reset chunk tracking
                     CURRENT_CHUNK_RANGE = [-2, 2]
@@ -22936,8 +23061,8 @@ while running:
                     CURRENT_GAME_MODE = GAME_MODE_CREATIVE
                 elif create_btn.collidepoint(event.pos) and world_name_input:
                     CURRENT_WORLD_NAME = world_name_input
-                    # Generate new world
-                    WORLD_MAP, MOBS, BIOME_MAP = generate_world()
+                    # Generate new End world
+                    WORLD_MAP, MOBS, BIOME_MAP = generate_end_world()
                     GRID_WIDTH = len(WORLD_MAP[0])
                     # Reset chunk tracking
                     CURRENT_CHUNK_RANGE = [-2, 2]
@@ -23016,16 +23141,13 @@ while running:
                     CURRENT_MENU_STATE = MENU_STATE_PLAYING
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if back_rect.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     CURRENT_MENU_STATE = MENU_STATE_PLAYING
                 elif username_rect.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     # Change username
                     username_input = STORED_USERNAME if STORED_USERNAME else ""
                     CURRENT_MENU_STATE = MENU_STATE_USERNAME
                     print("🔄 Changing username...")
                 elif skin_rect.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     # Change skin - recreate player with new skin
                     skin_list = list(PLAYER_SKINS.keys())
                     current_index = skin_list.index(STORED_SKIN) if STORED_SKIN in skin_list else 0
@@ -23102,13 +23224,9 @@ while running:
                         MOBS.remove(mob)
                         MOBS.add(new_mob)
                 elif save_quit_rect.collidepoint(event.pos):
-                    pycraft_sounds.play_ui_click()
                     # Save and quit to main menu
                     if CURRENT_WORLD_NAME:
                         save_world(CURRENT_WORLD_NAME, WORLD_MAP, player, MOBS, TIME_OF_DAY, LOADED_CHUNKS)
-                    # Switch back to menu music
-                    sound_manager.play_music("Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
-                    current_music_state = "menu"
                     CURRENT_MENU_STATE = MENU_STATE_MAIN
         
         # Still draw the game in background
@@ -23116,11 +23234,6 @@ while running:
         pygame.display.flip()
     
     elif CURRENT_MENU_STATE == MENU_STATE_PLAYING:
-        # Switch to gameplay music if not already playing
-        if 'current_music_state' not in globals() or current_music_state != "gameplay":
-            sound_manager.play_music("Chirp.oga")
-            current_music_state = "gameplay"
-        
         # Actual game loop
         
         # Update day/night cycle
@@ -23156,12 +23269,7 @@ while running:
             
             # ESC key to pause
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                # Check if chat is open first
-                if CHAT_OPEN:
-                    CHAT_OPEN = False
-                    CHAT_INPUT = ""
-                else:
-                    CURRENT_MENU_STATE = MENU_STATE_PAUSED
+                CURRENT_MENU_STATE = MENU_STATE_PAUSED
                 continue  # Skip rest of game loop
             
             # Handle window resize
@@ -23213,17 +23321,6 @@ while running:
                         print("🌙 TOGGLED TO NIGHT MODE - Spawning hostile mobs...")
                         spawn_night_mobs()
                 
-                # F5 key to toggle perspective mode
-                elif event.key == pygame.K_F5 and not player.command_mode:
-                    PERSPECTIVE_MODE = (PERSPECTIVE_MODE + 1) % 3
-                    
-                    if PERSPECTIVE_MODE == 0:
-                        print("👁️ FIRST-PERSON VIEW - Player hidden")
-                    elif PERSPECTIVE_MODE == 1:
-                        print("📹 THIRD-PERSON BACK VIEW (Default)")
-                    else:
-                        print("🤳 THIRD-PERSON FRONT VIEW (Selfie Mode)")
-                
                 # L key to toggle lava spawning above player head
                 elif event.key == pygame.K_l and not player.command_mode:
                     if not hasattr(player, 'lava_toggle'):
@@ -23235,26 +23332,6 @@ while running:
                         print("🔥 LAVA MODE ENABLED - Lava will spawn above your head!")
                     else:
                         print("❄️ LAVA MODE DISABLED")
-                
-                # T key to open chat
-                elif event.key == pygame.K_t and not player.command_mode and not CHAT_OPEN:
-                    CHAT_OPEN = True
-                    CHAT_INPUT = ""
-                    CHAT_TIMER = FPS * 10  # Show for 10 seconds
-                
-                # Handle chat input when chat is open
-                elif CHAT_OPEN:
-                    if event.key == pygame.K_RETURN:
-                        if CHAT_INPUT.strip():
-                            # Send chat message
-                            username = player.username if hasattr(player, 'username') and player.username else "Player"
-                            send_chat_message(multiplayer_client if 'multiplayer_client' in globals() else None, username, CHAT_INPUT.strip())
-                        CHAT_OPEN = False
-                        CHAT_INPUT = ""
-                    elif event.key == pygame.K_BACKSPACE:
-                        CHAT_INPUT = CHAT_INPUT[:-1]
-                    elif len(CHAT_INPUT) < 100 and event.unicode.isprintable():
-                        CHAT_INPUT += event.unicode
                 
                 # M key - Max tool level cheat (Creative mode only)
                 elif event.key == pygame.K_m and player.creative_mode and not player.command_mode:
@@ -23405,34 +23482,7 @@ while running:
                 
                 # E key to close furnace if it's open, otherwise open crafting table/inventory
                 elif event.key == pygame.K_e:
-                    # Check if hovering over End Portal Frame for 3D portal
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    camera_x, camera_y = calculate_camera_offset(player.rect)
-                    world_x = mouse_x + camera_x
-                    world_y = mouse_y + camera_y
-                    col = world_x // BLOCK_SIZE
-                    row = world_y // BLOCK_SIZE
-                    
-                    # Check if clicking on End Portal Frame
-                    if (0 <= row < GRID_HEIGHT and 0 <= col < GRID_WIDTH and 
-                        WORLD_MAP[row][col] == 544):  # End Portal Frame ID
-                        print("🌌 Detected End Portal Frame - Launching 3D Portal!")
-                        
-                        # Launch 3D End Portal
-                        portal_3d = EndPortal3D(player.inventory, player.hotbar_slots)
-                        success = portal_3d.launch_3d_portal()
-                        
-                        if success:
-                            # Update player inventory after 3D interaction
-                            player.inventory, player.hotbar_slots = portal_3d.get_updated_inventory()
-                            print("✅ Returned from 3D Portal with updated inventory")
-                        else:
-                            print("❌ Failed to launch 3D Portal")
-                            if not URSINA_AVAILABLE:
-                                print("💡 Install Ursina with: pip install ursina")
-                    
-                    # Original E key functionality
-                    elif CRAFTING_TABLE_OPEN:
+                    if CRAFTING_TABLE_OPEN:
                         # Return items from crafting table to player inventory
                         for item_id, count in CRAFTING_TABLE_GRID:
                             if item_id != 0:
@@ -23627,9 +23677,9 @@ while running:
                 # Handle world interaction (placing blocks, attacking mobs, etc.)
                 else:
                     camera_x, camera_y = calculate_camera_offset(player.rect)
+                    # Start swing animation when interacting
+                    player.start_swing_animation()
                     handle_interaction(player, MOBS, event, camera_x, camera_y, MOBS)
-
-        # 2. INPUT PROCESSING
         keys = pygame.key.get_pressed()
         
         # Hold F to eat food (1 second) or drink/throw potions (2 seconds)
@@ -23803,6 +23853,10 @@ while running:
                                 # Break the block
                                 WORLD_MAP[target_row][target_col] = 0
                                 
+                                # Multiplayer: notify server of block break
+                                if multiplayer_enabled and multiplayer_client.connected:
+                                    multiplayer_client.send_block_change(target_col, target_row, 0)
+                                
                                 # Special case: Breaking bamboo breaks all bamboo above it
                                 if block_id == 127:  # BAMBOO_ID
                                     check_row = target_row - 1
@@ -23870,7 +23924,24 @@ while running:
                     player.mining_progress = 0
                     player.mining_target = None
             else:
-                # Invalid target - reset progress
+                # Invalid target - Check if player is attacking an End Crystal
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                for crystal in END_CRYSTALS:
+                    crystal_screen_rect = crystal.rect.copy()
+                    crystal_screen_rect.x -= camera_x
+                    crystal_screen_rect.y -= camera_y
+                    
+                    if crystal_screen_rect.collidepoint(mouse_x, mouse_y):
+                        # Player is attacking an End Crystal
+                        held_id = player.held_block
+                        tool_data = BLOCK_TYPES.get(held_id, {})
+                        attack_damage = tool_data.get("attack_damage", 1)
+                        
+                        crystal.take_damage(attack_damage)
+                        print(f"⚔️ Attacked End Crystal for {attack_damage} damage!")
+                        break
+                
+                # Reset mining progress
                 player.mining_progress = 0
                 player.mining_target = None
         else:
@@ -23902,42 +23973,47 @@ while running:
                     # Determine charge direction based on velocity
                     charge_dir = 1 if player.charge_velocity > 0 else -1
                     
-                    # Create extended hitbox in front of player for spear reach
-                    spear_hitbox = pygame.Rect(
-                        player.rect.centerx + (attack_range if charge_dir > 0 else -attack_range),
-                        player.rect.top,
-                        attack_range,
-                        player.rect.height
-                    )
-                    
-                    # Check all mobs for collision with spear hitbox
-                    for mob in MOBS:
-                        if mob not in player.charge_hit_mobs:
-                            if spear_hitbox.colliderect(mob.rect):
-                                mob.take_damage(damage, MOBS)
-                                player.charge_hit_mobs.add(mob)  # Mark as hit so we don't hit again
-                                print(f"⚔️ Charge attack hit {mob.__class__.__name__}! {damage} damage!")
-                    
-                    # Apply durability damage periodically during charge
-                    if player.charge_timer % 10 == 0:
-                        if held_id in BLOCK_TYPES and "durability" in BLOCK_TYPES[held_id]:
-                            slot_key = ('hotbar', player.active_slot)
-                            current_durability = player.tool_durability.get(slot_key, BLOCK_TYPES[held_id]["durability"])
-                            current_durability -= 1
-                            
-                            if current_durability <= 0:
-                                player.hotbar_slots[player.active_slot] = (0, 0, {})
-                                player.held_block = 0
-                                if slot_key in player.tool_durability:
-                                    del player.tool_durability[slot_key]
-                                player.is_charging = False
-                                player.charge_velocity = 0
-                                print(f"💔 {BLOCK_TYPES[held_id]['name']} broke!")
-                            else:
-                                player.tool_durability[slot_key] = current_durability
-                    
-                    # Decelerate charge over time
-                    player.charge_velocity *= 0.95
+                # Calculate damage based on charge speed (higher speed = more damage)
+                base_damage = tool_data.get("damage_bonus", 2) + 3  # Base damage + bonus
+                speed_multiplier = abs(player.charge_velocity) / 15.0  # Normalize speed to multiplier
+                final_damage = int(base_damage * (1 + speed_multiplier))  # Speed adds extra damage
+                
+                # Create extended hitbox in front of player for spear reach
+                spear_hitbox = pygame.Rect(
+                player.rect.centerx + (attack_range if charge_dir > 0 else -attack_range),
+                player.rect.top,
+                attack_range,
+                player.rect.height
+                )
+                
+                # Check all mobs for collision with spear hitbox
+                for mob in MOBS:
+                    if mob not in player.charge_hit_mobs:
+                        if spear_hitbox.colliderect(mob.rect):
+                            mob.take_damage(final_damage, MOBS)
+                            player.charge_hit_mobs.add(mob)  # Mark as hit so we don't hit again
+                            print(f"⚔️ Charge attack hit {mob.__class__.__name__}! {final_damage} damage (speed: {abs(player.charge_velocity):.1f})!")
+                
+                # Apply durability damage periodically during charge
+                if player.charge_timer % 10 == 0:
+                    if held_id in BLOCK_TYPES and "durability" in BLOCK_TYPES[held_id]:
+                        slot_key = ('hotbar', player.active_slot)
+                        current_durability = player.tool_durability.get(slot_key, BLOCK_TYPES[held_id]["durability"])
+                        current_durability -= 1
+                        
+                        if current_durability <= 0:
+                            player.hotbar_slots[player.active_slot] = (0, 0, {})
+                            player.held_block = 0
+                            if slot_key in player.tool_durability:
+                                del player.tool_durability[slot_key]
+                            player.is_charging = False
+                            player.charge_velocity = 0
+                            print(f"💔 {BLOCK_TYPES[held_id]['name']} broke!")
+                        else:
+                            player.tool_durability[slot_key] = current_durability
+                
+                # Decelerate charge over time
+                player.charge_velocity *= 0.95
         
         # 3. GAME LOGIC UPDATE
         if not player.is_crafting and not player.inventory_open: 
@@ -23946,25 +24022,71 @@ while running:
             # --- Multiplayer: Send position & apply incoming changes ---
             if multiplayer_enabled and multiplayer_client.connected:
                 multiplayer_update_timer += 1
-                if multiplayer_update_timer >= 3:  # Every 3 frames (~20 times/sec at 60fps)
+                if multiplayer_update_timer >= 3:
                     multiplayer_update_timer = 0
                     multiplayer_client.send_position(
                         player.rect.x, player.rect.y,
                         getattr(player, 'direction', 1), player.health
                     )
                 
-                # Apply block changes from other players
                 for col, row, block_id in multiplayer_client.get_pending_block_changes():
                     if 0 <= row < GRID_HEIGHT and 0 <= col < GRID_WIDTH:
                         WORLD_MAP[row][col] = block_id
+            
+            # Hammer fall damage mechanics
+            held_id = player.held_block
+            if held_id in BLOCK_TYPES and BLOCK_TYPES[held_id].get('smash_attack', False):
+                # Check if player just landed with hammer
+                if hasattr(player, 'prev_vel_y') and player.prev_vel_y > 8 and player.vel_y == 0:
+                    fall_speed = player.prev_vel_y
+                    fall_multiplier = BLOCK_TYPES[held_id].get('fall_damage_multiplier', 1.0)
+                    smash_damage = int(fall_speed * fall_multiplier)
+                    smash_radius = min(5, int(fall_speed / 3))  # Larger falls = bigger radius
+                    
+                    print(f"🔨 HAMMER SMASH! Fall speed: {fall_speed:.1f}, Damage: {smash_damage}, Radius: {smash_radius}")
+                    
+                    # Damage all mobs within smash radius
+                    player_center_x = player.rect.centerx
+                    player_center_y = player.rect.centery
+                    
+                    for mob in MOBS:
+                        distance = math.sqrt((mob.rect.centerx - player_center_x)**2 + (mob.rect.centery - player_center_y)**2)
+                        if distance <= smash_radius * BLOCK_SIZE:
+                            mob.take_damage(smash_damage, MOBS)
+                            print(f"💥 Hammer smash hit {mob.__class__.__name__} for {smash_damage} damage!")
+                    
+                    # Visual effect - break blocks in small radius
+                    break_radius = min(2, int(fall_speed / 6))
+                    player_col = player_center_x // BLOCK_SIZE
+                    player_row = player_center_y // BLOCK_SIZE
+                    
+                    for dr in range(-break_radius, break_radius + 1):
+                        for dc in range(-break_radius, break_radius + 1):
+                            check_row = player_row + dr
+                            check_col = player_col + dc
+                            if (0 <= check_row < GRID_HEIGHT and 0 <= check_col < GRID_WIDTH and 
+                                dr*dr + dc*dc <= break_radius*break_radius):
+                                block_id = WORLD_MAP[check_row][check_col]
+                                if block_id != AIR_ID and BLOCK_TYPES.get(block_id, {}).get('mineable', False):
+                                    # Only break weaker blocks
+                                    if BLOCK_TYPES.get(block_id, {}).get('mine_time', 30) < 60:
+                                        WORLD_MAP[check_row][check_col] = AIR_ID
+                                        # Drop the block
+                                        if 'DROPPED_ITEMS' in globals():
+                                            drop_x = check_col * BLOCK_SIZE + BLOCK_SIZE // 2
+                                            drop_y = check_row * BLOCK_SIZE + BLOCK_SIZE // 2
+                                            DROPPED_ITEMS.add(DroppedItem(drop_x, drop_y, block_id, 1))
+            
+            # Store previous velocity for hammer fall damage
+            player.prev_vel_y = abs(player.vel_y)
             
             # Spawn mobs in dark enclosed areas (optimized spawning rate)
             spawn_frame_counter = (spawn_frame_counter + 1) % 25  # Every 25 frames
             if spawn_frame_counter == 0 and random.random() < 0.4:  # 40% chance every 25 frames (was 10% every frame)
                 spawn_dark_area_mobs()
             
-            # Sunlight damage for hostile mobs - ONLY during DAY_PHASE (optimized to check every 30 frames)
-            if TIME_PHASE == DAY_PHASE and TIME_OF_DAY % 30 == 0:
+            # Sunlight damage for hostile mobs - ONLY during DAY_PHASE (optimized to check every 20 frames)
+            if TIME_PHASE == DAY_PHASE and TIME_OF_DAY % 20 == 0:
                 for mob in MOBS:
                     # Skip passive/neutral mobs - these should NEVER burn
                     if isinstance(mob, (Cow, Pig, Sheep, Chicken, Rabbit, Horse, Camel, Penguin, Fox, Wolf, Frog, 
@@ -24037,7 +24159,7 @@ while running:
             # If we couldn't despawn enough hostile mobs, just warn about performance
             if despawned_count > 0:
                 print(f"⚠️ LAG PREVENTION: Despawned {despawned_count} hostile mobs (Total was {len(MOBS) + despawned_count}, now {len(MOBS)})")
-            elif len(MOBS) > 300:  # Reduced for lag-free performance
+            elif len(MOBS) > 300:  # Reduced from 500 for lag-free performance
                 print(f"⚠️ LAG WARNING: {len(MOBS)} mobs active (too many passive mobs or hostile mobs too close to player)")
         
         # --- PASSIVE MOB RESPAWN SYSTEM ---
@@ -24060,8 +24182,8 @@ while running:
             dy = mob.rect.centery - player_y
             distance_sq = dx * dx + dy * dy  # Skip sqrt for performance
             
-            # Multi-tier update system based on distance
-            if distance_sq <= 320000:  # ~566 pixels (close - every frame)
+            # Multi-tier update system based on distance (OPTIMIZED)
+            if distance_sq <= 160000:  # ~400 pixels (close - every frame)
                 if isinstance(mob, Skeleton):
                     mob.update(WORLD_MAP, player, MOBS, ARROWS)
                 else:
@@ -24077,7 +24199,7 @@ while running:
                     mob.basic_update(WORLD_MAP)
                 else:
                     mob.update(WORLD_MAP, player, MOBS)
-            # Skip update entirely for very distant mobs (>1200 pixels) - HUGE performance gain
+            # Skip update for very distant mobs (>1200 pixels) - major performance gain
         
         # Update boats
         for boat in BOATS:
@@ -24098,9 +24220,9 @@ while running:
             if is_portal:
                 PORTAL_TIMER += 1
                 
-                # Add purple particles
-                if random.random() < 0.3:
-                    for block_col, block_row in portal_blocks[:5]:  # Add particles to some blocks
+                # Add purple particles (reduced for performance)
+                if random.random() < 0.15 and len(PORTAL_PARTICLES) < 30:  # Reduced spawn rate and limit count
+                    for block_col, block_row in portal_blocks[:3]:  # Fewer particles
                         particle_x = block_col * BLOCK_SIZE + random.randint(0, BLOCK_SIZE)
                         particle_y = block_row * BLOCK_SIZE + random.randint(0, BLOCK_SIZE)
                         PORTAL_PARTICLES.append({
@@ -24114,8 +24236,6 @@ while running:
                 # After 2 seconds in portal, teleport to nether
                 if PORTAL_TIMER >= FPS * 2:
                     print("🌀 Entering Nether Portal...")
-                    # Play portal sound
-                    sound_manager.play_sound('nether_portal')
                     PORTAL_TIMER = 0
                     
                     # Save overworld state
@@ -24141,6 +24261,20 @@ while running:
         PLAYER_TRIDENTS.update(WORLD_MAP, MOBS)  # Player-thrown tridents
         ENDER_PEARLS.update()  # Update ender pearl projectiles
         EYE_OF_ENDER_PROJECTILES.update()  # Eye of Ender flies toward stronghold
+        DRAGON_PROJECTILES.update(WORLD_MAP, player, MOBS)  # Dragon fireballs
+        
+        # Update End Crystals (heal dragon if present)
+        dragon = None
+        for mob in MOBS:
+            if isinstance(mob, EnderDragon):
+                dragon = mob
+                break
+        for crystal in END_CRYSTALS:
+            crystal.update(dragon)
+        
+        # Update End Gateway Portal if it exists
+        if END_GATEWAY_PORTAL:
+            END_GATEWAY_PORTAL.update(player)
         
         # Update furnace
         if FURNACE_OPEN:
@@ -24511,6 +24645,16 @@ while running:
                 if mob.fire_damage_timer >= FPS:
                     mob.take_damage(1, MOBS)
                     mob.fire_damage_timer = 0
+            
+            # Dragon-specific logic
+            if isinstance(mob, EnderDragon):
+                # Dragon attacks with fireballs
+                if random.randint(1, 90) == 1:  # ~1% chance per frame
+                    mob.fireball_attack(player)
+                
+                # Dragon breath attack on blocks
+                if random.randint(1, 300) == 1:  # Rare breath attack
+                    mob.breath_attack(player, WORLD_MAP)
         
         # Mob attacks
         for mob in MOBS:
@@ -24549,11 +24693,17 @@ while running:
 
         # Draw Mobs
         for mob in MOBS:
-            # Apply visual offsets for parody animations (don't affect collision)
-            offset_x = getattr(mob, 'visual_offset_x', 0)
-            offset_y = getattr(mob, 'visual_offset_y', 0)
-            mob_screen_pos = (mob.rect.x - camera_x + offset_x, mob.rect.y - camera_y + offset_y)
+            # Skip drawing riders here - they'll be drawn on top of their mounts
+            if hasattr(mob, 'mount') and mob.mount:
+                continue
+            
+            mob_screen_pos = (mob.rect.x - camera_x, mob.rect.y - camera_y)
             screen.blit(mob.get_image(), mob_screen_pos)
+            
+            # Draw rider on top of mount if it exists
+            if hasattr(mob, 'rider') and mob.rider and mob.rider in MOBS:
+                rider_screen_pos = (mob.rider.rect.x - camera_x, mob.rider.rect.y - camera_y)
+                screen.blit(mob.rider.get_image(), rider_screen_pos)
         
             # Fire animation for burning mobs (sunlight or lava fire)
             show_fire = False
@@ -24621,6 +24771,23 @@ while running:
             screen.blit(pearl.image, (pearl.rect.x - camera_x, pearl.rect.y - camera_y))
         for eye in EYE_OF_ENDER_PROJECTILES:
             screen.blit(eye.image, (eye.rect.x - camera_x, eye.rect.y - camera_y))
+        for fireball in DRAGON_PROJECTILES:
+            screen.blit(fireball.image, (fireball.rect.x - camera_x, fireball.rect.y - camera_y))
+        
+        # Draw End Crystals
+        for crystal in END_CRYSTALS:
+            screen.blit(crystal.image, (crystal.rect.x - camera_x, crystal.rect.y - camera_y))
+            # Draw healing beam if dragon exists and crystal is healing
+            if dragon and crystal.heal_timer > crystal.heal_cooldown - 10:
+                # Draw line from crystal to dragon
+                pygame.draw.line(screen, (255, 100, 255), 
+                               (crystal.rect.centerx - camera_x, crystal.rect.centery - camera_y),
+                               (dragon.rect.centerx - camera_x, dragon.rect.centery - camera_y), 3)
+        
+        # Draw End Gateway Portal
+        if END_GATEWAY_PORTAL:
+            screen.blit(END_GATEWAY_PORTAL.image, (END_GATEWAY_PORTAL.rect.x - camera_x, END_GATEWAY_PORTAL.rect.y - camera_y))
+        
         for dropped_item in DROPPED_ITEMS:
             screen.blit(dropped_item.image, (dropped_item.rect.x - camera_x, dropped_item.rect.y - camera_y))
         
@@ -24640,21 +24807,20 @@ while running:
             if particle['life'] <= 0:
                 PORTAL_PARTICLES.remove(particle)
         
-        # Draw player (hide in first-person mode)
-        if PERSPECTIVE_MODE != 0:  # Only draw player in third-person modes
-            player_screen_x = player.rect.x - camera_x
-            player_screen_y = player.rect.y - camera_y
-            
-            # Draw username above player
-            if hasattr(player, 'username') and player.username:
-                username_text = FONT_SMALL.render(player.username, True, (255, 255, 255))
-                username_shadow = FONT_SMALL.render(player.username, True, (0, 0, 0))
-                username_x = player_screen_x + player.rect.width // 2 - username_text.get_width() // 2
-                username_y = player_screen_y - 20
-                screen.blit(username_shadow, (username_x + 1, username_y + 1))
-                screen.blit(username_text, (username_x, username_y))
-            
-            screen.blit(player.get_image(), (player_screen_x, player_screen_y))
+        # Draw player
+        player_screen_x = player.rect.x - camera_x
+        player_screen_y = player.rect.y - camera_y
+        
+        # Draw username above player
+        if hasattr(player, 'username') and player.username:
+            username_text = FONT_SMALL.render(player.username, True, (255, 255, 255))
+            username_shadow = FONT_SMALL.render(player.username, True, (0, 0, 0))
+            username_x = player_screen_x + player.rect.width // 2 - username_text.get_width() // 2
+            username_y = player_screen_y - 20
+            screen.blit(username_shadow, (username_x + 1, username_y + 1))
+            screen.blit(username_text, (username_x, username_y))
+        
+        screen.blit(player.get_image(), (player_screen_x, player_screen_y))
         
         # --- Draw Multiplayer Players ---
         if multiplayer_enabled and multiplayer_client.connected:
@@ -24687,11 +24853,24 @@ while running:
             darkness_surface.set_alpha(darkness_alpha)
             screen.blit(darkness_surface, (0, 0))
         
+
         # Draw HUD
         draw_hud(player)
+
+        # --- Draw FPS Counter (top left, below coordinates panel) ---
+        fps = int(clock.get_fps())
+        fps_text = FONT_SMALL.render(f"FPS: {fps}", True, (255, 255, 0))
+        fps_x = 15
+        fps_y = 15 + 22 * 4  # 4 lines below top (coords, biome, block, mob count)
+        fps_bg_rect = pygame.Rect(fps_x - 5, fps_y - 2, fps_text.get_width() + 10, fps_text.get_height() + 4)
+        pygame.draw.rect(screen, (0, 0, 0, 180), fps_bg_rect)
+        screen.blit(fps_text, (fps_x, fps_y))
         
-        # Draw chat system
-        draw_chat(screen)
+        # Draw dragon health bar if dragon is alive
+        for mob in MOBS:
+            if isinstance(mob, EnderDragon):
+                mob.draw_health_bar(screen, player)
+                break  # Only one dragon
         
         # Draw GUI overlays
         if player.inventory_open and not player.is_crafting:
@@ -24718,15 +24897,6 @@ while running:
         
         # Draw totem animation
         draw_totem_animation()
-        
-        # Draw perspective mode indicator (top-right corner)
-        perspective_icons = ["👁️ First-Person", "📹 Third-Person", "🤳 Selfie Mode"]
-        perspective_text = FONT_SMALL.render(perspective_icons[PERSPECTIVE_MODE], True, (255, 255, 255))
-        perspective_bg = pygame.Surface((perspective_text.get_width() + 20, 30))
-        perspective_bg.set_alpha(150)
-        perspective_bg.fill((0, 0, 0))
-        screen.blit(perspective_bg, (SCREEN_WIDTH - perspective_text.get_width() - 30, 10))
-        screen.blit(perspective_text, (SCREEN_WIDTH - perspective_text.get_width() - 20, 15))
         
         # Draw raid bar if active
         if ACTIVE_RAID is not None and ACTIVE_RAID != 'rewarded':
@@ -24766,7 +24936,7 @@ while running:
                 if y_offset < box_y + box_height - 30:
                     if "===" in line:
                         color = (100, 200, 255)
-                    elif line.startswith("🎮") or line.startswith("⚡") or line.startswith("🌍") or line.startswith("🔧"):
+                    elif line.startswith("🎮") or line.startswith("⚡") or line.startswith("🐉") or line.startswith("🔧"):
                         color = (255, 200, 100)
                     elif line.startswith("  •"):
                         color = (200, 200, 200)
@@ -24782,7 +24952,6 @@ while running:
             chat_font = pygame.font.SysFont('Arial', 16)
             draw_multiplayer_chat(screen, multiplayer_client, chat_font)
             
-            # Draw chat input box if active
             if multiplayer_chat_active:
                 input_bg = pygame.Surface((SCREEN_WIDTH - 20, 30))
                 input_bg.set_alpha(180)
@@ -24791,7 +24960,6 @@ while running:
                 input_text = chat_font.render(f"> {multiplayer_chat_input}_", True, (255, 255, 255))
                 screen.blit(input_text, (15, SCREEN_HEIGHT - 35))
             
-            # Draw connection indicator
             indicator_color = (0, 200, 0) if multiplayer_client.connected else (200, 0, 0)
             pygame.draw.circle(screen, indicator_color, (SCREEN_WIDTH - 15, 15), 6)
             players_online = len(multiplayer_client.get_other_players()) + 1
@@ -24809,13 +24977,11 @@ while running:
         
         # Draw mobs
         for mob in MOBS:
-            offset_x = getattr(mob, 'visual_offset_x', 0)
-            offset_y = getattr(mob, 'visual_offset_y', 0)
-            mob_screen_x = mob.rect.x - camera_x + offset_x
-            mob_screen_y = mob.rect.y - camera_y + offset_y
+            mob_screen_x = mob.rect.x - camera_x
+            mob_screen_y = mob.rect.y - camera_y
             screen.blit(mob.get_image(), (mob_screen_x, mob_screen_y))
         
-        # Draw player (always visible on death screen)
+        # Draw player
         player_screen_x = player.rect.x - camera_x
         player_screen_y = player.rect.y - camera_y
         screen.blit(player.get_image(), (player_screen_x, player_screen_y))
