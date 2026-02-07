@@ -11287,6 +11287,7 @@ class Zombie(Mob):
         pygame.draw.rect(self.image, (30, 30, 30), (14, 17, 12, 2))
         
         # Try to load zombie texture and flip it horizontally
+        self.has_texture = False  # Flag to track if texture loaded successfully
         if USE_EXPERIMENTAL_TEXTURES:
             try:
                 # Load husk or zombie texture based on variant
@@ -11298,6 +11299,7 @@ class Zombie(Mob):
                 zombie_texture = pygame.transform.flip(zombie_texture, True, False)
                 zombie_texture = pygame.transform.scale(zombie_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE * 2)))
                 self.image = zombie_texture
+                self.has_texture = True  # Mark texture as successfully loaded
 
                 # Load hurt texture
                 try:
@@ -11445,6 +11447,10 @@ class Zombie(Mob):
 
     def redraw_animated_sprite(self):
         """Redraw zombie sprite with walking animations and blinking"""
+        # If using textures and texture loaded successfully, don't redraw over it
+        if USE_EXPERIMENTAL_TEXTURES and hasattr(self, 'has_texture') and self.has_texture:
+            return
+        
         # Clear the image
         self.image.fill((0, 0, 0, 0))
         self.image.set_colorkey((0, 0, 0))
