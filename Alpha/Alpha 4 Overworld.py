@@ -21786,6 +21786,61 @@ def respawn_dead_mobs():
     if failed_spawns:
         print(f"⚠️ Failed to respawn {len(failed_spawns)} mobs")
 
+def update_liquid_flow():
+    """Makes water and lava flow downward and spread horizontally at the bottom."""
+    global WORLD_MAP
+    
+    # Get visible area around player for optimization
+    player_col = player.rect.centerx // BLOCK_SIZE
+    player_row = player.rect.centery // BLOCK_SIZE
+    
+    # Only update liquids in a radius around player (60 blocks)
+    flow_radius = 60
+    col_start = max(0, player_col - flow_radius)
+    col_end = min(GRID_WIDTH, player_col + flow_radius)
+    row_start = max(0, player_row - 30)
+    row_end = min(GRID_HEIGHT, player_row + 30)
+    
+    # Track blocks that need to be updated (to avoid modifying while iterating)
+    liquid_updates = []
+    
+    for row in range(row_start, row_end):
+        for col in range(col_start, col_end):
+            block_id = WORLD_MAP[row][col]
+            
+            # Check if this is a liquid block (water or lava)
+            if block_id in [WATER_ID, SWAMP_WATER_ID, LAVA_ID]:
+                # Flow DOWN first (priority)
+                if row + 1 < GRID_HEIGHT:
+                    below_block = WORLD_MAP[row + 1][col]
+                    # Flow into air or replace-able blocks below
+                    if below_block == AIR_ID:
+                        liquid_updates.append((row + 1, col, block_id))
+                    
+                    # If can't flow down, check if at bottom - then spread horizontally
+                    elif below_block not in [AIR_ID, WATER_ID, SWAMP_WATER_ID, LAVA_ID]:
+                        # Spread left and right at the bottom
+                        # Check left
+                        if col - 1 >= 0 and WORLD_MAP[row][col - 1] == AIR_ID:
+                            below_left = WORLD_MAP[row + 1][col - 1] if row + 1 < GRID_HEIGHT else None
+                            # Only spread if there's a solid block below the spread location
+                            if below_left is not None and below_left not in [AIR_ID, WATER_ID, SWAMP_WATER_ID, LAVA_ID]:
+                                liquid_updates.append((row, col - 1, block_id))
+                        
+                        # Check right
+                        if col + 1 < GRID_WIDTH and WORLD_MAP[row][col + 1] == AIR_ID:
+                            below_right = WORLD_MAP[row + 1][col + 1] if row + 1 < GRID_HEIGHT else None
+                            # Only spread if there's a solid block below the spread location
+                            if below_right is not None and below_right not in [AIR_ID, WATER_ID, SWAMP_WATER_ID, LAVA_ID]:
+                                liquid_updates.append((row, col + 1, block_id))
+    
+    # Apply updates (limit to prevent lag)
+    for i, (row, col, liquid_id) in enumerate(liquid_updates):
+        if i >= 10:  # Limit to 10 liquid updates per frame
+            break
+        if WORLD_MAP[row][col] == AIR_ID:  # Double-check still air
+            WORLD_MAP[row][col] = liquid_id
+
 def spawn_night_mobs():
     """Spawns hostile mobs 30 blocks above the player in a radius around them."""
     print("=" * 60)
@@ -21841,11 +21896,6 @@ def spawn_night_mobs():
             if random.random() < 0.5:
                 MOBS.add(Skeleton(spawn_x, spawn_y, is_stray=True))
                 mobs_spawned += 1
-            # Rare Soul Phoenix spawn in snow biome (flying high in the sky)
-            if random.random() < 0.03:  # 3% chance - rarer than regular Phoenix
-                MOBS.add(BluePhoenix(spawn_x, spawn_y - BLOCK_SIZE * 10))  # Spawn 10 blocks higher
-                mobs_spawned += 1
-                print(f"❄️ Soul Phoenix spawned in snow biome at col {col}!")
         elif biome_type == SWAMP_BIOME:
             if random.random() < 0.8:
                 MOBS.add(Zombie(spawn_x, spawn_y))
@@ -21908,6 +21958,22 @@ def spawn_night_mobs():
             if random.random() < 0.05:
                 MOBS.add(Enderman(spawn_x, spawn_y))
                 mobs_spawned += 1
+        
+        # Soul Phoenix spawn near Crimson Nylium blocks (Nether-themed biome)
+        # Check if there's Crimson Nylium nearby
+        has_crimson_nylium = False
+        for check_col in range(max(0, col - 10), min(GRID_WIDTH, col + 10)):
+            for check_row in range(max(0, spawn_row - 5), min(GRID_HEIGHT, spawn_row + 5)):
+                if WORLD_MAP[check_row][check_col] == 464:  # Crimson Nylium
+                    has_crimson_nylium = True
+                    break
+            if has_crimson_nylium:
+                break
+        
+        if has_crimson_nylium and random.random() < 0.03:  # 3% chance near Crimson Nylium
+            MOBS.add(BluePhoenix(spawn_x, spawn_y - BLOCK_SIZE * 10))  # Spawn 10 blocks higher
+            mobs_spawned += 1
+            print(f"🔥❄️ Soul Phoenix spawned near Crimson Nylium at col {col}!")
     
     print(f"   ✅ Spawned {mobs_spawned} hostile mobs 10 blocks above player! Total mobs in world: {len(MOBS)}")
 
@@ -22126,7 +22192,6 @@ CHEST_LOOT_TABLES = {
         (53, (8, 24)),   # Arrow (increased)
         (52, (2, 12)),   # String
         (56, (2, 8)),    # Gunpowder
-        (85, (3, 12)),   # Coal
         (108, (2, 6)),   # Iron Ingot
         (103, (2, 8)),   # Bread
         (93, (4, 16)),   # Wheat
@@ -23305,6 +23370,14 @@ while running:
         
         # Update day/night cycle
         update_time_of_day()
+        
+        # Update liquid flow (water and lava) every 20 frames
+        if not hasattr(update_liquid_flow, '_counter'):
+            update_liquid_flow._counter = 0
+        update_liquid_flow._counter += 1
+        if update_liquid_flow._counter >= 20:  # Every 20 frames (3 times per second)
+            update_liquid_flow._counter = 0
+            update_liquid_flow()
         
         # Check and load chunks based on player position
         player_col = player.rect.centerx // BLOCK_SIZE
