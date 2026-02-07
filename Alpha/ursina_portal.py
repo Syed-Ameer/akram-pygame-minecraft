@@ -215,10 +215,22 @@ class Minecraft3DGame:
             # Clear menu
             self.clear_ui()
             
-            # Player controller
+            # Generate terrain first to determine spawn height
+            self.generate_terrain()
+            
+            # Player controller - spawn near End Portal
             self.player = FirstPersonController()
             self.player.cursor.color = color.red
-            self.player.position = (0, 10, 0)
+            
+            # Find safe spawn position near portal (offset from center)
+            spawn_x, spawn_z = 10, 10  # Spawn 10 blocks away from portal
+            spawn_y = 0
+            for y in range(15, -1, -1):
+                if (spawn_x, y, spawn_z) in self.world_blocks:
+                    spawn_y = y + 3  # Spawn 3 blocks above ground
+                    break
+            
+            self.player.position = (spawn_x, spawn_y, spawn_z)
             
             # Camera setup
             camera.fov = 90
@@ -229,9 +241,6 @@ class Minecraft3DGame:
             
             # Sky
             Sky()
-            
-            # Generate terrain
-            self.generate_terrain()
             
             # Game UI
             self.create_game_ui()
@@ -286,6 +295,77 @@ class Minecraft3DGame:
                             leaf_x, leaf_y, leaf_z = x + dx, ground_y + 3 + dy, z + dz
                             if (leaf_x, leaf_y, leaf_z) not in self.world_blocks:
                                 self.place_block(leaf_x, leaf_y, leaf_z, 1, update_network=False)  # Green blocks as leaves
+        
+        # Add End Portal structure at world center
+        self.build_end_portal()
+    
+    def build_end_portal(self):
+        """Build an End Portal structure at the center of the world"""
+        print("🌌 Building End Portal...")
+        
+        # Portal location (center of world, on ground)
+        portal_x, portal_z = 0, 0
+        
+        # Find ground level at center
+        ground_y = 0
+        for y in range(10, -1, -1):
+            if (portal_x, y, portal_z) in self.world_blocks:
+                ground_y = y
+                break
+        
+        # Build platform (7x7 stone platform)
+        portal_y = ground_y + 1
+        for dx in range(-3, 4):
+            for dz in range(-3, 4):
+                self.place_block(portal_x + dx, portal_y, portal_z + dz, 3, update_network=False)  # Stone platform
+        
+        # Build End Portal Frame (5x5 frame with hollow center 3x3)
+        frame_y = portal_y + 1
+        for dx in range(-2, 3):
+            for dz in range(-2, 3):
+                # Only place blocks on the outer ring (frame)
+                if abs(dx) == 2 or abs(dz) == 2:
+                    self.place_block(portal_x + dx, frame_y, portal_z + dz, 3, update_network=False)  # Stone frame
+        
+        # Build pillars at corners (3 blocks high)
+        for dx in [-2, 2]:
+            for dz in [-2, 2]:
+                for dy in range(2, 5):
+                    self.place_block(portal_x + dx, frame_y + dy, portal_z + dz, 3, update_network=False)  # Stone pillars
+        
+        # Add glowing blocks on top of pillars
+        for dx in [-2, 2]:
+            for dz in [-2, 2]:
+                self.place_block(portal_x + dx, frame_y + 5, portal_z + dz, 6, update_network=False)  # Sand/yellow blocks as lights
+        
+        # Create portal center marker (filled with special colored blocks)
+        for dx in range(-1, 2):
+            for dz in range(-1, 2):
+                # Place blue blocks in the center to represent the portal
+                self.place_block(portal_x + dx, frame_y, portal_z + dz, 5, update_network=False)  # Blue/water blocks
+        
+        # Add decorative blocks around the structure
+        for dx in range(-4, 5):
+            for dz in range(-4, 5):
+                if abs(dx) == 4 or abs(dz) == 4:
+                    # Outer ring of stone
+                    self.place_block(portal_x + dx, portal_y, portal_z + dz, 3, update_network=False)
+        
+        print(f"🌌 End Portal built at ({portal_x}, {portal_y}, {portal_z})")
+        
+        # Add a text marker above the portal
+        try:
+            portal_text = Text(
+                text='🌌 END PORTAL 🌌',
+                position=(portal_x, frame_y + 7, portal_z),
+                scale=3,
+                color=color.purple,
+                billboard=True,
+                origin=(0, 0)
+            )
+            portal_text.always_on_top = True
+        except:
+            pass  # If text fails, just skip it
     
     # Multiplayer Methods
     def start_server(self, port=12345):
