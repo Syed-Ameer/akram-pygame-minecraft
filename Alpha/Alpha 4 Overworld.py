@@ -7384,9 +7384,9 @@ class Player(pygame.sprite.Sprite):
                             # Only apply fall damage if not in water
                             if not in_water:
                                 fall_distance = (self.rect.y - self.fall_start_y) / BLOCK_SIZE
-                                safe_fall_blocks = 7  # Increased from 5 to 7 blocks
+                                safe_fall_blocks = 3  # Only 3 blocks safe before damage
                                 if fall_distance > safe_fall_blocks:
-                                    # 2 damage (1 heart) per block after 7 blocks
+                                    # 2 damage (1 heart) per block after 3 blocks
                                     excess_blocks = fall_distance - safe_fall_blocks
                                     damage = max(1, int(excess_blocks * 2))
                                     self.take_damage(damage)
