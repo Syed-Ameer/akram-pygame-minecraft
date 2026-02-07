@@ -7105,18 +7105,20 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         """Makes the player jump if on the ground, or swim up if in water/lava."""
-        if self.is_crafting: return
-        if self.is_crouching: return  # Can't jump while crouching
+        if self.is_crafting or self.is_crouching:
+            return
         
         # Check if player is in water or lava
         center_col = self.rect.centerx // BLOCK_SIZE
         center_row = self.rect.centery // BLOCK_SIZE
-        in_water = False
         
         world_width = len(WORLD_MAP[0]) if WORLD_MAP else GRID_WIDTH
         
-        if 0 <= center_row < GRID_HEIGHT and 0 <= center_col < world_width:
-            in_water = WORLD_MAP[center_row][center_col] in FLUID_BLOCKS  # Water types and lava
+        # Bounds check first to avoid repeated checks
+        if not (0 <= center_row < GRID_HEIGHT and 0 <= center_col < world_width):
+            return
+            
+        in_water = WORLD_MAP[center_row][center_col] in FLUID_BLOCKS
         
         if in_water:
             # Swimming up in water - gentler, more natural flow
@@ -7147,26 +7149,27 @@ class Player(pygame.sprite.Sprite):
                 if block_above == 0:
                     self.vel_y = -7  # Jump power to get out of water
         else:
-            # Normal jump on ground
+            # Normal jump on ground - optimized ground check
             self.rect.y += 2 
-            ground_check_coords = [
-                (self.rect.left + 1, self.rect.bottom),
-                (self.rect.right - 1, self.rect.bottom)
-            ]
             
             on_ground = False
-            for px, py in ground_check_coords:
-                col = math.floor(px / BLOCK_SIZE)
-                row = math.floor(py / BLOCK_SIZE)
-                
-                world_width = len(WORLD_MAP[0]) if WORLD_MAP else GRID_WIDTH
-                
-                # FIXED: Check if block is solid instead of just non-air
-                if 0 <= row < GRID_HEIGHT and 0 <= col < world_width:
-                    block_id = WORLD_MAP[row][col]
+            left_col = (self.rect.left + 1) // BLOCK_SIZE
+            right_col = (self.rect.right - 1) // BLOCK_SIZE
+            bottom_row = self.rect.bottom // BLOCK_SIZE
+            
+            world_width = len(WORLD_MAP[0]) if WORLD_MAP else GRID_WIDTH
+            
+            # Check both feet positions
+            if 0 <= bottom_row < GRID_HEIGHT:
+                if 0 <= left_col < world_width:
+                    block_id = WORLD_MAP[bottom_row][left_col]
                     if block_id != 0 and BLOCK_TYPES.get(block_id, {}).get("solid", False):
                         on_ground = True
-                        break
+                
+                if not on_ground and 0 <= right_col < world_width:
+                    block_id = WORLD_MAP[bottom_row][right_col]
+                    if block_id != 0 and BLOCK_TYPES.get(block_id, {}).get("solid", False):
+                        on_ground = True
                     
             self.rect.y -= 2 
             
