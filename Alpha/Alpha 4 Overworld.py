@@ -7386,9 +7386,9 @@ class Player(pygame.sprite.Sprite):
                                 fall_distance = (self.rect.y - self.fall_start_y) / BLOCK_SIZE
                                 safe_fall_blocks = 7  # Increased from 5 to 7 blocks
                                 if fall_distance > safe_fall_blocks:
-                                    # 1 damage (0.5 hearts) per block after 7 blocks (reduced from 2 damage)
+                                    # 2 damage (1 heart) per block after 7 blocks
                                     excess_blocks = fall_distance - safe_fall_blocks
-                                    damage = max(1, int(excess_blocks * 1))
+                                    damage = max(1, int(excess_blocks * 2))
                                     self.take_damage(damage)
                                     print(f"💥 Took {damage} fall damage! (fell {fall_distance:.1f} blocks)")
                             
