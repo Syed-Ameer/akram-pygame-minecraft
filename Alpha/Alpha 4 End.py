@@ -1357,6 +1357,11 @@ CRAFTING_TABLE_RECIPES = {
     frozenset([(93, 2), (85, 1), (94, 1)]): (540, 1),  # 2 wheat + 1 coal + 1 carrot -> Cookie (simplified)
     frozenset([(94, 8), (184, 1)]): (228, 1),  # 8 carrots + 1 gold ingot -> Golden Carrot
     frozenset([(115, 8), (184, 1)]): (116, 1),  # 8 apples + 1 gold ingot -> Golden Apple (if apple is ID 115, simplified)
+    frozenset([(548, 9)]): (554, 1),  # 9 potatoes -> 1 potato block
+    frozenset([(94, 9)]): (555, 1),  # 9 carrots -> 1 carrot block
+    frozenset([(64, 9)]): (556, 1),  # 9 sugar -> 1 sugar block
+    frozenset([(93, 9), (88, 1)]): (557, 1),  # 9 wheat + 1 mutton -> Hay Bale with Mutton (food block)
+    frozenset([(103, 9)]): (558, 1),  # 9 bread -> 1 bread block
     
     # --- NETHER ITEMS ---
     frozenset([(223, 1)]): (224, 2),  # 1 blaze rod -> 2 blaze powder
@@ -1367,6 +1372,57 @@ CRAFTING_TABLE_RECIPES = {
     # --- CONCRETE POWDER (all colors with sand + gravel + dye) ---
     frozenset([(19, 4), (13, 4), (229, 1)]): (541, 8),  # 4 sand + 4 gravel + 1 blue dye -> 8 blue concrete powder
     frozenset([(19, 4), (13, 4), (85, 1)]): (542, 8),  # 4 sand + 4 gravel + 1 black dye -> 8 black concrete powder (coal as black)
+    
+    # --- DECORATIVE BLOCKS ---
+    frozenset([(3, 4)]): (559, 4),  # 4 stone -> 4 stone bricks
+    frozenset([(3, 6)]): (560, 6),  # 6 stone -> 6 stone slabs
+    frozenset([(3, 6)]): (561, 4),  # 6 stone -> 4 stone stairs
+    frozenset([(42, 4)]): (562, 4),  # 4 cobblestone -> 4 mossy cobblestone (with vine)
+    frozenset([(8, 8), (222, 1)]): (563, 1),  # 8 planks + 1 ender pearl -> End Portal Frame (simplified)
+    frozenset([(221, 4)]): (564, 4),  # 4 obsidian -> 4 crying obsidian
+    frozenset([(42, 8), (472, 1)]): (565, 8),  # 8 cobblestone + 1 nether brick -> 8 blackstone
+    
+    # --- GLASS VARIANTS ---
+    frozenset([(86, 8), (229, 1)]): (566, 8),  # 8 glass + 1 lapis -> 8 blue stained glass
+    frozenset([(86, 8), (85, 1)]): (567, 8),  # 8 glass + 1 coal -> 8 black stained glass
+    frozenset([(86, 8), (189, 1)]): (568, 8),  # 8 glass + 1 diamond -> 8 cyan stained glass
+    
+    # --- WOOL DYEING ---
+    frozenset([(7, 1), (229, 1)]): (569, 1),  # 1 wool + 1 lapis -> 1 blue wool
+    frozenset([(7, 1), (85, 1)]): (570, 1),  # 1 wool + 1 coal -> 1 black wool
+    frozenset([(7, 1), (54, 1)]): (571, 1),  # 1 wool + 1 bone -> 1 white wool
+    
+    # --- BANNERS AND FLAGS ---
+    frozenset([(7, 6), (10, 1)]): (572, 1),  # 6 wool + 1 stick -> 1 banner
+    frozenset([(569, 6), (10, 1)]): (573, 1),  # 6 blue wool + 1 stick -> 1 blue banner
+    
+    # --- END ITEMS ---
+    frozenset([(574, 4)]): (575, 1),  # 4 end stone -> 4 end stone bricks
+    frozenset([(222, 4), (224, 5)]): (576, 1),  # 4 ender pearls + 5 blaze powder -> 1 ender chest
+    frozenset([(221, 8), (225, 1)]): (577, 1),  # 8 obsidian + 1 eye of ender -> 1 ender chest (alternative)
+    
+    # --- MISCELLANEOUS CRAFTING ---
+    frozenset([(54, 9)]): (578, 1),  # 9 bones -> 1 bone block
+    frozenset([(52, 4)]): (579, 1),  # 4 string -> 1 white wool (alternative)
+    frozenset([(146, 8)]): (580, 1),  # 8 feathers -> 1 feather block (decorative)
+    frozenset([(108, 4), (86, 5)]): (581, 1),  # 4 iron + 5 glass -> 1 hopper (alternative)
+    frozenset([(127, 9)]): (582, 1),  # 9 bamboo -> 1 bamboo block
+    frozenset([(127, 6), (52, 2)]): (583, 1),  # 6 bamboo + 2 string -> 1 scaffolding
+    
+    # --- MUSIC AND SOUNDS ---
+    frozenset([(8, 8), (186, 1)]): (584, 1),  # 8 planks + 1 redstone -> 1 note block
+    frozenset([(8, 8), (189, 1)]): (585, 1),  # 8 planks + 1 diamond -> 1 jukebox
+    
+    # --- LIGHTING ---
+    frozenset([(10, 1), (64, 1)]): (586, 1),  # 1 stick + 1 sugar -> 1 soul torch
+    frozenset([(151, 4)]): (152, 1),  # 4 glowstone dust -> 1 glowstone (already exists)
+    frozenset([(454, 1)]): (587, 4),  # 1 shroomlight -> 4 glow blocks
+    
+    # --- TRANSPORTATION ---
+    frozenset([(8, 5)]): (588, 1),  # 5 planks -> 1 boat
+    frozenset([(105, 5)]): (589, 1),  # 5 birch planks -> 1 birch boat
+    frozenset([(129, 5)]): (590, 1),  # 5 bamboo planks -> 1 bamboo raft
+    frozenset([(127, 2), (52, 2)]): (591, 1),  # 2 bamboo + 2 string -> 1 fishing rod (alternative)
 }
 
 # --- Smelting Recipes ---
@@ -1380,9 +1436,9 @@ SMELTING_RECIPES = {
     156: 157,  # Cod → Cooked Cod
     158: 159,  # Salmon → Cooked Salmon
     145: 146,  # Rabbit Meat → Cooked Rabbit
+    165: 166,  # Tropical Fish Meat → Cooked Tropical Fish
     
-    # Ores to Materials
-    19: 86,  # Sand → Glass
+    # Ores to Ingots
     12: 108,  # Iron Ore → Iron Ingot
     183: 184,  # Gold Ore → Gold Ingot
     185: 186,  # Redstone Ore → Redstone Dust
@@ -1391,13 +1447,52 @@ SMELTING_RECIPES = {
     197: 108,  # Deepslate Iron Ore → Iron Ingot
     198: 85,  # Deepslate Coal Ore → Coal
     11: 85,  # Coal Ore → Coal
+    190: 189,  # Diamond Ore → Diamond (for consistency)
+    191: 189,  # Deepslate Diamond Ore → Diamond
+    192: 23,  # Emerald Ore → Emerald
+    195: 23,  # Deepslate Emerald Ore → Emerald
+    196: 229,  # Lapis Ore → Lapis Lazuli
+    199: 229,  # Deepslate Lapis Ore → Lapis Lazuli
+    476: 477,  # Copper Ore → Copper Ingot
+    495: 477,  # Deepslate Copper Ore → Copper Ingot
+    497: 108,  # Raw Iron → Iron Ingot
+    498: 184,  # Raw Gold → Gold Ingot
+    499: 477,  # Raw Copper → Copper Ingot
+    
+    # Nether Ores
+    475: 184,  # Nether Gold Ore → Gold Ingot
+    478: 478,  # Nether Quartz Ore → Nether Quartz
+    481: 479,  # Ancient Debris → Netherite Scrap
+    
+    # Glass and Materials
+    19: 86,  # Sand → Glass
+    20: 21,  # Sandstone → Smooth Sandstone
     
     # Stone Processing
     3: 42,  # Stone → Cobblestone (re-smelt to smooth)
     42: 3,  # Cobblestone → Stone (smooth stone)
+    13: 22,  # Gravel → Smooth Stone (alternative)
+    
+    # Clay and Bricks
+    543: 544,  # Clay Ball → Brick
+    545: 546,  # Clay Block → Terracotta
     
     # Food
-    94: 94,  # Carrot → Cooked Carrot (stays same for now)
+    94: 547,  # Carrot → Baked Carrot
+    548: 549,  # Potato → Baked Potato
+    126: 550,  # Cactus → Green Dye
+    93: 103,  # Wheat → Bread (simplified)
+    
+    # Logs to Charcoal
+    18: 551,  # Oak Log → Charcoal
+    83: 551,  # Birch Log → Charcoal
+    34: 551,  # Spruce Log → Charcoal
+    124: 551,  # Jungle Log → Charcoal
+    32: 551,  # Dark Oak Log → Charcoal
+    147: 551,  # Acacia Log → Charcoal
+    
+    # Misc
+    552: 553,  # Wet Sponge → Sponge
 }
 
 # --- Fuel Items (item_id: burn_time_in_frames) ---
@@ -8784,12 +8879,38 @@ class Bird(Mob):
         wing_color = colors["wing"]
         tail_color = colors["tail"]
         
-        # Drawing - colored bird
-        self.image.fill((0, 0, 0, 0))
-        self.image.set_colorkey((0, 0, 0))
+        # Try to load texture first
+        texture_loaded = False
+        texture_map = {
+            "blue": "Textures/BlueBird.png",
+            "lightblue": "Textures/BlueBird.png",
+            "red": "Textures/Red_Bird.png",
+            "purple": "Textures/Purple_Bird.png",
+            "green": "Textures/Purple_Bird.png",  # Use purple for green
+            "yellow": "Textures/Red_Bird.png",  # Use red for yellow
+            "orange": "Textures/Red_Bird.png",
+        }
+        
+        if variant in texture_map:
+            try:
+                texture_path = texture_map[variant]
+                loaded_texture = pygame.image.load(texture_path).convert_alpha()
+                self.image = pygame.transform.scale(loaded_texture, (int(BLOCK_SIZE * 0.5), int(BLOCK_SIZE * 0.5)))
+                self.rect = self.image.get_rect()
+                self.rect.x = x
+                self.rect.y = y
+                texture_loaded = True
+                self.has_texture = True
+            except:
+                pass
+        
+        if not texture_loaded:
+            # Drawing - colored bird
+            self.image.fill((0, 0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
         
         # Flamingos have special tall design
-        if variant == "pink":
+        if variant == "pink" and not texture_loaded:
             w = int(BLOCK_SIZE * 0.8)
             h = int(BLOCK_SIZE * 1.5)  # Taller for flamingo
             
@@ -8824,7 +8945,7 @@ class Bird(Mob):
             pygame.draw.rect(self.image, wing_color, (w//4 + 2, h - 36, w//4, 6))
         
         # Ducks have medium design
-        elif variant == "brown":
+        elif variant == "brown" and not texture_loaded:
             w = int(BLOCK_SIZE * 0.6)
             h = int(BLOCK_SIZE * 0.6)
             
@@ -8847,7 +8968,7 @@ class Bird(Mob):
             pygame.draw.rect(self.image, tail_color, (w//8, h - h//4, w//6, h//4))
         
         # Regular small flying birds
-        else:
+        elif not texture_loaded:
             w = int(BLOCK_SIZE * 0.5)
             h = int(BLOCK_SIZE * 0.5)
             
@@ -16407,9 +16528,19 @@ class Phoenix(Mob):
         self.descend_rate = 0.5
         self.follow_distance = BLOCK_SIZE * 10
         
-        # Create phoenix sprite
-        self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
-        self.draw_phoenix()
+        # Try to load Phoenix texture first
+        try:
+            loaded_texture = pygame.image.load("Textures/Pheonix.png").convert_alpha()
+            self.image = pygame.transform.scale(loaded_texture, (BLOCK_SIZE * 2, BLOCK_SIZE * 2))
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
+            self.has_texture = True
+        except:
+            # Create phoenix sprite if texture fails
+            self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
+            self.draw_phoenix()
+            self.has_texture = False
     
     def draw_phoenix(self):
         """Draw blocky Minecraft-style phoenix with red body."""
@@ -16507,8 +16638,18 @@ class BluePhoenix(Mob):
         self.descend_rate = 0.5
         self.follow_distance = BLOCK_SIZE * 10
         
-        self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
-        self.draw_blue_phoenix()
+        # Try to load Soul Phoenix texture first
+        try:
+            loaded_texture = pygame.image.load("Textures/Soul_Pheonix.png").convert_alpha()
+            self.image = pygame.transform.scale(loaded_texture, (BLOCK_SIZE * 2, BLOCK_SIZE * 2))
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
+            self.has_texture = True
+        except:
+            self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
+            self.draw_blue_phoenix()
+            self.has_texture = False
     
     def draw_blue_phoenix(self):
         """Draw blocky Soul Phoenix with black body and blue soul fire."""
