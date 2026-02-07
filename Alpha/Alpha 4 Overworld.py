@@ -9056,16 +9056,24 @@ class Bird(Mob):
             "lightblue": "Textures/BlueBird.png",
             "red": "Textures/Red_Bird.png",
             "purple": "Textures/Purple_Bird.png",
-            "green": "Textures/Purple_Bird.png",  # Use purple for green
-            "yellow": "Textures/Red_Bird.png",  # Use red for yellow
-            "orange": "Textures/Red_Bird.png",
+            "green": "Textures/GreenBird.png",
+            "yellow": "Textures/YellowBird.png",
+            "orange": "Textures/OrangeBird.png",
+            "pink": "Textures/Flamingo.png",
+            "brown": "Textures/Duck.png",
         }
         
         if variant in texture_map:
             try:
                 texture_path = texture_map[variant]
                 loaded_texture = pygame.image.load(texture_path).convert_alpha()
-                self.image = pygame.transform.scale(loaded_texture, (int(BLOCK_SIZE * 0.5), int(BLOCK_SIZE * 0.5)))
+                # Special sizes for flamingo and duck
+                if variant == "pink":  # Flamingo - taller
+                    self.image = pygame.transform.scale(loaded_texture, (int(BLOCK_SIZE * 0.8), int(BLOCK_SIZE * 1.5)))
+                elif variant == "brown":  # Duck - medium
+                    self.image = pygame.transform.scale(loaded_texture, (int(BLOCK_SIZE * 0.6), int(BLOCK_SIZE * 0.6)))
+                else:  # Regular small birds
+                    self.image = pygame.transform.scale(loaded_texture, (int(BLOCK_SIZE * 0.5), int(BLOCK_SIZE * 0.5)))
                 self.rect = self.image.get_rect()
                 self.rect.x = x
                 self.rect.y = y
