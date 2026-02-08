@@ -51,14 +51,29 @@ from pathlib import Path
 # Add multiplayer networking import
 try:
     from pycraft_network import MultiplayerClient, draw_other_players, draw_multiplayer_chat
-except ImportError:
-    import importlib.util
-    _net_spec = importlib.util.spec_from_file_location("pycraft_network", os.path.join(os.path.dirname(__file__), "pycraft_network.py"))
-    _net_mod = importlib.util.module_from_spec(_net_spec)
-    _net_spec.loader.exec_module(_net_mod)
-    MultiplayerClient = _net_mod.MultiplayerClient
-    draw_other_players = _net_mod.draw_other_players
-    draw_multiplayer_chat = _net_mod.draw_multiplayer_chat
+    MULTIPLAYER_AVAILABLE = True
+except (ImportError, FileNotFoundError):
+    # Multiplayer not available - create dummy classes
+    print("⚠️ Multiplayer not available - pycraft_network.py not found")
+    MULTIPLAYER_AVAILABLE = False
+    
+    class MultiplayerClient:
+        def __init__(self, *args, **kwargs): 
+            self.connected = False
+        def connect(self, *args, **kwargs): 
+            return False
+        def disconnect(self): 
+            pass
+        def send_player_position(self, *args, **kwargs): 
+            pass
+        def get_other_players(self): 
+            return []
+    
+    def draw_other_players(screen, camera_x, camera_y, other_players): 
+        pass
+    
+    def draw_multiplayer_chat(screen, messages): 
+        pass
 
 # Admin system
 ADMIN_USERS = []  # List of admin usernames

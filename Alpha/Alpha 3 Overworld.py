@@ -8,6 +8,10 @@ import subprocess
 import json
 from pathlib import Path
 
+# Add sound system
+sys.path.append('..')  # Go up one level to access sound_manager
+from sound_manager import initialize_sounds
+
 # --- Menu System Constants ---
 MENU_STATE_MAIN = "main_menu"
 MENU_STATE_USERNAME = "username_input"
@@ -34,11 +38,14 @@ CURRENT_MENU_STATE = MENU_STATE_MAIN
 CURRENT_WORLD_NAME = None
 CURRENT_GAME_MODE = GAME_MODE_SURVIVAL
 
+# Music state tracking
+current_music_state = "menu"  # "menu", "gameplay", "nether", "end"
+
 # --- Constants ---
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 BLOCK_SIZE = 40
-FPS = 60
+FPS = 40  # Optimized for performance
 
 # --- Creative Mode Item Categories ---
 CREATIVE_CATEGORIES = {
@@ -1132,6 +1139,21 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE
 pygame.display.set_caption("Simple Pycraft Clone (Scrolling World with Enemies and Crafting)")
 clock = pygame.time.Clock()
 
+# Initialize sound system
+print("🎵 Initializing sound system...")
+try:
+    sound_manager, pycraft_sounds = initialize_sounds("../Sounds")
+except Exception as e:
+    print(f"⚠️ Sound system failed to initialize: {e}")
+    # Create dummy sound objects for compatibility
+    class DummySoundManager:
+        def play_sound(self, name, volume=None): pass
+        def play_music(self, file, loops=-1): pass
+    class DummyPyCraftSounds:
+        def play_sound(self, name): pass
+    sound_manager = DummySoundManager()
+    pycraft_sounds = DummyPyCraftSounds()
+
 pygame.font.init()
 FONT_SMALL = pygame.font.Font(None, 16)
 FONT_BIG = pygame.font.Font(None, 24)
@@ -1162,9 +1184,13 @@ try:
         24: r"..\Textures\snow.png",
         25: r"..\Textures\_ice_.png",
         42: r"..\Textures\Cobblestone.png",
-        105: r"..\Textures\Oak_planks.png",  # Birch planks use oak texture for now
+        105: r"..\Textures\birch_planks.png",  # Birch planks
         121: r"..\Textures\coarse_dirt.png",
         123: r"..\Textures\podzol_side.png",
+        127: r"..\Textures\bamboo_block.png",  # Bamboo
+        129: r"..\Textures\bamboo_planks.png",  # Bamboo Planks
+        147: r"..\Textures\acacia_log.png",  # Acacia Wood
+        148: r"..\Textures\acacia_planks.png",  # Acacia Planks
         183: r"..\Textures\gold_ore.png",
         185: r"..\Textures\redstone_ore.png",
         187: r"..\Textures\deepslate.png",
@@ -2209,6 +2235,23 @@ def convert_nether_to_overworld_coords(nether_x, nether_y):
 def generate_world():
     """Generates a simple 2D world map, lakes, mobs, and structures across 5 biomes. (FIXED MOB SPAWNING)"""
     global MOBS, WORLD_MAP, STRUCTURE_NOTIFICATIONS
+    
+    # Check for multiplayer world data (optional)
+    try:
+        import json
+        import __main__
+        with open("multiplayer_config.json", "r") as f:
+            mp_config = json.load(f)
+            if mp_config.get("enabled") and hasattr(__main__, 'MULTIPLAYER_CLIENT'):
+                mp_client = __main__.MULTIPLAYER_CLIENT
+                if mp_client and hasattr(mp_client, 'world_data') and mp_client.world_data:
+                    print("🌍 Loading world from multiplayer server...")
+                    world_data = mp_client.world_data
+                    WORLD_MAP = world_data['map']
+                    MOBS = pygame.sprite.Group()
+                    return WORLD_MAP, MOBS, [0] * world_data['width']
+    except (FileNotFoundError, ImportError, KeyError, AttributeError):
+        pass  # Not multiplayer, continue normal generation
 
     world = []
     
@@ -3770,9 +3813,9 @@ class Player(pygame.sprite.Sprite):
         # --- Inventory and Hotbar ---
         # Hotbar and inventory are now SEPARATE storage systems
         # Hotbar: 9 slots, each can hold an item ID and count (stored as tuples: (item_id, count))
-        self.hotbar_slots = [(0, 0)] * 9  # Empty hotbar (populated on world creation)
+        self.hotbar_slots = [(0, 0, {}) for _ in range(9)]  # Empty hotbar with separate dictionaries
         # Inventory: 27 slots (3 rows x 9 columns), separate from hotbar
-        self.inventory = [(0, 0)] * 27  # Empty inventory
+        self.inventory = [(0, 0, {}) for _ in range(27)]  # Empty inventory with separate dictionaries
         self.active_slot = 0
         self.held_block = self.hotbar_slots[self.active_slot][0]
         
@@ -3831,10 +3874,15 @@ class Player(pygame.sprite.Sprite):
         
         # Try to add to existing stacks in hotbar first
         for i in range(9):
-            item_id, count = self.hotbar_slots[i]
+            slot_data = self.hotbar_slots[i]
+            if len(slot_data) == 3:
+                item_id, count, existing_enchants = slot_data
+            else:
+                item_id, count = slot_data
+                existing_enchants = {}
             if item_id == block_id and count < 64:
                 add_amount = min(remaining, 64 - count)
-                self.hotbar_slots[i] = (item_id, count + add_amount)
+                self.hotbar_slots[i] = (item_id, count + add_amount, existing_enchants)
                 remaining -= add_amount
                 if remaining <= 0:
                     self.held_block = self.hotbar_slots[self.active_slot][0]
@@ -3842,20 +3890,30 @@ class Player(pygame.sprite.Sprite):
         
         # Try to add to existing stacks in inventory
         for i in range(27):
-            item_id, count = self.inventory[i]
+            inv_data = self.inventory[i]
+            if len(inv_data) == 3:
+                item_id, count, existing_enchants = inv_data
+            else:
+                item_id, count = inv_data
+                existing_enchants = {}
             if item_id == block_id and count < 64:
                 add_amount = min(remaining, 64 - count)
-                self.inventory[i] = (item_id, count + add_amount)
+                self.inventory[i] = (item_id, count + add_amount, existing_enchants)
                 remaining -= add_amount
                 if remaining <= 0:
                     return
         
         # Create new stacks in hotbar empty slots
         for i in range(9):
-            item_id, count = self.hotbar_slots[i]
+            slot_data = self.hotbar_slots[i]
+            if len(slot_data) == 3:
+                item_id, count, existing_enchants = slot_data
+            else:
+                item_id, count = slot_data
+                existing_enchants = {}
             if item_id == 0 and remaining > 0:
                 add_amount = min(remaining, 64)
-                self.hotbar_slots[i] = (block_id, add_amount)
+                self.hotbar_slots[i] = (block_id, add_amount, {})
                 remaining -= add_amount
                 self.held_block = self.hotbar_slots[self.active_slot][0]
                 if remaining <= 0:
@@ -3863,14 +3921,18 @@ class Player(pygame.sprite.Sprite):
         
         # Create new stacks in inventory empty slots
         for i in range(27):
-            item_id, count = self.inventory[i]
+            inv_data = self.inventory[i]
+            if len(inv_data) == 3:
+                item_id, count, existing_enchants = inv_data
+            else:
+                item_id, count = inv_data
+                existing_enchants = {}
             if item_id == 0 and remaining > 0:
                 add_amount = min(remaining, 64)
-                self.inventory[i] = (block_id, add_amount)
+                self.inventory[i] = (block_id, add_amount, {})
                 remaining -= add_amount
                 if remaining <= 0:
                     return
-
 
     def consume_item(self, block_id, amount=1):
         """Consumes a block from hotbar and inventory. In creative mode, items are infinite."""
@@ -3882,14 +3944,19 @@ class Player(pygame.sprite.Sprite):
         
         # First consume from hotbar
         for i in range(9):
-            item_id, count = self.hotbar_slots[i]
+            slot_data = self.hotbar_slots[i]
+            if len(slot_data) == 3:
+                item_id, count, enchantments = slot_data
+            else:
+                item_id, count = slot_data
+                enchantments = {}
             if item_id == block_id:
                 consume_amount = min(remaining, count)
                 new_count = count - consume_amount
                 if new_count <= 0:
-                    self.hotbar_slots[i] = (0, 0)
+                    self.hotbar_slots[i] = (0, 0, {})
                 else:
-                    self.hotbar_slots[i] = (item_id, new_count)
+                    self.hotbar_slots[i] = (item_id, new_count, enchantments)
                 remaining -= consume_amount
                 if remaining <= 0:
                     self.held_block = self.hotbar_slots[self.active_slot][0]
@@ -3897,14 +3964,19 @@ class Player(pygame.sprite.Sprite):
         
         # Then consume from inventory
         for i in range(27):
-            item_id, count = self.inventory[i]
+            inv_data = self.inventory[i]
+            if len(inv_data) == 3:
+                item_id, count, inv_enchants = inv_data
+            else:
+                item_id, count = inv_data
+                inv_enchants = {}
             if item_id == block_id:
                 consume_amount = min(remaining, count)
                 new_count = count - consume_amount
                 if new_count <= 0:
-                    self.inventory[i] = (0, 0)
+                    self.inventory[i] = (0, 0, {})
                 else:
-                    self.inventory[i] = (item_id, new_count)
+                    self.inventory[i] = (item_id, new_count, inv_enchants)
                 remaining -= consume_amount
                 if remaining <= 0:
                     return True
@@ -5889,11 +5961,11 @@ class Salmon(Mob):
                 self.swim_duration = FPS * random.uniform(2, 5)
             
             self.vel_x = self.direction * self.speed
-            # Apply buoyancy to counteract gravity in water
-            if self.vel_y > 0:
-                self.vel_y = max(-1, self.vel_y - 0.8)  # Counteract sinking
-            else:
-                self.vel_y = min(1, self.vel_y + 0.2)  # Slight buoyancy
+            # Strong buoyancy to keep fish in water
+            self.vel_y = -0.2  # Always float upward slightly
+            # Random depth variation
+            if random.random() < 0.05:
+                self.vel_y = random.uniform(-0.5, 0.5)
         else:
             # If out of water, flop sideways trying to get back
             if random.random() < 0.1:
@@ -7137,12 +7209,20 @@ class Wolf(Mob):
         if not self.is_tamed:
             # Check for taming item in hotbar and inventory
             has_item = False
-            for item_id, count in player.hotbar_slots:
+            for slot_data in player.hotbar_slots:
+                if len(slot_data) == 3:
+                    item_id, count, enchantments = slot_data
+                else:
+                    item_id, count = slot_data
                 if item_id == TAMING_ITEM_ID and count > 0:
                     has_item = True
                     break
             if not has_item:
-                for item_id, count in player.inventory:
+                for inv_data in player.inventory:
+                    if len(inv_data) == 3:
+                        item_id, count, enchants = inv_data
+                    else:
+                        item_id, count = inv_data
                     if item_id == TAMING_ITEM_ID and count > 0:
                         has_item = True
                         break
@@ -10516,10 +10596,18 @@ class Villager(pygame.sprite.Sprite):
             WHEAT_ID = 93
             CARROT_ID = 94
             emerald_count = 0
-            for item_id, count in player.hotbar_slots:
+            for slot_data in player.hotbar_slots:
+                if len(slot_data) == 3:
+                    item_id, count, enchantments = slot_data
+                else:
+                    item_id, count = slot_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
-            for item_id, count in player.inventory:
+            for inv_data in player.inventory:
+                if len(inv_data) == 3:
+                    item_id, count, enchants = inv_data
+                else:
+                    item_id, count = inv_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
             
@@ -10546,10 +10634,18 @@ class Villager(pygame.sprite.Sprite):
             BOOK_ID = 97
             GLASS_ID = 86
             emerald_count = 0
-            for item_id, count in player.hotbar_slots:
+            for slot_data in player.hotbar_slots:
+                if len(slot_data) == 3:
+                    item_id, count, enchantments = slot_data
+                else:
+                    item_id, count = slot_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
-            for item_id, count in player.inventory:
+            for inv_data in player.inventory:
+                if len(inv_data) == 3:
+                    item_id, count, enchants = inv_data
+                else:
+                    item_id, count = inv_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
             
@@ -10582,12 +10678,20 @@ class Villager(pygame.sprite.Sprite):
             emerald_count = 0
             meat_counts = {BEEF_ID: 0, MUTTON_ID: 0, CHICKEN_ID: 0, PORK_ID: 0}
             
-            for item_id, count in player.hotbar_slots:
+            for slot_data in player.hotbar_slots:
+                if len(slot_data) == 3:
+                    item_id, count, enchantments = slot_data
+                else:
+                    item_id, count = slot_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
                 elif item_id in meat_counts:
                     meat_counts[item_id] += count
-            for item_id, count in player.inventory:
+            for inv_data in player.inventory:
+                if len(inv_data) == 3:
+                    item_id, count, enchants = inv_data
+                else:
+                    item_id, count = inv_data
                 if item_id == EMERALD_ID:
                     emerald_count += count
                 elif item_id in meat_counts:
@@ -11521,7 +11625,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                     
                     if current_durability <= 0:
                         # Tool broke
-                        player.hotbar_slots[player.active_slot] = (0, 0)
+                        player.hotbar_slots[player.active_slot] = (0, 0, {})
                         player.held_block = 0
                         if slot_key in player.tool_durability:
                             del player.tool_durability[slot_key]
@@ -11747,7 +11851,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 # Consume one spawn egg
                 player.hotbar_slots[player.active_slot] = (held_item_id, held_count - 1)
                 if held_count - 1 <= 0:
-                    player.hotbar_slots[player.active_slot] = (0, 0)
+                    player.hotbar_slots[player.active_slot] = (0, 0, {})
             return
         
         # Check if holding Eye of Ender - throw it!
@@ -11758,7 +11862,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
             # Consume one eye of ender
             player.hotbar_slots[player.active_slot] = (held_item_id, held_count - 1)
             if held_count - 1 <= 0:
-                player.hotbar_slots[player.active_slot] = (0, 0)
+                player.hotbar_slots[player.active_slot] = (0, 0, {})
             print("👁️ Eye of Ender thrown!")
         
         # Check if holding Bow - shoot arrow!
@@ -11801,7 +11905,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 if arrow_slot_index < 9:  # Hotbar
                     player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1)
                     if arrow_count - 1 <= 0:
-                        player.hotbar_slots[arrow_slot_index] = (0, 0)
+                        player.hotbar_slots[arrow_slot_index] = (0, 0, {})
                 else:  # Inventory
                     inv_index = arrow_slot_index - 9
                     player.inventory[inv_index] = (53, arrow_count - 1)
@@ -12087,8 +12191,14 @@ def draw_hud(player):
         else:
             pygame.draw.rect(screen, (100, 100, 100), slot_rect, 2)
         
-        # Draw item in slot (hotbar now stores tuples: (item_id, count))
-        item_id, count = player.hotbar_slots[i]
+        # Draw item in slot (hotbar now stores tuples: (item_id, count, enchantments))
+        slot_data = player.hotbar_slots[i]
+        if len(slot_data) == 3:
+            item_id, count, enchantments = slot_data
+        else:
+            # Legacy 2-tuple support
+            item_id, count = slot_data
+            enchantments = {}
         if item_id != 0 and item_id in BLOCK_TYPES:
             inner_rect = pygame.Rect(slot_x + 5, HOTBAR_Y + 5, SLOT_SIZE - 10, SLOT_SIZE - 10)
             # Use custom drawing for all items (tools get special icons, others get centered smaller sprites)
@@ -12881,7 +12991,9 @@ def draw_inventory_menu(player):
             pygame.draw.rect(screen, (100, 100, 100), slot_rect, 2)
             
             # Get item from inventory slot
-            item_id, stack_amount = player.inventory[slot_index]
+            inv_data = player.inventory[slot_index]
+            item_id = inv_data[0] if isinstance(inv_data, tuple) else inv_data
+            stack_amount = inv_data[1] if isinstance(inv_data, tuple) and len(inv_data) > 1 else 0
             if item_id != 0 and item_id in BLOCK_TYPES:
                 # Draw item as 65% size centered sprite
                 item_size = int(SLOT_SIZE * 0.65)
@@ -13141,7 +13253,7 @@ def handle_inventory_interaction(player, event):
                     item_id, count = player.hotbar_slots[slot_index]
                     if HELD_ITEM[0] == 0:  # Not holding anything - pick up
                         HELD_ITEM = (item_id, count)
-                        player.hotbar_slots[slot_index] = (0, 0)
+                        player.hotbar_slots[slot_index] = (0, 0, {})
                     elif item_id == 0:  # Empty slot - place held item
                         player.hotbar_slots[slot_index] = HELD_ITEM
                         HELD_ITEM = (0, 0)
@@ -13180,7 +13292,7 @@ def handle_inventory_interaction(player, event):
                                 # Equip held item
                                 player.armor_slots[slot_name] = held_id
                                 # Remove from hotbar (tuple format)
-                                player.hotbar_slots[player.active_slot] = (0, 0)
+                                player.hotbar_slots[player.active_slot] = (0, 0, {})
                                 player.held_block = 0
                                 # If there was armor before, return it to hotbar
                                 if current_armor != 0:
@@ -13652,7 +13764,7 @@ def handle_crafting_table_click(player, event):
             if HELD_ITEM[0] == 0 and item_id != 0:
                 # Pick up from hotbar
                 HELD_ITEM = (item_id, count)
-                player.hotbar_slots[i] = (0, 0)
+                player.hotbar_slots[i] = (0, 0, {})
                 player.held_block = 0
             elif HELD_ITEM[0] != 0:
                 # Place in hotbar
@@ -14264,6 +14376,11 @@ class EyeOfEnder(pygame.sprite.Sprite):
 
 # --- Main Game Loop ---
 print(f"🎮 Starting main loop. Initial menu state: {CURRENT_MENU_STATE}")
+
+# Start menu music
+sound_manager.play_music("Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
+current_music_state = "menu"
+
 while running:
     clock.tick(FPS)
     
@@ -14665,7 +14782,20 @@ while running:
         pygame.display.flip()
     
     elif CURRENT_MENU_STATE == MENU_STATE_PLAYING:
+        # Switch to gameplay music if not already playing
+        if 'current_music_state' not in globals() or current_music_state != "gameplay":
+            sound_manager.play_music("Chirp.oga")
+            current_music_state = "gameplay"
+        
         # Actual game loop
+        
+        # Initialize spawn counter if not exists
+        if 'spawn_frame_counter' not in globals():
+            spawn_frame_counter = 0
+        
+        # Initialize mob AI counter if not exists
+        if 'mob_ai_frame_counter' not in globals():
+            mob_ai_frame_counter = 0
         
         # Update day/night cycle
         update_time_of_day()
@@ -14841,7 +14971,7 @@ while running:
                                 # Remove one from hotbar slot
                                 new_count = count - 1
                                 if new_count <= 0:
-                                    player.hotbar_slots[i] = (0, 0)
+                                    player.hotbar_slots[i] = (0, 0, {})
                                     player.held_block = 0
                                 else:
                                     player.hotbar_slots[i] = (item_id, new_count)
@@ -14936,7 +15066,7 @@ while running:
                             # Remove one from hotbar
                             new_count = count - 1
                             if new_count <= 0:
-                                player.hotbar_slots[i] = (0, 0)
+                                player.hotbar_slots[i] = (0, 0, {})
                                 if i == player.active_slot:
                                     player.held_block = 0
                             else:
@@ -15091,7 +15221,7 @@ while running:
                                     current_durability -= 1
                                     
                                     if current_durability <= 0:
-                                        player.hotbar_slots[player.active_slot] = (0, 0)
+                                        player.hotbar_slots[player.active_slot] = (0, 0, {})
                                         player.held_block = 0
                                         if slot_key in player.tool_durability:
                                             del player.tool_durability[slot_key]
@@ -15163,7 +15293,7 @@ while running:
                             current_durability -= 1
                             
                             if current_durability <= 0:
-                                player.hotbar_slots[player.active_slot] = (0, 0)
+                                player.hotbar_slots[player.active_slot] = (0, 0, {})
                                 player.held_block = 0
                                 if slot_key in player.tool_durability:
                                     del player.tool_durability[slot_key]
@@ -15180,8 +15310,9 @@ while running:
         if not player.is_crafting and not player.inventory_open: 
             player.update()
             
-            # Spawn mobs in dark enclosed areas (mob farms) - happens continuously
-            if random.random() < 0.1:  # 10% chance each frame to attempt spawn
+            # Spawn mobs in dark enclosed areas (optimized spawning rate)
+            spawn_frame_counter = (spawn_frame_counter + 1) % 25  # Every 25 frames
+            if spawn_frame_counter == 0 and random.random() < 0.4:  # 40% chance every 25 frames (was 10% every frame)
                 spawn_dark_area_mobs()
             
             # Sunlight damage for hostile mobs - ONLY during DAY_PHASE
@@ -15249,8 +15380,8 @@ while running:
                 if hasattr(mob, 'on_fire'):
                     mob.on_fire = False
         
-        # --- LAG PREVENTION: Despawn mobs if count exceeds 500 ---
-        if len(MOBS) > 500:
+        # --- LAG PREVENTION: Despawn mobs if count exceeds 200 (optimized for performance) ---
+        if len(MOBS) > 200:
             # Calculate distance to player for all mobs
             player_pos = (player.rect.centerx, player.rect.centery)
             
@@ -15285,7 +15416,7 @@ while running:
                     passive_mobs.append(mob_data)
             
             # Calculate how many to despawn
-            mobs_to_despawn = len(MOBS) - 500
+            mobs_to_despawn = len(MOBS) - 200
             despawned_count = 0
             
             # Priority 1: Despawn furthest hostile mobs first
@@ -15310,12 +15441,30 @@ while running:
             if despawned_count > 0:
                 print(f"⚠️ LAG PREVENTION: Despawned {despawned_count} mobs (Total was {len(MOBS) + despawned_count}, now {len(MOBS)})")
         
-        # Update mobs
-        for mob in MOBS:
-            if isinstance(mob, Skeleton):
-                mob.update(WORLD_MAP, player, MOBS, ARROWS)
-            else:
+        # Update mobs with optimized distance-based throttling
+        mob_ai_frame_counter = (mob_ai_frame_counter + 1) % 3  # Throttle AI updates
+        
+        for i, mob in enumerate(MOBS):
+            # Calculate distance to player (optimized)
+            dx = mob.rect.centerx - player.rect.centerx
+            dy = mob.rect.centery - player.rect.centery
+            distance_sq = dx * dx + dy * dy  # Skip sqrt for performance
+            
+            # Multi-tier update system based on distance
+            if distance_sq <= 320000:  # ~566 pixels (close - every frame)
+                if isinstance(mob, Skeleton):
+                    mob.update(WORLD_MAP, player, MOBS, ARROWS)
+                else:
+                    mob.update(WORLD_MAP, player, MOBS)
+            elif distance_sq <= 640000 and mob_ai_frame_counter == 0:  # ~800 pixels (medium - every 3 frames)
+                if isinstance(mob, Skeleton):
+                    mob.update(WORLD_MAP, player, MOBS, ARROWS)
+                else:
+                    mob.update(WORLD_MAP, player, MOBS)
+            elif distance_sq <= 1440000 and i % 10 == mob_ai_frame_counter:  # ~1200 pixels (far - every 10 frames)
+                # Only basic physics update for distant mobs
                 mob.update(WORLD_MAP, player, MOBS)
+            # Skip update for very distant mobs (>1200 pixels)
         
         # --- NETHER PORTAL DETECTION ---
         # Check if player is standing in obsidian portal
@@ -15372,7 +15521,7 @@ while running:
                         offset_y = random.randint(-10, 10)
                         DROPPED_ITEMS.add(DroppedItem(death_x + offset_x, death_y + offset_y, item_id, drop_count))
                         count -= drop_count
-                    player.hotbar_slots[i] = (0, 0)
+                    player.hotbar_slots[i] = (0, 0, {})
             
             # Drop inventory items (27 slots in flat list)
             for i in range(27):
@@ -15384,7 +15533,7 @@ while running:
                         offset_y = random.randint(-10, 10)
                         DROPPED_ITEMS.add(DroppedItem(death_x + offset_x, death_y + offset_y, item_id, drop_count))
                         count -= drop_count
-                    player.inventory[i] = (0, 0)
+                    player.inventory[i] = (0, 0, {})
             
             # Drop armor (if any equipped)
             armor_slot_ids = [135, 136, 137, 138]  # Helmet, Chestplate, Leggings, Boots
@@ -15654,7 +15803,8 @@ while running:
         # Draw Mobs
         for mob in MOBS:
             mob_screen_pos = (mob.rect.x - camera_x, mob.rect.y - camera_y)
-            screen.blit(mob.get_image(), mob_screen_pos)
+            mob_image = mob.get_image() if hasattr(mob, 'get_image') else mob.image
+            screen.blit(mob_image, mob_screen_pos)
         
             # Fire animation for burning mobs (sunlight or lava fire)
             show_fire = False
@@ -15820,6 +15970,9 @@ while running:
                     if CURRENT_WORLD_NAME:
                         save_world(CURRENT_WORLD_NAME, WORLD_MAP, player, MOBS, TIME_OF_DAY, LOADED_CHUNKS)
                         print(f"💾 World '{CURRENT_WORLD_NAME}' saved before returning to menu")
+                    # Switch back to menu music
+                    sound_manager.play_music("Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
+                    current_music_state = "menu"
                     CURRENT_MENU_STATE = MENU_STATE_MAIN
                     player.health = player.max_health
         

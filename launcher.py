@@ -109,6 +109,14 @@ st.markdown("""
 # Title
 st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_html=True)
 
+# Check if running on Streamlit Cloud (can't run Pygame there)
+is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+if is_cloud:
+    st.error("⚠️ **Pygame games cannot run on Streamlit Cloud!**")
+    st.warning("🏠 **To play PyCraft:**\n1. Clone the repository\n2. Run `PLAY.bat` (Windows) or `streamlit run launcher.py`\n3. Download from: https://github.com/Syed-Ameer/akram-pygame-minecraft")
+    st.info("💡 This launcher is for **local use only**. Pygame requires a display window which isn't available in cloud hosting.")
+    st.markdown("---")
+
 # Login System
 if not st.session_state.logged_in:
     st.markdown('<p class="subtitle">Login or Create Account</p>', unsafe_allow_html=True)
