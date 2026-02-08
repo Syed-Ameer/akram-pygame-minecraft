@@ -662,15 +662,16 @@ if start_server_button:
         with st.spinner("🖥️ Starting multiplayer server..."):
             try:
                 server_dir = str(server_path.parent)
+                python_exe = sys.executable
                 
                 if os.name == 'nt':  # Windows
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {server_dir} && python multiplayer_server.py --port {int(server_port)}"',
+                        f'start cmd /k "cd /d {server_dir} && "{python_exe}" multiplayer_server.py --port {int(server_port)}"',
                         shell=True
                     )
                 else:
                     subprocess.Popen(
-                        ["python", str(server_path), "--port", str(int(server_port))],
+                        [python_exe, str(server_path), "--port", str(int(server_port))],
                         cwd=server_dir
                     )
                 
@@ -700,21 +701,20 @@ if join_server_button:
             try:
                 game_dir = str(Path(game_path).parent)
                 game_file = Path(game_path).name
-                dlc_arg = "--akram-dlc" if st.session_state.akram_dlc_enabled else "--vanilla"
+                python_exe = sys.executable
                 
                 if os.name == 'nt':
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && python "{game_file}" --username {st.session_state.username} {dlc_arg} --multiplayer {server_ip} {int(server_port)}"',
+                        f'start cmd /k "cd /d {game_dir} && "{python_exe}" "{game_file}""',
                         shell=True
                     )
                 else:
                     subprocess.Popen(
-                        ["python", game_path, "--username", st.session_state.username, dlc_arg, 
-                         "--multiplayer", server_ip, str(int(server_port))],
+                        [python_exe, game_path],
                         cwd=game_dir
                     )
                 
-                st.success(f"✅ Joining server at {server_ip}:{int(server_port)} as {st.session_state.username}!")
+                st.success(f"✅ Joining server at {server_ip}:{int(server_port)}!")
                 st.info("💡 The game is connecting in a separate window.")
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
@@ -733,16 +733,19 @@ if launch_button:
                 game_dir = str(Path(game_path).parent)
                 game_file = Path(game_path).name
                 
+                # Use the same Python interpreter that's running this launcher
+                python_exe = sys.executable
+                
                 # Launch the game as a subprocess
                 if os.name == 'nt':  # Windows
                     # Use start command to keep window open
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && python "{game_file}""',
+                        f'start cmd /k "cd /d {game_dir} && "{python_exe}" "{game_file}""',
                         shell=True
                     )
                 else:  # Linux/Mac
                     subprocess.Popen(
-                        ["python", game_path],
+                        [python_exe, game_path],
                         cwd=game_dir
                     )
                 
