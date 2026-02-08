@@ -1,0 +1,28 @@
+# Pygbag Build Configuration
+
+# Package metadata
+name = "pycraft-web"
+version = "1.0.0"
+description = "PyCraft - Minecraft-like game in Python, playable in browser"
+
+# Main entry point
+main = "main.py"
+
+# Screen settings
+width = 800
+height = 600
+title = "PyCraft - Web Edition"
+
+# Assets to include (sounds, textures, etc.)
+# Note: Large files will slow down loading
+assets = [
+    # Add your texture files here
+    # "Textures/",
+    # "Sounds/",
+]
+
+#For orientation, use "portrait" or "landscape"
+orientation = "landscape"
+
+# Icon
+# icon = "icon.png"
