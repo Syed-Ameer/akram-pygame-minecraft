@@ -600,7 +600,9 @@ with bug_tab2:
             st.info("Thank you for helping improve PyCraft! 🎮")
             st.rerun()
         else:
-  Multiplayer options (lower priority now)
+            st.error("⚠️ Please fill in both the title and description fields.")
+
+# Multiplayer options (lower priority now)
 st.markdown("---")
 st.markdown("### 🌐 Multiplayer Options")
 
@@ -623,6 +625,8 @@ with st.expander("🎮 Host or Join Multiplayer Server"):
             "🌍 Join Server",
             use_container_width=True,
             help="Connect to a multiplayer server"
+        )
+
     col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
