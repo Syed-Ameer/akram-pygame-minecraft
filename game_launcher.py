@@ -26,32 +26,32 @@ GOLD = (255, 215, 0)
 
 # Game versions available (ALL VERSIONS!)
 GAME_VERSIONS = [
-    {"name": "🏰 Pre-Classic", "file": "pre_classic"},
-    {"name": "🟫 Classic 1 - Beginning", "file": "classic1"},
-    {"name": "🟫 Classic 2 - Survival", "file": "classic2"},
-    {"name": "🟫 Classic 3 - Multiplayer", "file": "classic3"},
-    {"name": "🟫 Classic 4 - Creative", "file": "classic4"},
-    {"name": "🟫 Classic 5 - Mobs", "file": "classic5"},
-    {"name": "🟫 Classic 6 - World", "file": "classic6"},
-    {"name": "🟫 Classic 7 - Complete", "file": "classic7"},
-    {"name": "🏠 Indev 1 - Basics", "file": "indev1"},
-    {"name": "🏠 Indev 2 - Building", "file": "indev2"},
-    {"name": "🏠 Indev 3 - Caves", "file": "indev3"},
-    {"name": "🏠 Indev 4 - Redstone", "file": "indev4"},
-    {"name": "🏠 Indev 5 - Farming", "file": "indev5"},
-    {"name": "🏠 Indev 6 - Combat", "file": "indev6"},
-    {"name": "🏠 Indev 7 - Dimensions", "file": "indev7"},
-    {"name": "⚡ Alpha 1", "file": "alpha1"},
-    {"name": "⚡ Alpha 2", "file": "alpha2"},
-    {"name": "🌍 Alpha 3 - Overworld", "file": "alpha3"},
-    {"name": "🌍 Alpha 4 - Overworld", "file": "alpha4_overworld"},
-    {"name": "🌍 Alpha v1.0 - Overworld", "file": "alpha_v1_overworld"},
-    {"name": "🔮 Alpha 4 - End", "file": "alpha4_end"},
-    {"name": "🔮 Alpha v1.0 - End", "file": "alpha_v1_end"},
-    {"name": "🔥 Alpha 4 - Nether", "file": "alpha4_nether"},
-    {"name": "🔥 Alpha v1.0 - Nether", "file": "alpha_v1_nether"},
-    {"name": "📱 Bedrock Mobile", "file": "bedrock"},
-    {"name": "🧪 Experimental", "file": "experimental"},
+    {"name": "🏰 Pre-Classic", "file": "pre_classic", "status": "soon"},
+    {"name": "🟫 Classic 1 - Beginning", "file": "classic1", "status": "soon"},
+    {"name": "🟫 Classic 2 - Survival", "file": "classic2", "status": "soon"},
+    {"name": "🟫 Classic 3 - Multiplayer", "file": "classic3", "status": "soon"},
+    {"name": "🟫 Classic 4 - Creative", "file": "classic4", "status": "soon"},
+    {"name": "🟫 Classic 5 - Mobs", "file": "classic5", "status": "playable"},
+    {"name": "🟫 Classic 6 - World", "file": "classic6", "status": "soon"},
+    {"name": "🟫 Classic 7 - Complete", "file": "classic7", "soon"},
+    {"name": "🏠 Indev 1 - Basics", "file": "indev1", "status": "soon"},
+    {"name": "🏠 Indev 2 - Building", "file": "indev2", "status": "soon"},
+    {"name": "🏠 Indev 3 - Caves", "file": "indev3", "status": "soon"},
+    {"name": "🏠 Indev 4 - Redstone", "file": "indev4", "status": "soon"},
+    {"name": "🏠 Indev 5 - Farming", "file": "indev5", "status": "soon"},
+    {"name": "🏠 Indev 6 - Combat", "file": "indev6", "status": "soon"},
+    {"name": "🏠 Indev 7 - Dimensions", "file": "indev7", "status": "soon"},
+    {"name": "⚡ Alpha 1", "file": "alpha1", "status": "soon"},
+    {"name": "⚡ Alpha 2", "file": "alpha2", "status": "soon"},
+    {"name": "🌍 Alpha 3 - Overworld", "file": "alpha3", "status": "soon"},
+    {"name": "🌍 Alpha 4 - Overworld", "file": "alpha4_overworld", "status": "soon"},
+    {"name": "🌍 Alpha v1.0 - Overworld", "file": "alpha_v1_overworld", "status": "soon"},
+    {"name": "🔮 Alpha 4 - End", "file": "alpha4_end", "status": "soon"},
+    {"name": "🔮 Alpha v1.0 - End", "file": "alpha_v1_end", "status": "soon"},
+    {"name": "🔥 Alpha 4 - Nether", "file": "alpha4_nether", "status": "soon"},
+    {"name": "🔥 Alpha v1.0 - Nether", "file": "alpha_v1_nether", "status": "soon"},
+    {"name": "📱 Bedrock Mobile", "file": "bedrock", "status": "soon"},
+    {"name": "🧪 Experimental", "file": "experimental", "status": "soon"},
 ]
 
 selected_version = 0
@@ -104,23 +104,40 @@ def draw_launcher(surface):
     # Version display
     version_font = pygame.font.Font(None, 48)
     version_text = GAME_VERSIONS[selected_version]["name"]
-    version = version_font.render(version_text, True, WHITE)
+    
+    # Add status indicator
+    status = GAME_VERSIONS[selected_version].get("status", "soon")
+    if status == "playable":
+        status_text = " ✅"
+        status_color = BRIGHT_GREEN
+    else:
+        status_text = " 🔜"
+        status_color = GOLD
+    
+    version = version_font.render(version_text + status_text, True, WHITE)
     version_rect = version.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     
     # Version box
-    box_rect = pygame.Rect(SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 60, 800, 120)
+    box_rect = pygame.Rect(SCREEN_WIDTH // 2 - 500, SCREEN_HEIGHT // 2 - 60, 1000, 120)
     pygame.draw.rect(surface, DARK_GRAY, box_rect, border_radius=15)
-    pygame.draw.rect(surface, GREEN, box_rect, 4, border_radius=15)
+    pygame.draw.rect(surface, status_color, box_rect, 4, border_radius=15)
     surface.blit(version, version_rect)
+    
+    # Status legend
+    legend_font = pygame.font.Font(None, 24)
+    legend = legend_font.render("✅ Fully Playable | 🔜 Coming Soon", True, LIGHT_GRAY)
+    legend_rect = legend.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+    surface.blit(legend, legend_rect)
     
     # Instructions
     inst_font = pygame.font.Font(None, 28)
     inst = inst_font.render("← → Arrow Keys to Select | ENTER to Play", True, LIGHT_GRAY)
-    inst_rect = inst.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100))
+    inst_rect = inst.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 120))
     surface.blit(inst, inst_rect)
     
     # Footer
-    footer = inst_font.render(f"Version {selected_version + 1} of {len(GAME_VERSIONS)}", True, GRAY)
+    playable_count = sum(1 for v in GAME_VERSIONS if v.get("status") == "playable")
+    footer = inst_font.render(f"{playable_count} Playable | {len(GAME_VERSIONS)} Total | Version {selected_version + 1}/{len(GAME_VERSIONS)}", True, GRAY)
     footer_rect = footer.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
     surface.blit(footer, footer_rect)
 
