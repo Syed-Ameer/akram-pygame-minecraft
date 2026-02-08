@@ -109,20 +109,13 @@ st.markdown("""
 # Title
 st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_html=True)
 
-# Check if running on Streamlit Cloud - show download option
-is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-if is_cloud:
-    st.info("🌐 **You're viewing PyCraft on Streamlit Cloud!**")
-    st.markdown("### 🎮 One-Click Install - Play in 2 Minutes!")
-    st.markdown("""
-    **Easiest way to play:**
-    1. Click the download button below
-    2. Run the downloaded file
-    3. Everything installs automatically!
-    """)
-    
-    # Create installer script for download
-    installer_script = """'''
+# Download section at top (for new users)
+st.markdown("---")
+st.markdown("### 📥 First Time Here? Download PyCraft")
+st.markdown("**If you haven't downloaded PyCraft yet**, click below for one-click installation:")
+
+# Create installer script for download
+installer_script = """'''
 PyCraft One-Click Installer
 Downloads and installs PyCraft automatically
 '''
@@ -217,38 +210,36 @@ def main():
 if __name__ == "__main__":
     main()
 '''"""
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.download_button(
-            label="⬇️ DOWNLOAD INSTALLER",
-            data=installer_script,
-            file_name="install_pycraft.py",
-            mime="text/x-python",
-            use_container_width=True,
-            type="primary"
-        )
-    
-    st.markdown("---")
-    st.markdown("#### 🚀 After Download:")
-    st.code("python install_pycraft.py", language="bash")
+
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.download_button(
+        label="⬇️ DOWNLOAD INSTALLER",
+        data=installer_script,
+        file_name="install_pycraft.py",
+        mime="text/x-python",
+        use_container_width=True,
+        type="primary"
+    )
+
+with st.expander("ℹ️ How to install (click to expand)"):
     st.markdown("""
-    ✅ The installer will create **PLAY_PYCRAFT.bat** (Windows) or **play_pycraft.sh** (Mac/Linux)  
-    ✅ Double-click this file anytime to play - no reinstall needed!
+    **After downloading:**
+    1. Run: `python install_pycraft.py`
+    2. Wait for automatic setup (downloads, installs dependencies)
+    3. Double-click **PLAY_PYCRAFT.bat** anytime to play!
+    
+    The installer creates a permanent launcher shortcut in your game folder.
     """)
-    
+
+st.markdown("---")
+st.markdown("### 🎮 Already Downloaded? Launch Game Below")
+
+# Check if running on Streamlit Cloud - show warning
+is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+if is_cloud:
+    st.warning("⚠️ **Note:** The launcher below only works if you've downloaded PyCraft locally. Use the download button above to install on your computer.")
     st.markdown("---")
-    st.markdown("#### 📖 Manual Installation (Advanced)")
-    with st.expander("Click if automatic install doesn't work"):
-        st.markdown("""
-        1. Download from [GitHub](https://github.com/Syed-Ameer/akram-pygame-minecraft)
-        2. Extract the ZIP file
-        3. Run `PLAY.bat` (Windows) or `streamlit run launcher.py`
-        """)
-    
-    st.markdown("---")
-    st.success("💡 **Features:** 25,000+ lines | Alpha v1.0 | Multiplayer | Custom mobs | Full mechanics")
-    st.stop()
 
 # Login System
 if not st.session_state.logged_in:
