@@ -279,19 +279,29 @@ for i, option in enumerate(dropdown_options):
     elif "Alpha 3 Overworld" in option and default_index == 0:
         default_index = i
 
-# Create dropdown
-st.markdown("### 🎮 Select Game Version")
+# ===== QUICK PLAY SECTION - MOST PROMINENT =====
+st.markdown("### 🎮 Quick Play")
+
+# Version selector with prominent play button
 selected_version = st.selectbox(
-    "Choose a version to play:",
+    "🎮 Select Game Version:",
     options=dropdown_options,
-    index=default_index,
-    label_visibility="collapsed"
+    index=default_index
 )
+
+# BIG PLAY BUTTON
+play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
+with play_col2:
+    launch_button = st.button(
+        "🚀 PLAY SINGLEPLAYER",
+        use_container_width=True,
+        type="primary",
+        help=f"Launch {selected_version}"
+    )
 
 # Display version info
 if selected_version:
-    st.info(f"📦 Selected: **{selected_version}**")
-    st.text(f"👤 Playing as: {st.session_state.username}")
+    st.caption(f"📦 {selected_version} | 👤 {st.session_state.username}")
 
 # ===== AKRAM DLC TOGGLE =====
 st.markdown("---")
@@ -590,41 +600,30 @@ with bug_tab2:
             st.info("Thank you for helping improve PyCraft! 🎮")
             st.rerun()
         else:
-            st.error("❌ Please fill in both title and description!")
-
-# Admin status indicator
-if user_is_admin:
-    st.info("🔑 **Admin Mode**: You can edit and manage all bug reports")
-
-
-# Launch button
+  Multiplayer options (lower priority now)
 st.markdown("---")
+st.markdown("### 🌐 Multiplayer Options")
 
-# Multiplayer options
-st.markdown("### 🌐 Multiplayer")
-
-# Server IP input for joining
-server_ip = st.text_input("Server IP Address", value="127.0.0.1", help="Enter the server IP to connect to")
-server_port = st.number_input("Port", value=5555, min_value=1024, max_value=65535, help="Server port (default 5555)")
-
-mp_col1, mp_col2 = st.columns(2)
-
-with mp_col1:
-    start_server_button = st.button(
-        "🖥️ Host Server",
-        use_container_width=True,
-        help="Start a multiplayer server for others to join"
-    )
-
-with mp_col2:
-    join_server_button = st.button(
-        "🌍 Join Server",
-        use_container_width=True,
-        help="Connect to a multiplayer server"
-    )
-
-st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
+with st.expander("🎮 Host or Join Multiplayer Server"):
+    # Server IP input for joining
+    server_ip = st.text_input("Server IP Address", value="127.0.0.1", help="Enter the server IP to connect to")
+    server_port = st.number_input("Port", value=5555, min_value=1024, max_value=65535, help="Server port (default 5555)")
+    
+    mp_col1, mp_col2 = st.columns(2)
+    
+    with mp_col1:
+        start_server_button = st.button(
+            "🖥️ Host Server",
+            use_container_width=True,
+            help="Start a multiplayer server for others to join"
+        )
+    
+    with mp_col2:
+        join_server_button = st.button(
+            "🌍 Join Server",
+            use_container_width=True,
+            help="Connect to a multiplayer server"
+    col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
     launch_button = st.button(
