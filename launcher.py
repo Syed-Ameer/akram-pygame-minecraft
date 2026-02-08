@@ -487,26 +487,50 @@ selected_version = st.selectbox(
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
     if is_cloud_env:
-        # On cloud - launch browser version
-        play_button_cloud = st.button(
-            "🚀 PLAY IN BROWSER",
-            use_container_width=True,
-            type="primary",
-            help=f"Launch {selected_version} in browser window"
+        # On cloud - offer multiple options
+        cloud_play_option = st.radio(
+            "Choose play mode:",
+            ["🖼️ Play in Streamlit (Experimental)", "🌐 Play in Browser (Full Version)", "📥 Download Only"],
+            label_visibility="collapsed",
+            horizontal=True
         )
-        launch_button = False
         
-        if play_button_cloud:
-            # Open browser version in new tab
-            browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-            st.markdown(f"""
-                <script>
-                    window.open('{browser_url}', '_blank');
-                </script>
-            """, unsafe_allow_html=True)
-            st.success(f"🎮 Opening {selected_version} in browser...")
-            st.info("💡 A new window should open. If blocked, click the link below:")
-            st.markdown(f"[🌐 Click here to play]({browser_url})", unsafe_allow_html=True)
+        if cloud_play_option == "🖼️ Play in Streamlit (Experimental)":
+            play_button_streamlit = st.button(
+                "🎮 PLAY IN STREAMLIT",
+                use_container_width=True,
+                type="primary",
+                help=f"Run {selected_version} right here in Streamlit!"
+            )
+            
+            if play_button_streamlit:
+                st.session_state.game_mode = "streamlit"
+                st.session_state.selected_game = selected_version
+                st.rerun()
+        
+        elif cloud_play_option == "🌐 Play in Browser (Full Version)":
+            play_button_cloud = st.button(
+                "🚀 OPEN IN NEW WINDOW",
+                use_container_width=True,
+                type="primary",
+                help=f"Launch full browser version"
+            )
+            
+            if play_button_cloud:
+                browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+                st.markdown(f"""
+                    <script>
+                        window.open('{browser_url}', '_blank');
+                    </script>
+                """, unsafe_allow_html=True)
+                st.success(f"🎮 Opening browser launcher...")
+                st.info("💡 A new window should open. If blocked, click the link below:")
+                st.markdown(f"[🌐 Click here to play]({browser_url})", unsafe_allow_html=True)
+        
+        else:  # Download only
+            st.info("📥 Use the download section below to get the full version")
+        
+        launch_button = False
     else:
         # Local - launch desktop version
         launch_button = st.button(
@@ -519,6 +543,34 @@ with play_col2:
 # Display version info
 if selected_version:
     st.caption(f"📦 {selected_version} | 👤 {st.session_state.username}")
+
+# Handle Streamlit gameplay mode
+if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit":
+    st.markdown("---")
+    st.markdown("### 🎮 Game Running in Streamlit")
+    
+    try:
+        from streamlit_pygame_runner import run_pygame_in_streamlit
+        
+        # Back button
+        if st.button("← Back to Launcher"):
+            st.session_state.game_mode = None
+            st.rerun()
+        
+        # Run the game
+        run_pygame_in_streamlit(st.session_state.selected_game)
+        
+        st.markdown("---")
+        st.info("💡 Use the controls above to play! This is experimental - for full experience use browser version.")
+        
+    except Exception as e:
+        st.error(f"❌ Error loading game: {e}")
+        st.info("💡 Try the browser version instead!")
+        if st.button("🌐 Open Browser Version"):
+            st.session_state.game_mode = None
+            st.rerun()
+    
+    st.stop()  # Don't show rest of launcher
 
 # ===== BROWSER PLAY OPTION =====
 st.markdown("---")
