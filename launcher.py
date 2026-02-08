@@ -555,8 +555,9 @@ with bug_tab2:
     with bug_form_col2:
         bug_version = st.selectbox(
             "Affected Version:",
-            ["Alpha v1.0 Overworld", "Alpha v1.0 End", "Alpha 4 Overworld", "Alpha 4 End", 
-             "Alpha 4 Nether", "Alpha 3", "Classic", "Indev", "Bedrock Mobile", "Other"]
+            ["Alpha v1.0 Overworld", "Alpha v1.0 End", "Alpha v1.0 Nether", 
+             "Alpha 4 Overworld", "Alpha 4 End", "Alpha 4 Nether", 
+             "Alpha 3", "Classic", "Indev", "Bedrock Mobile", "Other"]
         )
         bug_severity = st.selectbox(
             "Severity:",
