@@ -9,9 +9,9 @@ description = "PyCraft - Minecraft-like game in Python, playable in browser"
 main = "main.py"
 
 # Screen settings
-width = 800
-height = 600
-title = "PyCraft - Web Edition"
+width = 1400
+height = 900
+title = "⛏️ PyCraft - Perfect Launcher Edition"
 
 # Assets to include (sounds, textures, etc.)
 # Note: Large files will slow down loading
