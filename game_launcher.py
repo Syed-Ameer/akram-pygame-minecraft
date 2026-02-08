@@ -149,19 +149,21 @@ async def run_classic5():
 
 async def launch_game(game_file):
     """Universal game launcher - loads any version"""
-    # Try to import the game module
+    # Import game registry
     try:
-        if game_file == "classic5":
-            from classic5_web import run_game
-            return await run_game()
-        elif game_file == "alpha3":
-            from alpha3_web import run_game
-            return await run_game()
+        from game_registry import get_game
+        
+        # Get the game function
+        game_func = get_game(game_file)
+        
+        if game_func:
+            return await game_func()
         else:
-            # For versions not yet converted, show placeholder
+            # Fallback to placeholder
             return await show_placeholder(game_file)
-    except ImportError:
-        # Module doesn't exist yet, show placeholder
+            
+    except ImportError as e:
+        print(f"Import error: {e}")
         return await show_placeholder(game_file)
 
 async def show_placeholder(game_file):
