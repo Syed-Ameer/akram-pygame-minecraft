@@ -23701,6 +23701,7 @@ while running:
         pygame.display.flip()
     
     elif CURRENT_MENU_STATE == MENU_STATE_PLAYING:
+        global SHOW_HELP_OVERLAY
         # Switch to gameplay music if not already playing
         if 'current_music_state' not in globals() or current_music_state != "gameplay":
             # Randomly choose from available overworld music
@@ -23751,7 +23752,6 @@ while running:
             
             # ESC key to pause
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                global SHOW_HELP_OVERLAY
                 # Check if help overlay is open first
                 if SHOW_HELP_OVERLAY:
                     SHOW_HELP_OVERLAY = False
@@ -23793,7 +23793,6 @@ while running:
                 
                 # H key to toggle help overlay
                 if event.key == pygame.K_h and not player.command_mode and not player.is_crafting and not player.inventory_open:
-                    global SHOW_HELP_OVERLAY
                     SHOW_HELP_OVERLAY = not SHOW_HELP_OVERLAY
                     continue
                 

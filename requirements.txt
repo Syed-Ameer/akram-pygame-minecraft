@@ -1,0 +1,23 @@
+# PyCraft Alpha 4 - Python Requirements
+# Install with: pip install -r requirements.txt
+
+# Core game engine
+pygame>=2.5.0
+
+# Launcher UI
+streamlit>=1.28.0
+
+# Standard library dependencies (included with Python)
+# - random
+# - math
+# - pickle
+# - os
+# - sys
+# - subprocess
+# - json
+# - time
+# - pathlib
+# - socket
+# - threading
+# - datetime
+# - base64
