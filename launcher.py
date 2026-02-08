@@ -733,19 +733,16 @@ if launch_button:
                 game_dir = str(Path(game_path).parent)
                 game_file = Path(game_path).name
                 
-                # Prepare DLC argument
-                dlc_arg = "--akram-dlc" if st.session_state.akram_dlc_enabled else "--vanilla"
-                
-                # Launch the game as a subprocess with username and DLC setting
+                # Launch the game as a subprocess
                 if os.name == 'nt':  # Windows
                     # Use start command to keep window open
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && python "{game_file}" --username {st.session_state.username} {dlc_arg}"',
+                        f'start cmd /k "cd /d {game_dir} && python "{game_file}""',
                         shell=True
                     )
                 else:  # Linux/Mac
                     subprocess.Popen(
-                        ["python", game_path, "--username", st.session_state.username, dlc_arg],
+                        ["python", game_path],
                         cwd=game_dir
                     )
                 
@@ -755,8 +752,7 @@ if launch_button:
                     accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
                     save_accounts(accounts)
                 
-                dlc_status = "with Akram DLC" if st.session_state.akram_dlc_enabled else "in Vanilla Mode"
-                st.success(f"✅ {selected_version} launched successfully as {st.session_state.username} {dlc_status}!")
+                st.success(f"✅ {selected_version} launched successfully!")
                 st.balloons()
                 st.info("💡 The game is running in a separate window. You can close this launcher or launch another version.")
                 
