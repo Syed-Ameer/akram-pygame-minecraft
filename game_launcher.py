@@ -121,33 +121,8 @@ async def run_demo():
 
 async def run_classic5():
     """Launch Classic 5 game"""
-    # For now, placeholder - will be replaced with actual game
-    font = pygame.font.Font(None, 64)
-    running = True
-    
-    while running:
-        screen.fill((135, 206, 235))
-        
-        msg = font.render("🟫 Classic 5 Loading...", True, WHITE)
-        shadow = font.render("🟫 Classic 5 Loading...", True, BLACK)
-        rect = msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-        screen.blit(shadow, (rect.x + 2, rect.y + 2))
-        screen.blit(msg, rect)
-        
-        small_font = pygame.font.Font(None, 32)
-        info = small_font.render("Press ESC to return to launcher", True, LIGHT_GRAY)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60))
-        screen.blit(info, info_rect)
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return True
-        
-        pygame.display.flip()
-        clock.tick(60)
-        await asyncio.sleep(0)
+    from classic5_web import run_game
+    return await run_game()
 
 async def run_alpha3():
     """Launch Alpha 3 game"""
