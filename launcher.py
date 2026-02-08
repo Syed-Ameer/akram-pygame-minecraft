@@ -109,6 +109,38 @@ st.markdown("""
 # Title
 st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_html=True)
 
+# Check if running on Streamlit Cloud - show download option
+is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+if is_cloud:
+    st.info("🌐 **You're viewing PyCraft on Streamlit Cloud!**")
+    st.markdown("### 🎮 To Play PyCraft:")
+    st.markdown("""
+    Pygame games need a local computer to run (they create windows and use your keyboard/mouse).
+    
+    **Download PyCraft to play:**
+    """)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.link_button(
+            "⬇️ Download from GitHub",
+            "https://github.com/Syed-Ameer/akram-pygame-minecraft",
+            use_container_width=True,
+            type="primary"
+        )
+    
+    st.markdown("---")
+    st.markdown("#### 🚀 Quick Start After Download:")
+    st.markdown("""
+    1. **Download** the repository (green "Code" button → Download ZIP)
+    2. **Extract** the ZIP file
+    3. **Run** `PLAY.bat` (Windows) or `streamlit run launcher.py` (Mac/Linux)
+    4. **Play!** The launcher opens in your browser and launches the game window
+    """)
+    
+    st.markdown("---")
+    st.success("💡 **Features:** 25,000+ lines of code | Alpha v1.0 trilogy | Multiplayer | Custom mobs | Full Minecraft mechanics")
+
 # Login System
 if not st.session_state.logged_in:
     st.markdown('<p class="subtitle">Login or Create Account</p>', unsafe_allow_html=True)
