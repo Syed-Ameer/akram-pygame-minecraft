@@ -246,6 +246,47 @@ with st.expander("ℹ️ How to install (click to expand)"):
     The installer creates a permanent launcher shortcut in your game folder.
     """)
 
+st.markdown("#### 🛠️ Manual Installation")
+with st.expander("Prefer manual setup? Click here"):
+    st.markdown("""
+    **Manual Download & Setup:**
+    
+    1. **Get the code:**
+    """)
+    
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.link_button(
+            "📦 Download ZIP from GitHub",
+            "https://github.com/Syed-Ameer/akram-pygame-minecraft/archive/refs/heads/feature-texture-v1.zip",
+            use_container_width=True
+        )
+    with col_b:
+        st.link_button(
+            "🔗 Visit GitHub Repository",
+            "https://github.com/Syed-Ameer/akram-pygame-minecraft",
+            use_container_width=True
+        )
+    
+    st.markdown("""
+    2. **Extract the ZIP file** to a folder
+    
+    3. **Install dependencies:**
+    """)
+    st.code("pip install pygame streamlit ursina", language="bash")
+    
+    st.markdown("""
+    4. **Launch the launcher:**
+    """)
+    st.code("streamlit run launcher.py", language="bash")
+    
+    st.markdown("""
+    5. **Or run games directly:**
+    """)
+    st.code('python "Alpha/Alpha v1.0 Overworld.py"', language="bash")
+    
+    st.success("✅ That's it! The launcher will open in your browser.")
+
 st.markdown("---")
 
 # Show download reminder for cloud users
