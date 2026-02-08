@@ -33,7 +33,7 @@ GAME_VERSIONS = [
     {"name": "🟫 Classic 4 - Creative", "file": "classic4", "status": "soon"},
     {"name": "🟫 Classic 5 - Mobs", "file": "classic5", "status": "playable"},
     {"name": "🟫 Classic 6 - World", "file": "classic6", "status": "soon"},
-    {"name": "🟫 Classic 7 - Complete", "file": "classic7", "soon"},
+    {"name": "🟫 Classic 7 - Complete", "file": "classic7", "status": "soon"},
     {"name": "🏠 Indev 1 - Basics", "file": "indev1", "status": "soon"},
     {"name": "🏠 Indev 2 - Building", "file": "indev2", "status": "soon"},
     {"name": "🏠 Indev 3 - Caves", "file": "indev3", "status": "soon"},
