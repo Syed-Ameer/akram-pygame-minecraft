@@ -180,6 +180,26 @@ def main():
         subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
         print(f"✅ {package} installed!")
     
+    # Create launch shortcut
+    print("\\n🎯 Creating game launcher shortcut...")
+    if sys.platform == 'win32':
+        play_script = "@echo off\\n"
+        play_script += "title PyCraft Launcher\\n"
+        play_script += "echo Launching PyCraft...\\n"
+        play_script += f'"{sys.executable}" -m streamlit run launcher.py\\n'
+        play_script += "pause"
+        with open("PLAY_PYCRAFT.bat", "w") as f:
+            f.write(play_script)
+        print("✅ Created PLAY_PYCRAFT.bat")
+    else:
+        play_script = "#!/bin/bash\\n"
+        play_script += 'echo "Launching PyCraft..."\\n'
+        play_script += f'"{sys.executable}" -m streamlit run launcher.py'
+        with open("play_pycraft.sh", "w") as f:
+            f.write(play_script)
+        os.chmod("play_pycraft.sh", 0o755)
+        print("✅ Created play_pycraft.sh")
+    
     # Launch
     print("\\n🚀 Launching PyCraft...")
     print("The launcher will open at http://localhost:8501")
@@ -189,6 +209,8 @@ def main():
         subprocess.run([sys.executable, "-m", "streamlit", "run", "launcher.py"])
     except KeyboardInterrupt:
         print("\\n\\n👋 Thanks for playing PyCraft!")
+        print(f"\\n💡 To play again, run: PLAY_PYCRAFT.bat")
+        print(f"   Located at: {os.getcwd()}")
     
     input("\\nPress Enter to exit...")
 
@@ -210,7 +232,10 @@ if __name__ == "__main__":
     st.markdown("---")
     st.markdown("#### 🚀 After Download:")
     st.code("python install_pycraft.py", language="bash")
-    st.markdown("That's it! The installer does everything automatically.")
+    st.markdown("""
+    ✅ The installer will create **PLAY_PYCRAFT.bat** (Windows) or **play_pycraft.sh** (Mac/Linux)  
+    ✅ Double-click this file anytime to play - no reinstall needed!
+    """)
     
     st.markdown("---")
     st.markdown("#### 📖 Manual Installation (Advanced)")
