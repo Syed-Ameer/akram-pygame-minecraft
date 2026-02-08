@@ -248,15 +248,13 @@ with st.expander("ℹ️ How to install (click to expand)"):
 
 st.markdown("---")
 
-# Check again if cloud - stop here and don't show launcher
+# Show download reminder for cloud users
 is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 if is_cloud:
-    st.info("💡 **After download:** Run the installer on your computer, then use PLAY_PYCRAFT.bat to launch the game!")
-    st.success("🎮 **Features:** 25,000+ lines | Alpha v1.0 trilogy | Multiplayer | Custom mobs | Full Minecraft mechanics")
-    st.stop()
+    st.info("💡 **Browsing on Streamlit Cloud?** Download the installer above to play on your computer. You can still explore the launcher features below!")
 
-# LOCAL MODE ONLY - Show launcher below
-st.markdown("### 🎮 Already Downloaded? Launch Game Below")
+# Show launcher for everyone
+st.markdown("### 🎮 Game Launcher")
 
 # Login System
 if not st.session_state.logged_in:
@@ -431,6 +429,9 @@ for i, option in enumerate(dropdown_options):
 # ===== QUICK PLAY SECTION - MOST PROMINENT =====
 st.markdown("### 🎮 Quick Play")
 
+# Check if on cloud
+is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+
 # Version selector with prominent play button
 selected_version = st.selectbox(
     "🎮 Select Game Version:",
@@ -441,12 +442,22 @@ selected_version = st.selectbox(
 # BIG PLAY BUTTON
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
-    launch_button = st.button(
-        "🚀 PLAY SINGLEPLAYER",
-        use_container_width=True,
-        type="primary",
-        help=f"Launch {selected_version}"
-    )
+    if is_cloud_env:
+        st.button(
+            "🚀 PLAY SINGLEPLAYER",
+            use_container_width=True,
+            type="primary",
+            disabled=True,
+            help="⚠️ Download the game to your computer to play! (Use button at top)"
+        )
+        launch_button = False
+    else:
+        launch_button = st.button(
+            "🚀 PLAY SINGLEPLAYER",
+            use_container_width=True,
+            type="primary",
+            help=f"Launch {selected_version}"
+        )
 
 # Display version info
 if selected_version:
