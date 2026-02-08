@@ -111,8 +111,22 @@ st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_
 
 # Download section at top (for new users)
 st.markdown("---")
-st.markdown("### 📥 First Time Here? Download PyCraft")
-st.markdown("**If you haven't downloaded PyCraft yet**, click below for one-click installation:")
+
+# Check if running on Streamlit Cloud
+is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+
+if is_cloud:
+    # CLOUD MODE - Download only
+    st.error("🌐 **You're on Streamlit Cloud - Games Cannot Run Here!**")
+    st.warning("Pygame requires a display window which cloud servers don't have. You must download and run locally.")
+    
+    st.markdown("---")
+    st.markdown("### 📥 Download PyCraft to Play")
+    st.markdown("**Download the installer and run it on your computer:**")
+else:
+    # LOCAL MODE - Show download for new users
+    st.markdown("### 📥 First Time Here? Download PyCraft")
+    st.markdown("**If you haven't downloaded PyCraft yet**, click below for one-click installation:")
 
 # Create installer script for download
 installer_script = """'''
@@ -233,13 +247,16 @@ with st.expander("ℹ️ How to install (click to expand)"):
     """)
 
 st.markdown("---")
-st.markdown("### 🎮 Already Downloaded? Launch Game Below")
 
-# Check if running on Streamlit Cloud - show warning
+# Check again if cloud - stop here and don't show launcher
 is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 if is_cloud:
-    st.warning("⚠️ **Note:** The launcher below only works if you've downloaded PyCraft locally. Use the download button above to install on your computer.")
-    st.markdown("---")
+    st.info("💡 **After download:** Run the installer on your computer, then use PLAY_PYCRAFT.bat to launch the game!")
+    st.success("🎮 **Features:** 25,000+ lines | Alpha v1.0 trilogy | Multiplayer | Custom mobs | Full Minecraft mechanics")
+    st.stop()
+
+# LOCAL MODE ONLY - Show launcher below
+st.markdown("### 🎮 Already Downloaded? Launch Game Below")
 
 # Login System
 if not st.session_state.logged_in:
