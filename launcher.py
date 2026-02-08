@@ -468,6 +468,10 @@ for i, option in enumerate(dropdown_options):
 # ===== QUICK PLAY SECTION - MOST PROMINENT =====
 st.markdown("### 🎮 Quick Play")
 
+# Show total available versions
+total_versions = len(dropdown_options)
+st.success(f"✅ **{total_versions} Game Versions Available** - All Launchable from this Launcher!")
+
 # Check if on cloud
 is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 
@@ -475,7 +479,8 @@ is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING
 selected_version = st.selectbox(
     "🎮 Select Game Version:",
     options=dropdown_options,
-    index=default_index
+    index=default_index,
+    help=f"Choose any of the {total_versions} available versions!"
 )
 
 # BIG PLAY BUTTON
@@ -506,20 +511,21 @@ if selected_version:
 st.markdown("---")
 st.markdown("### 🌐 Play in Browser (Web Version)")
 
-st.info("🎮 **NEW!** Play directly in your browser - no download needed!")
+st.info("🎮 **NEW!** Browse and select from all 27 versions in the web launcher!")
 
 browser_col1, browser_col2 = st.columns([3, 1])
 
 with browser_col1:
     st.markdown("""
     **Browser Edition Features:**
-    - ✨ Play instantly without downloading
+    - ✨ All 27 versions in interactive launcher
     - 🌐 Works on any device with a browser
-    - 🎨 Full launcher with memes & voting
+    - 🎮 Use ← → arrow keys to browse versions
+    - ⌨️ Press ENTER to launch selected game
     - 💾 Account persistence across sessions
     - 🎮 Powered by Pygbag WebAssembly
     
-    *Perfect for quick gameplay or trying before downloading!*
+    *Classic 5 fully playable now, more versions being added!*
     """)
 
 with browser_col2:
@@ -556,6 +562,20 @@ with st.expander("🎯 Play Embedded (Experimental)"):
         height=950,
         scrolling=False
     )
+
+# Show all available versions organized by category
+with st.expander("📋 View All Available Versions"):
+    st.markdown("### 🎮 Complete Version List")
+    st.markdown("*All versions below are launchable from the dropdown above!*")
+    
+    for category, versions in all_versions.items():
+        if versions:  # Only show categories that have versions
+            st.markdown(f"**{category}:** ({len(versions)} versions)")
+            for version_name, version_path in versions:
+                # Check if file exists
+                exists = "✅" if Path(version_path).exists() else "❌"
+                st.text(f"  {exists} {version_name}")
+            st.markdown("")  # Spacing
 
 # ===== AKRAM DLC TOGGLE =====
 st.markdown("---")
