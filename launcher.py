@@ -858,42 +858,59 @@ if launch_button:
     if selected_version in version_map:
         game_path = version_map[selected_version]
         
-        # Show loading message
-        with st.spinner(f"🎮 Launching {selected_version}..."):
-            try:
-                # Get the directory of the game file
-                game_dir = str(Path(game_path).parent)
-                game_file = Path(game_path).name
-                
-                # Use the same Python interpreter that's running this launcher
-                python_exe = sys.executable
-                
-                # Launch the game as a subprocess
-                if os.name == 'nt':  # Windows
-                    # Use start command to keep window open
-                    subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && "{python_exe}" "{game_file}""',
-                        shell=True
-                    )
-                else:  # Linux/Mac
-                    subprocess.Popen(
-                        [python_exe, game_path],
-                        cwd=game_dir
-                    )
-                
-                # Update play count
-                accounts = load_accounts()
-                if st.session_state.username in accounts:
-                    accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
-                    save_accounts(accounts)
-                
-                st.success(f"✅ {selected_version} launched successfully!")
-                st.balloons()
-                st.info("💡 The game is running in a separate window. You can close this launcher or launch another version.")
-                
-            except Exception as e:
-                st.error(f"❌ Error launching game: {str(e)}")
-                st.error(f"Path: {game_path}")
+        # Verify game file exists
+        if not Path(game_path).exists():
+            st.error(f"❌ Game file not found: {game_path}")
+            st.warning("💡 Make sure you've extracted all files from the ZIP!")
+        else:
+            # Show loading message
+            with st.spinner(f"🎮 Launching {selected_version}..."):
+                try:
+                    # Get the directory of the game file
+                    game_dir = str(Path(game_path).parent.resolve())
+                    game_file = Path(game_path).name
+                    
+                    # Use the same Python interpreter that's running this launcher
+                    python_exe = sys.executable
+                    
+                    # Debug info
+                    st.info(f"📂 Game directory: {game_dir}")
+                    st.info(f"📄 Game file: {game_file}")
+                    st.info(f"🐍 Python: {python_exe}")
+                    
+                    # Launch the game as a subprocess
+                    if os.name == 'nt':  # Windows
+                        # Create launch command
+                        cmd = f'cd /d "{game_dir}" && "{python_exe}" "{game_file}"'
+                        st.code(f"Running: {cmd}", language="bash")
+                        
+                        # Use start command to keep window open
+                        subprocess.Popen(
+                            f'start cmd /k "{cmd}"',
+                            shell=True,
+                            cwd=game_dir
+                        )
+                    else:  # Linux/Mac
+                        subprocess.Popen(
+                            [python_exe, game_file],
+                            cwd=game_dir
+                        )
+                    
+                    # Update play count
+                    accounts = load_accounts()
+                    if st.session_state.username in accounts:
+                        accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                        save_accounts(accounts)
+                    
+                    st.success(f"✅ {selected_version} launched successfully!")
+                    st.balloons()
+                    st.info("💡 The game window should open in 2-5 seconds. Check your taskbar!")
+                    st.warning("⚠️ If nothing happens, check the command window that opened for error messages.")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error launching game: {str(e)}")
+                    st.error(f"Path: {game_path}")
+                    st.code(f"Python: {sys.executable}\nGame Dir: {game_dir}\nGame File: {game_file}")
     else:
         st.error("❌ Selected version not found!")
 
