@@ -504,6 +504,61 @@ with play_col2:
 if selected_version:
     st.caption(f"📦 {selected_version} | 👤 {st.session_state.username}")
 
+# ===== BROWSER PLAY OPTION =====
+st.markdown("---")
+st.markdown("### 🌐 Play in Browser (Web Version)")
+
+st.info("🎮 **NEW!** Play directly in your browser - no download needed!")
+
+browser_col1, browser_col2 = st.columns([3, 1])
+
+with browser_col1:
+    st.markdown("""
+    **Browser Edition Features:**
+    - ✨ Play instantly without downloading
+    - 🌐 Works on any device with a browser
+    - 🎨 Full launcher with memes & voting
+    - 💾 Account persistence across sessions
+    - 🎮 Powered by Pygbag WebAssembly
+    
+    *Perfect for quick gameplay or trying before downloading!*
+    """)
+
+with browser_col2:
+    st.markdown("")  # Spacing
+    st.markdown("")  # Spacing
+    # Link button to Pygbag version
+    st.markdown("""
+        <a href="https://syed-ameer.github.io/akram-pygame-minecraft/" target="_blank">
+            <button style="
+                background-color: #4CAF50;
+                border: none;
+                color: white;
+                padding: 15px 32px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 16px;
+                margin: 4px 2px;
+                cursor: pointer;
+                border-radius: 8px;
+                width: 100%;
+                font-weight: bold;
+            ">
+                🌐 Launch Browser Game
+            </button>
+        </a>
+    """, unsafe_allow_html=True)
+
+# Optional: Embed the game as iframe
+with st.expander("🎯 Play Embedded (Experimental)"):
+    st.markdown("*Game will load in the frame below. May take a moment to initialize.*")
+    st.components.v1.iframe(
+        "https://syed-ameer.github.io/akram-pygame-minecraft/",
+        height=950,
+        scrolling=False
+    )
+
 # ===== AKRAM DLC TOGGLE =====
 st.markdown("---")
 st.markdown("### 🔥 Akram DLC Features")
