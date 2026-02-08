@@ -627,15 +627,6 @@ with st.expander("🎮 Host or Join Multiplayer Server"):
             help="Connect to a multiplayer server"
         )
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-
-with col2:
-    launch_button = st.button(
-        "🚀 LAUNCH SINGLEPLAYER",
-        use_container_width=True,
-        type="primary"
-    )
-
 # Meme of the Month Section
 st.markdown("---")
 st.markdown("### 😂 Meme of the Month")
