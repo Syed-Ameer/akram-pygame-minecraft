@@ -885,26 +885,67 @@ with st.expander("🎮 Host or Join Multiplayer Server"):
 st.markdown("---")
 st.markdown("### 😂 Meme of the Month")
 
-# Get current month and display appropriate meme
-current_month = datetime.now().month
-meme_files = {
-    2: "meme_february.jpg",
-    3: "meme_march.jpg"
-}
-
-# Default to February if month not found
-meme_file = meme_files.get(current_month, "meme_february.jpg")
-meme_path = base_dir / "Assets" / meme_file
-
-if meme_path.exists():
-    try:
+try:
+    # Try to import meme manager
+    from meme_manager import get_meme_path, MEME_URL
+    
+    # Get or download meme
+    meme_path = get_meme_path()
+    
+    if meme_path and Path(meme_path).exists():
         meme_col1, meme_col2, meme_col3 = st.columns([1, 2, 1])
         with meme_col2:
-            st.image(str(meme_path), caption=f"Meme of the Month - {datetime.now().strftime('%B')}", use_container_width=True)
-    except Exception as e:
+            st.image(meme_path, caption=f"Meme of the Month - {datetime.now().strftime('%B %Y')}", use_container_width=True)
+            
+            # Like button
+            like_file = base_dir / "meme_likes.json"
+            if like_file.exists():
+                with open(like_file, 'r') as f:
+                    likes_data = json.load(f)
+            else:
+                likes_data = {"likes": 0, "users": []}
+            
+            current_likes = likes_data.get("likes", 0)
+            user_liked = st.session_state.username in likes_data.get("users", [])
+            
+            like_col1, like_col2 = st.columns([1, 4])
+            with like_col1:
+                if not user_liked:
+                    if st.button("❤️ Like", use_container_width=True):
+                        likes_data["likes"] = likes_data.get("likes", 0) + 1
+                        likes_data.setdefault("users", []).append(st.session_state.username)
+                        with open(like_file, 'w') as f:
+                            json.dump(likes_data, f, indent=2)
+                        st.rerun()
+                else:
+                    st.button("💚 Liked", use_container_width=True, disabled=True)
+            
+            with like_col2:
+                st.caption(f"👍 {current_likes} likes")
+    else:
+        st.info(f"😅 Meme of the month coming soon! Update MEME_URL in meme_manager.py")
+        st.caption(f"💡 Admins: Set the meme URL to an imgur link or GitHub raw image URL")
+        
+except Exception as e:
+    # Fallback to old system
+    current_month = datetime.now().month
+    meme_files = {
+        2: "meme_february.jpg",
+        3: "meme_march.jpg"
+    }
+    
+    meme_file = meme_files.get(current_month, "meme_february.jpg")
+    meme_path = base_dir / "Assets" / meme_file
+    
+    if meme_path.exists():
+        try:
+            meme_col1, meme_col2, meme_col3 = st.columns([1, 2, 1])
+            with meme_col2:
+                st.image(str(meme_path), caption=f"Meme of the Month - {datetime.now().strftime('%B')}", use_container_width=True)
+        except Exception as e:
+            st.info("😅 Meme not available this month!")
+    else:
         st.info("😅 Meme not available this month!")
-else:
-    st.info("😅 Meme not available this month!")
 
 # --- Handle button actions ---
 

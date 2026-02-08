@@ -24,11 +24,34 @@ BRIGHT_GREEN = (0, 255, 127)
 BLUE = (100, 149, 237)
 GOLD = (255, 215, 0)
 
-# Game versions available
+# Game versions available (ALL VERSIONS!)
 GAME_VERSIONS = [
-    {"name": "🟫 Classic 5 - Mobs & Crafting", "file": "classic5"},
-    {"name": "🌍 Alpha 3 - Overworld Adventure", "file": "alpha3"},
-    {"name": "🎮 Quick Demo", "file": "demo"},
+    {"name": "🏰 Pre-Classic", "file": "pre_classic"},
+    {"name": "🟫 Classic 1 - Beginning", "file": "classic1"},
+    {"name": "🟫 Classic 2 - Survival", "file": "classic2"},
+    {"name": "🟫 Classic 3 - Multiplayer", "file": "classic3"},
+    {"name": "🟫 Classic 4 - Creative", "file": "classic4"},
+    {"name": "🟫 Classic 5 - Mobs", "file": "classic5"},
+    {"name": "🟫 Classic 6 - World", "file": "classic6"},
+    {"name": "🟫 Classic 7 - Complete", "file": "classic7"},
+    {"name": "🏠 Indev 1 - Basics", "file": "indev1"},
+    {"name": "🏠 Indev 2 - Building", "file": "indev2"},
+    {"name": "🏠 Indev 3 - Caves", "file": "indev3"},
+    {"name": "🏠 Indev 4 - Redstone", "file": "indev4"},
+    {"name": "🏠 Indev 5 - Farming", "file": "indev5"},
+    {"name": "🏠 Indev 6 - Combat", "file": "indev6"},
+    {"name": "🏠 Indev 7 - Dimensions", "file": "indev7"},
+    {"name": "⚡ Alpha 1", "file": "alpha1"},
+    {"name": "⚡ Alpha 2", "file": "alpha2"},
+    {"name": "🌍 Alpha 3 - Overworld", "file": "alpha3"},
+    {"name": "🌍 Alpha 4 - Overworld", "file": "alpha4_overworld"},
+    {"name": "🌍 Alpha v1.0 - Overworld", "file": "alpha_v1_overworld"},
+    {"name": "🔮 Alpha 4 - End", "file": "alpha4_end"},
+    {"name": "🔮 Alpha v1.0 - End", "file": "alpha_v1_end"},
+    {"name": "🔥 Alpha 4 - Nether", "file": "alpha4_nether"},
+    {"name": "🔥 Alpha v1.0 - Nether", "file": "alpha_v1_nether"},
+    {"name": "📱 Bedrock Mobile", "file": "bedrock"},
+    {"name": "🧪 Experimental", "file": "experimental"},
 ]
 
 selected_version = 0
@@ -124,6 +147,66 @@ async def run_classic5():
     from classic5_web import run_game
     return await run_game()
 
+async def launch_game(game_file):
+    """Universal game launcher - loads any version"""
+    # Try to import the game module
+    try:
+        if game_file == "classic5":
+            from classic5_web import run_game
+            return await run_game()
+        elif game_file == "alpha3":
+            from alpha3_web import run_game
+            return await run_game()
+        else:
+            # For versions not yet converted, show placeholder
+            return await show_placeholder(game_file)
+    except ImportError:
+        # Module doesn't exist yet, show placeholder
+        return await show_placeholder(game_file)
+
+async def show_placeholder(game_file):
+    """Show placeholder for games not yet converted to async"""
+    font = pygame.font.Font(None, 48)
+    small_font = pygame.font.Font(None, 32)
+    running = True
+    
+    # Get game name from GAME_VERSIONS
+    game_name = next((v["name"] for v in GAME_VERSIONS if v["file"] == game_file), game_file)
+    
+    while running:
+        screen.fill((60, 80, 120))
+        
+        # Title
+        msg = font.render(f"{game_name}", True, WHITE)
+        shadow = font.render(f"{game_name}", True, BLACK)
+        rect = msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 60))
+        screen.blit(shadow, (rect.x + 2, rect.y + 2))
+        screen.blit(msg, rect)
+        
+        # Status
+        status = small_font.render("🎮 Coming Soon to Web!", True, GOLD)
+        status_rect = status.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.blit(status, status_rect)
+        
+        # Instructions
+        info = small_font.render("Download full version to play this", True, LIGHT_GRAY)
+        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))
+        screen.blit(info, info_rect)
+        
+        info2 = small_font.render("Press ESC to return", True, LIGHT_GRAY)
+        info2_rect = info2.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+        screen.blit(info2, info2_rect)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return True
+        
+        pygame.display.flip()
+        clock.tick(60)
+        await asyncio.sleep(0)
+
 async def run_alpha3():
     """Launch Alpha 3 game"""
     font = pygame.font.Font(None, 64)
@@ -190,29 +273,12 @@ async def main():
             # Game is running
             game_file = GAME_VERSIONS[selected_version]["file"]
             
-            if game_file == "demo":
-                # Run demo then return
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                        in_launcher = True
-                
-                await run_demo()
-                
-            elif game_file == "classic5":
-                continue_launcher = await run_classic5()
-                if continue_launcher:
-                    in_launcher = True
-                else:
-                    running = False
-                    
-            elif game_file == "alpha3":
-                continue_launcher = await run_alpha3()
-                if continue_launcher:
-                    in_launcher = True
-                else:
-                    running = False
+            # Use universal launcher
+            continue_launcher = await launch_game(game_file)
+            if continue_launcher:
+                in_launcher = True
+            else:
+                running = False
     
     pygame.quit()
     sys.exit()
