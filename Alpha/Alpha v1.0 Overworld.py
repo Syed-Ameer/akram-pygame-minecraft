@@ -23404,7 +23404,6 @@ while running:
                                 GRID_WIDTH = len(WORLD_MAP[0])
                                 
                                 # Restore chest inventories
-                                global WORLD_CHESTS
                                 WORLD_CHESTS = loaded_data.get('world_chests', {})
                                 print(f"📦 Loaded {len(WORLD_CHESTS)} chests with loot")
                                 
