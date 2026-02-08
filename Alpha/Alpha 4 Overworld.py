@@ -193,6 +193,18 @@ except:
 class DummySounds:
     def play_ui_click(self):
         SOUND_MANAGER.play_sound('button_click')
+    
+    def play_player_damage(self):
+        SOUND_MANAGER.play_sound('player_hurt')
+    
+    def play_block_break(self, block_type='stone'):
+        SOUND_MANAGER.play_sound('block_break')
+    
+    def play_block_place(self):
+        SOUND_MANAGER.play_sound('block_place')
+    
+    def play_achievement(self):
+        SOUND_MANAGER.play_sound('achievement')
 
 # Fix Windows console encoding for emojis
 if sys.platform == 'win32':
@@ -226,7 +238,13 @@ MENU_STATE_ARTICLES = "articles"
 MENU_STATE_DEATH = "death_screen"
 
 # --- Experimental Features ---
-USE_EXPERIMENTAL_TEXTURES = True  # Toggle for block textures (now default, disable for Programming Art)
+# 🎨 NEW MOB TEXTURES: All mobs have texture files available in ../Textures/ folder
+#    - Zombie, Skeleton, Creeper, Spider, Enderman, Phoenix, etc.
+#    - Enable/disable with USE_EXPERIMENTAL_TEXTURES flag below
+# 🎭 PLAYER ANIMATIONS: Advanced player animations available (also in Alpha 4 End.py)
+#    - Blinking, walking bobbing, arm swinging, breathing animations
+#    - Enable/disable with AKRAM_DLC_ENABLED flag (set via launcher or --vanilla arg)
+USE_EXPERIMENTAL_TEXTURES = True  # Toggle for block/mob textures (now default, disable for Programming Art)
 
 # --- Game Modes ---
 GAME_MODE_SURVIVAL = "survival"
@@ -312,6 +330,9 @@ CURRENT_MENU_STATE = MENU_STATE_MAIN
 CURRENT_WORLD_NAME = None
 CURRENT_GAME_MODE = GAME_MODE_SURVIVAL
 ORIGINAL_GAME_MODE = GAME_MODE_SURVIVAL  # Tracks the game mode the world was created with
+
+# Help overlay state
+SHOW_HELP_OVERLAY = False
 
 # Music state tracking
 current_music_state = "menu"  # "menu", "gameplay", "nether", "end"
@@ -1087,6 +1108,9 @@ BLOCK_TYPES = {
     547: {"name": "Iron Bars", "color": (120, 120, 120), "mineable": True, "min_tool_level": 1, "solid": False},
     548: {"name": "Cobweb", "color": (240, 240, 240), "mineable": True, "min_tool_level": 0, "solid": False},
     549: {"name": "Rail", "color": (100, 80, 60), "mineable": True, "min_tool_level": 0, "solid": False},
+    598: {"name": "Elytra", "color": (135, 100, 180), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 0, "durability": 432, "enable_gliding": True},
+    598: {"name": "Elytra", "color": (135, 100, 180), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 0, "durability": 432, "enable_gliding": True},
+    598: {"name": "Elytra", "color": (135, 100, 180), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 0, "durability": 432, "enable_gliding": True},
     
     # --- Decorative Flora Blocks (FLOWERS) ---
     550: {"name": "Dandelion", "color": (255, 220, 0), "mineable": True, "solid": False, "drop_id": 0, "half_block": True},
@@ -2022,7 +2046,127 @@ def draw_pause_menu(screen):
         (130, 70, 70), (170, 90, 90)
     )
     
+    # Draw help reminder
+    help_text = FONT_SMALL.render("Press H for Controls & Help", True, (200, 200, 200))
+    screen.blit(help_text, (SCREEN_WIDTH // 2 - help_text.get_width() // 2, 550))
+    
     return back_rect, username_rect, skin_rect, textures_rect, save_quit_rect
+
+def draw_help_overlay(screen):
+    """Draw comprehensive help overlay for beginners."""
+    # Semi-transparent dark overlay
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    overlay.set_alpha(220)
+    overlay.fill((20, 20, 20))
+    screen.blit(overlay, (0, 0))
+    
+    # Help panel background
+    panel_width = 800
+    panel_height = 560
+    panel_x = (SCREEN_WIDTH - panel_width) // 2
+    panel_y = (SCREEN_HEIGHT - panel_height) // 2
+    panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
+    pygame.draw.rect(screen, (40, 40, 50), panel_rect, border_radius=10)
+    pygame.draw.rect(screen, (100, 150, 200), panel_rect, 3, border_radius=10)
+    
+    # Title
+    title_font = pygame.font.Font(None, 48)
+    title = title_font.render("PyCraft - How to Play", True, (100, 200, 255))
+    screen.blit(title, (panel_x + (panel_width - title.get_width()) // 2, panel_y + 15))
+    
+    # Two-column layout
+    col1_x = panel_x + 20
+    col2_x = panel_x + panel_width // 2 + 10
+    y_start = panel_y + 70
+    line_height = 22
+    
+    # Column 1: Basic Controls
+    section_font = pygame.font.Font(None, 32)
+    section1 = section_font.render("🎮 BASIC CONTROLS", True, (255, 255, 100))
+    screen.blit(section1, (col1_x, y_start))
+    
+    y = y_start + 35
+    controls = [
+        "WASD - Move around",
+        "SPACE - Jump / Swim up",
+        "SHIFT - Sneak / Climb down",
+        "E - Open inventory",
+        "1-9 - Select hotbar slot",
+        "Q - Drop item",
+        "R - Sprint (2x speed)",
+        "ESC - Pause menu",
+        "",
+        "🖱️ MOUSE:",
+        "Left Click - Break/Attack",
+        "Right Click - Place/Use",
+        "Middle Click - Pick block",
+        "Scroll - Change hotbar slot",
+    ]
+    
+    for line in controls:
+        if line.startswith("🖱️"):
+            text = FONT_SMALL.render(line, True, (255, 200, 100))
+        elif line:
+            text = FONT_SMALL.render(line, True, (200, 200, 200))
+        else:
+            y += 5
+            continue
+        screen.blit(text, (col1_x, y))
+        y += line_height
+    
+    # Column 2: Gameplay & Advanced
+    section2 = section_font.render("📖 GAMEPLAY GUIDE", True, (100, 255, 100))
+    screen.blit(section2, (col2_x, y_start))
+    
+    y = y_start + 35
+    gameplay = [
+        "🌳 START: Punch trees for wood",
+        "🔨 CRAFT: Make tools & items",
+        "⛏️ MINE: Dig stone, ores, etc",
+        "🏠 BUILD: Place blocks",
+        "🍖 EAT: Hunt animals, cook food",
+        "⚔️ FIGHT: Defend from mobs",
+        "",
+        "✨ ADVANCED:",
+        "F5 - Change camera view",
+        "Z - Block with shield",
+        "SPACE (falling) - Glide w/Elytra",
+        "Right Click Animal - Ride/Tame",
+        "T - Open chat",
+        "/ - Commands (Creative)",
+        "C - Toggle fly (Creative)",
+    ]
+    
+    for line in gameplay:
+        if line.startswith("✨"):
+            text = FONT_SMALL.render(line, True, (255, 200, 255))
+        elif line:
+            text = FONT_SMALL.render(line, True, (200, 200, 200))
+        else:
+            y += 5
+            continue
+        screen.blit(text, (col2_x, y))
+        y += line_height
+    
+    # Bottom tips section (full width)
+    tips_y = panel_y + panel_height - 90
+    tips_section = section_font.render("💡 SURVIVAL TIPS", True, (255, 150, 50))
+    screen.blit(tips_section, (panel_x + (panel_width - tips_section.get_width()) // 2, tips_y))
+    
+    tips_y += 35
+    tips = [
+        "🌙 Build shelter before night falls  |  🍗 Keep hunger bar full  |  ⚠️ Avoid fall damage (>4 blocks)",
+        "💎 Diamonds spawn below Y=16  |  🛡️ Craft armor for protection  |  🔥 Cook food for better saturation",
+    ]
+    
+    for tip in tips:
+        text = FONT_SMALL.render(tip, True, (220, 220, 220))
+        screen.blit(text, (panel_x + (panel_width - text.get_width()) // 2, tips_y))
+        tips_y += 22
+    
+    # Close instruction
+    close_text = FONT_SMALL.render("Press H or ESC to close", True, (150, 150, 150))
+    screen.blit(close_text, (SCREEN_WIDTH // 2 - close_text.get_width() // 2, panel_y + panel_height + 10))
 
 def draw_death_screen(screen):
     """Draws the death screen with respawn and quit options."""
@@ -2067,8 +2211,9 @@ clock = pygame.time.Clock()
 # Initialize sound system
 print("🎵 Initializing sound system...")
 try:
-    # sound_manager, pycraft_sounds = initialize_sounds("../Sounds")
-    raise Exception("Using dummy sound manager")  # Force dummy for now
+    sound_manager = SOUND_MANAGER
+    pycraft_sounds = DummySounds()
+    print("✅ Sound system initialized successfully")
 except Exception as e:
     print(f"⚠️ Sound system failed to initialize: {e}")
     # Create dummy sound objects for compatibility
@@ -3013,7 +3158,7 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
                 # Walls only (hollow center)
                 is_wall = (col == col_start + 1 or col == col_start + outpost_width - 2)
                 if is_wall:
-                    world[tower_row][col] = 85  # Dark Oak Log (pillars)
+                    world[tower_row][col] = 32  # Dark Oak Log (pillars)
                 elif h == 0 or h == outpost_height - 1:
                     world[tower_row][col] = 8  # Oak Planks (floor/ceiling)
                 else:
@@ -3032,7 +3177,7 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     for w in range(outpost_width):
         col = col_start + w
         if 0 <= roof_row < GRID_HEIGHT and 0 <= col < GRID_WIDTH:
-            world[roof_row][col] = 85  # Dark Oak Log
+            world[roof_row][col] = 32  # Dark Oak Log
     
     # Place target block on top
     if 0 <= roof_row - 1 < GRID_HEIGHT:
@@ -4907,29 +5052,29 @@ def generate_world():
             structure_col_start = random.randint(structure_start_limit, structure_end_limit)
             blocks_used = 0  # Initialize to prevent TypeError
             
-            # PILLAGER OUTPOST (Plains and Taiga) - Guaranteed once per biome
-            if current_biome_type in [PLAINS_BIOME, TAIGA_BIOME]:
+            # PILLAGER OUTPOST (ALL BIOMES) - Rare spawn (5% chance per biome section)
+            if random.random() < 0.05:  # 5% spawn chance in any biome
                 biome_key = f"outpost_{col // 100}"
                 if biome_key not in GENERATED_BIOMES.get('pillager_outpost', set()):
                     blocks_used = generate_pillager_outpost(WORLD_MAP, height_map, structure_col_start, mobs) or 0
                     if blocks_used > 0:
-                        biome_name = "Plains" if current_biome_type == PLAINS_BIOME else "Taiga"
+                        biome_name = biome_map[col] if col < len(biome_map) else "Unknown"
                         STRUCTURE_LOCATIONS['pillager_outpost'].append((structure_col_start, height_map[structure_col_start], biome_name))
                         if 'pillager_outpost' not in GENERATED_BIOMES:
                             GENERATED_BIOMES['pillager_outpost'] = set()
                         GENERATED_BIOMES['pillager_outpost'].add(biome_key)
-                        print(f"🏰 Pillager Outpost spawned at column {structure_col_start}")
-                        STRUCTURE_NOTIFICATIONS.append(["Pillager Outpost", structure_col_start, FPS * 10])
+                        print(f"🏰 Pillager Outpost spawned at column {structure_col_start} (biome: {biome_name})")
+                        STRUCTURE_NOTIFICATIONS.append([f"Pillager Outpost ({biome_name})", structure_col_start, FPS * 10])
             
-            # TAIGA TOWER
-            elif current_biome_type == TAIGA_BIOME and random.random() < 0.6:
+            # TAIGA TOWER (independent of pillager outpost)
+            if current_biome_type == TAIGA_BIOME and random.random() < 0.6:
                 blocks_used = generate_taiga_tower(WORLD_MAP, height_map, structure_col_start) or 0
                 if blocks_used > 0:
                     print(f"🗼 Taiga Tower spawned at column {structure_col_start}")
                     STRUCTURE_NOTIFICATIONS.append(["Taiga Tower (Taiga)", structure_col_start, FPS * 10])
                 
             # WITCH HUT - Guaranteed once per swamp biome
-            elif current_biome_type == SWAMP_BIOME:
+            if current_biome_type == SWAMP_BIOME:
                 biome_key = f"swamp_{col // 100}"
                 if biome_key not in GENERATED_BIOMES.get('witch_hut', set()):
                     result = generate_witch_hut(WORLD_MAP, height_map, structure_col_start)
@@ -6452,6 +6597,7 @@ class Player(pygame.sprite.Sprite):
         self.creative_mode = False  # Whether player is in creative mode
         self.can_fly = False  # Whether player can fly (creative mode)
         self.is_flying = False  # Whether player is currently flying
+        self.is_gliding = False  # Whether player is gliding with Elytra
         self.fly_speed = 8  # Flying speed
         self.creative_inventory_open = False  # Creative mode item browser
         self.creative_scroll = 0  # Scroll position in creative inventory
@@ -7118,8 +7264,8 @@ class Player(pygame.sprite.Sprite):
                 # Flying mode - no gravity, velocity set by controls
                 pass  # vel_y is set by flying controls, don't reset it
             elif on_ladder:
-                # On ladder - no gravity, can climb
-                self.vel_y = 0  # Cancel gravity
+                # On ladder - no gravity, climbing controlled by input handling
+                pass  # vel_y is set by handle_input(), don't override it
             elif in_water:
                 # Swimming: horizontal movement with natural sinking
                 # Make player horizontal when swimming
@@ -7154,9 +7300,41 @@ class Player(pygame.sprite.Sprite):
                 if hasattr(self, 'is_swimming'):
                     self.is_swimming = False
                 
-                self.vel_y += self.gravity
-                if self.vel_y > 10:
-                    self.vel_y = 10
+                # Check if wearing Elytra for gliding
+                wearing_elytra = False
+                chestplate_id = self.armor_slots.get('chestplate', 0)
+                if chestplate_id in BLOCK_TYPES:
+                    chestplate_data = BLOCK_TYPES[chestplate_id]
+                    if chestplate_data.get('enable_gliding', False):
+                        wearing_elytra = True
+                
+                # Elytra gliding mechanics
+                if wearing_elytra and self.is_gliding and self.vel_y > 0:
+                    # Gliding - slow fall and forward movement
+                    self.vel_y += self.gravity * 0.1  # Much reduced gravity
+                    if self.vel_y > 2:  # Slow terminal velocity
+                        self.vel_y = 2
+                    
+                    # Add forward momentum based on direction
+                    glide_speed = 0.3
+                    if self.direction == 1:  # Facing right
+                        self.vel_x += glide_speed
+                    else:  # Facing left
+                        self.vel_x -= glide_speed
+                    
+                    # Limit horizontal glide speed
+                    max_glide_speed = 8
+                    if abs(self.vel_x) > max_glide_speed:
+                        self.vel_x = max_glide_speed if self.vel_x > 0 else -max_glide_speed
+                else:
+                    # Normal gravity
+                    self.vel_y += self.gravity
+                    if self.vel_y > 10:
+                        self.vel_y = 10
+                
+                # Auto-stop gliding when on ground
+                if self.is_gliding and self.is_on_ground:
+                    self.is_gliding = False
                 
             # Track fall distance
             if self.vel_y > 0.6:
@@ -7651,7 +7829,23 @@ class Player(pygame.sprite.Sprite):
                 if block_id in [18, 31] or 170 <= block_id <= 179:
                     in_water = True
             
-            boat_speed = boat.water_speed if in_water else boat.speed
+            # Check if boat is on ice for extra speed
+            on_ice = False
+            block_below = WORLD_MAP[min(boat_row + 1, GRID_HEIGHT - 1)][boat_col] if boat_row + 1 < GRID_HEIGHT else 0
+            if block_below == ICE_ID or block_below == 427:  # Ice or packed ice
+                on_ice = True
+            
+            # R key for boat sprinting (extra speed boost on water)
+            is_boat_sprinting = keys[pygame.K_r]
+            
+            if on_ice:
+                boat_speed = boat.sprint_water_speed * 1.5  # Super fast on ice!
+            elif in_water and is_boat_sprinting:
+                boat_speed = boat.sprint_water_speed  # Fast sprint on water
+            elif in_water:
+                boat_speed = boat.water_speed  # Normal water speed
+            else:
+                boat_speed = boat.speed  # Slow on land
             
             if keys[pygame.K_a]:
                 boat.vel_x = -boat_speed
@@ -7726,8 +7920,33 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_d]:
             self.vel_x = current_speed
             self.direction = 1  # Moving right
+        
+        # Elytra gliding toggle with SPACE (when falling and wearing Elytra)
         if keys[pygame.K_SPACE]:
-            self.jump()
+            chestplate_id = self.armor_slots.get('chestplate', 0)
+            wearing_elytra = False
+            if chestplate_id in BLOCK_TYPES:
+                chestplate_data = BLOCK_TYPES[chestplate_id]
+                if chestplate_data.get('enable_gliding', False):
+                    wearing_elytra = True
+            
+            # Toggle gliding if falling with Elytra (not on ground, not in water)
+            if wearing_elytra and not self.is_on_ground and self.vel_y > 0:
+                if not hasattr(self, '_space_pressed_glide'):
+                    self._space_pressed_glide = False
+                if not self._space_pressed_glide:
+                    self.is_gliding = not self.is_gliding
+                    if self.is_gliding:
+                        print("🪂 Gliding activated!")
+                    else:
+                        print("🪂 Gliding deactivated!")
+                    self._space_pressed_glide = True
+            else:
+                # Normal jump
+                self.jump()
+        else:
+            if hasattr(self, '_space_pressed_glide'):
+                self._space_pressed_glide = False
         
         # Hotbar switching (Keys 1-9)
         for i in range(9):
@@ -7874,9 +8093,12 @@ class Mob(pygame.sprite.Sprite):
         # Apply gravity
         self.vel_y += self.gravity
         
-        # Simple collision detection and movement
+        # Apply movement WITH COLLISION DETECTION (fixes mobs phasing through blocks)
         self.rect.x += self.vel_x
+        self.collide_x()  # FIXED: Added collision check for horizontal movement
+        
         self.rect.y += self.vel_y
+        self.collide_y()  # FIXED: Added collision check for vertical movement
         
         # Enhanced boundary checks to prevent falling through world
         # Check bottom boundary
@@ -10446,7 +10668,8 @@ class Boat(pygame.sprite.Sprite):
         self.vel_x = 0
         self.vel_y = 0
         self.speed = 3.0
-        self.water_speed = 4.0  # Faster on water
+        self.water_speed = 7.0  # Much faster on water (feature parity)
+        self.sprint_water_speed = 10.0  # Boat sprinting with R key
         self.gravity = 0.3
         self.buoyancy = -0.5  # Floats upward in water
         self.rider = None
@@ -13019,9 +13242,17 @@ class Enderman(Mob):
         # Try to load enderman texture
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                enderman_texture = pygame.image.load(r"..\Textures\Enderman.png")
+                enderman_texture = pygame.image.load(r"..\Textures\Enderman-face.png").convert_alpha()
                 enderman_texture = pygame.transform.scale(enderman_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE * 3)))
                 self.image = enderman_texture
+                
+                # Load hurt texture
+                try:
+                    hurt_texture = pygame.image.load(r"..\Textures\Enderman-face-hurt.png").convert_alpha()
+                    hurt_texture = pygame.transform.scale(hurt_texture, (int(BLOCK_SIZE), int(BLOCK_SIZE * 3)))
+                    self.hurt_texture = hurt_texture
+                except:
+                    pass
             except:
                 pass  # Keep the drawn enderman if texture fails to load
     
@@ -16285,14 +16516,15 @@ class Phoenix(Mob):
         
         # Try to load Phoenix texture first
         try:
-            loaded_texture = pygame.image.load("Textures/Pheonix.png").convert_alpha()
+            loaded_texture = pygame.image.load(r"../Textures/Pheonix.png").convert_alpha()
             self.image = pygame.transform.scale(loaded_texture, (BLOCK_SIZE * 2, BLOCK_SIZE * 2))
             self.rect = self.image.get_rect()
             self.rect.x = x
             self.rect.y = y
             self.has_texture = True
-        except:
+        except Exception as e:
             # Create phoenix sprite if texture fails
+            print(f"⚠️ Failed to load Phoenix texture: {e}")
             self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
             self.draw_phoenix()
             self.has_texture = False
@@ -16395,13 +16627,14 @@ class BluePhoenix(Mob):
         
         # Try to load Soul Phoenix texture first
         try:
-            loaded_texture = pygame.image.load("Textures/Soul_Pheonix.png").convert_alpha()
+            loaded_texture = pygame.image.load(r"../Textures/Soul_Pheonix.png").convert_alpha()
             self.image = pygame.transform.scale(loaded_texture, (BLOCK_SIZE * 2, BLOCK_SIZE * 2))
             self.rect = self.image.get_rect()
             self.rect.x = x
             self.rect.y = y
             self.has_texture = True
-        except:
+        except Exception as e:
+            print(f"⚠️ Failed to load Soul Phoenix texture: {e}")
             self.image = pygame.Surface((BLOCK_SIZE * 2, BLOCK_SIZE * 2), pygame.SRCALPHA)
             self.draw_blue_phoenix()
             self.has_texture = False
@@ -17653,6 +17886,42 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                     hit_mob.vel_x = knockback_strength
                 elif dx < 0:
                     hit_mob.vel_x = -knockback_strength
+        
+        # PVP: Check if clicking on another player in multiplayer
+        elif multiplayer_enabled and multiplayer_client.connected:
+            other_players = multiplayer_client.get_other_players()
+            hit_player = None
+            hit_player_id = None
+            
+            for player_id, player_data in other_players.items():
+                player_rect = pygame.Rect(player_data['x'], player_data['y'], BLOCK_SIZE, BLOCK_SIZE * 2)
+                if player_rect.collidepoint(target_world_x, target_world_y):
+                    hit_player = player_data
+                    hit_player_id = player_id
+                    break
+            
+            if hit_player:
+                # Check attack cooldown
+                if player.attack_timer > 0:
+                    return  # Still on cooldown
+                
+                # Calculate damage
+                damage = 1  # Base damage
+                held_id = player.held_block
+                attack_cooldown_frames = 10
+                
+                if held_id in BLOCK_TYPES:
+                    block_data = BLOCK_TYPES[held_id]
+                    if "damage_bonus" in block_data:
+                        damage += block_data["damage_bonus"]
+                    if "attack_cooldown" in block_data:
+                        attack_cooldown_frames = block_data["attack_cooldown"]
+                
+                # Send attack to server
+                multiplayer_client.attack_player(hit_player_id, damage)
+                player.attack_timer = attack_cooldown_frames
+                print(f"⚔️ Attacked {hit_player.get('username', 'Player')} for {damage} damage!")
+        
         else:
             # Mine the block
             block_id = WORLD_MAP[target_row][target_col]
@@ -18024,6 +18293,18 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                             return
                     break
         
+        # Check if holding bone (ID 11) - tame wolves
+        elif held_item_id == 11 and held_count > 0:
+            # Check if clicking on a wolf
+            target_rect = pygame.Rect(target_world_x, target_world_y, 1, 1)
+            for mob in mobs:
+                if mob.rect.collidepoint(target_world_x, target_world_y):
+                    # Check if it's a Wolf and has right_click_interact method
+                    if hasattr(mob, 'right_click_interact'):
+                        if mob.right_click_interact(player):
+                            return
+                    break
+        
         # Check if holding gold ingot (ID 184) - barter with Piglin
         elif held_item_id == 184 and held_count > 0:
             # Check if clicking on a Piglin
@@ -18106,6 +18387,62 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                         player.inventory[inv_index] = (0, 0)
                 
                 print(f"🏹 Arrow shot! ({arrow_count - 1} arrows remaining)")
+            else:
+                print("⚠️ No arrows to shoot!")
+            return
+        
+        # Check if holding Crossbow - shoot arrow!
+        elif held_item_id == 516 and held_count > 0:  # Crossbow ID is 516
+            # Check if player has arrows (ID 53)
+            arrow_count = 0
+            arrow_slot_index = -1
+            
+            # Search for arrows in hotbar
+            for i, slot_data in enumerate(player.hotbar_slots):
+                slot_id = slot_data[0]
+                slot_count = slot_data[1]
+                if slot_id == 53:  # Arrow ID
+                    arrow_count = slot_count
+                    arrow_slot_index = i
+                    break
+            
+            # Search for arrows in inventory if not found in hotbar
+            if arrow_count == 0:
+                for i, slot_data in enumerate(player.inventory):
+                    slot_id = slot_data[0]
+                    slot_count = slot_data[1]
+                    if slot_id == 53:  # Arrow ID
+                        arrow_count = slot_count
+                        arrow_slot_index = i + 9  # Offset for inventory slots
+                        break
+            
+            if arrow_count > 0:
+                # Shoot arrow toward mouse cursor
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                target_world_x = mouse_x + camera_x
+                target_world_y = mouse_y + camera_y
+                
+                arrow = Arrow(
+                    player.rect.centerx,
+                    player.rect.centery,
+                    target_world_x,
+                    target_world_y,
+                    damage=7  # Crossbow arrows do 7 damage (more than bow)
+                )
+                ARROWS.add(arrow)
+                
+                # Consume one arrow
+                if arrow_slot_index < 9:  # Hotbar
+                    player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1)
+                    if arrow_count - 1 <= 0:
+                        player.hotbar_slots[arrow_slot_index] = (0, 0, {})
+                else:  # Inventory
+                    inv_index = arrow_slot_index - 9
+                    player.inventory[inv_index] = (53, arrow_count - 1)
+                    if arrow_count - 1 <= 0:
+                        player.inventory[inv_index] = (0, 0)
+                
+                print(f"🏹 Crossbow bolt shot! ({arrow_count - 1} arrows remaining)")
             else:
                 print("⚠️ No arrows to shoot!")
             return
@@ -21794,12 +22131,12 @@ def update_liquid_flow():
     player_col = player.rect.centerx // BLOCK_SIZE
     player_row = player.rect.centery // BLOCK_SIZE
     
-    # Only update liquids in a radius around player (60 blocks)
-    flow_radius = 60
+    # Only update liquids in a radius around player (25 blocks)
+    flow_radius = 25
     col_start = max(0, player_col - flow_radius)
     col_end = min(GRID_WIDTH, player_col + flow_radius)
-    row_start = max(0, player_row - 30)
-    row_end = min(GRID_HEIGHT, player_row + 30)
+    row_start = max(0, player_row - 25)
+    row_end = min(GRID_HEIGHT, player_row + 25)
     
     # Track blocks that need to be updated (to avoid modifying while iterating)
     liquid_updates = []
@@ -21988,7 +22325,7 @@ def spawn_dark_area_mobs():
     player_row = player.rect.centery // BLOCK_SIZE
     
     # Check area around player for dark enclosed spaces
-    spawn_radius = 30
+    spawn_radius = 25  # Match simulation distance
     for _ in range(5):  # Try 5 random spawn attempts per frame
         offset_x = random.randint(-spawn_radius, spawn_radius)
         offset_y = random.randint(-20, 20)
@@ -22683,6 +23020,9 @@ if "--username" in sys.argv:
         print(f"⚠️ Could not set username: {e}")
 
 # Check for Akram DLC toggle (from launcher)
+# 🔥 AKRAM DLC: Enhanced animations and mob features
+#    - Universal mob animations, eye tracking, player animations
+#    - Enhanced mob AI, visual polish, particle effects
 AKRAM_DLC_ENABLED = True  # Default to enabled
 if "--vanilla" in sys.argv:
     AKRAM_DLC_ENABLED = False
@@ -22842,7 +23182,7 @@ class EyeOfEnder(pygame.sprite.Sprite):
 print(f"🎮 Starting main loop. Initial menu state: {CURRENT_MENU_STATE}")
 
 # Start menu music
-sound_manager.play_music("Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
+sound_manager.play_music("Sounds/Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
 current_music_state = "menu"
 
 while running:
@@ -23352,7 +23692,7 @@ while running:
                     if CURRENT_WORLD_NAME:
                         save_world(CURRENT_WORLD_NAME, WORLD_MAP, player, MOBS, TIME_OF_DAY, LOADED_CHUNKS)
                     # Switch back to menu music
-                    sound_manager.play_music("Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
+                    sound_manager.play_music("Sounds/Lava_chicken_song_by_hyper_potions.mp3 (1).mpeg")
                     current_music_state = "menu"
                     CURRENT_MENU_STATE = MENU_STATE_MAIN
         
@@ -23363,7 +23703,9 @@ while running:
     elif CURRENT_MENU_STATE == MENU_STATE_PLAYING:
         # Switch to gameplay music if not already playing
         if 'current_music_state' not in globals() or current_music_state != "gameplay":
-            sound_manager.play_music("Chirp.oga")
+            # Randomly choose from available overworld music
+            overworld_music = ["Sounds/Cat.oga", "Sounds/Chirp.oga", "Sounds/Mall.oga", "Sounds/Mellohi.oga", "Sounds/Stal.oga", "Sounds/Strad.oga", "Sounds/Where_are_we_now.oga"]
+            sound_manager.play_music(random.choice(overworld_music))
             current_music_state = "gameplay"
         
         # Actual game loop
@@ -23409,8 +23751,12 @@ while running:
             
             # ESC key to pause
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                # Check if chat is open first
-                if CHAT_OPEN:
+                global SHOW_HELP_OVERLAY
+                # Check if help overlay is open first
+                if SHOW_HELP_OVERLAY:
+                    SHOW_HELP_OVERLAY = False
+                # Check if chat is open
+                elif CHAT_OPEN:
                     CHAT_OPEN = False
                     CHAT_INPUT = ""
                 else:
@@ -23444,6 +23790,12 @@ while running:
                     elif event.unicode and event.unicode.isprintable():
                         multiplayer_chat_input += event.unicode
                         continue
+                
+                # H key to toggle help overlay
+                if event.key == pygame.K_h and not player.command_mode and not player.is_crafting and not player.inventory_open:
+                    global SHOW_HELP_OVERLAY
+                    SHOW_HELP_OVERLAY = not SHOW_HELP_OVERLAY
+                    continue
                 
                 # T key opens multiplayer chat
                 if multiplayer_enabled and event.key == pygame.K_t and not player.command_mode and not player.is_crafting and not player.inventory_open:
@@ -24282,7 +24634,7 @@ while running:
             for mob, distance in hostile_mobs:
                 if despawned_count >= mobs_to_despawn:
                     break
-                if distance > BLOCK_SIZE * 30:  # Only despawn if far from player (30+ blocks)
+                if distance > BLOCK_SIZE * 60:  # Only despawn if far from player (60+ blocks, beyond simulation range)
                     mob.kill()
                     despawned_count += 1
             
@@ -24313,24 +24665,24 @@ while running:
             dy = mob.rect.centery - player_y
             distance_sq = dx * dx + dy * dy  # Skip sqrt for performance
             
-            # Multi-tier update system based on distance
-            if distance_sq <= 320000:  # ~566 pixels (close - every frame)
+            # Multi-tier update system based on distance (25 block simulation radius)
+            if distance_sq <= 1000000:  # ~1000 pixels = 25 blocks (close - every frame)
                 if isinstance(mob, Skeleton):
                     mob.update(WORLD_MAP, player, MOBS, ARROWS)
                 else:
                     mob.update(WORLD_MAP, player, MOBS)
-            elif distance_sq <= 640000 and mob_ai_frame_counter == 0:  # ~800 pixels (medium - every 3 frames)
+            elif distance_sq <= 1960000 and mob_ai_frame_counter == 0:  # ~1400 pixels = 35 blocks (medium - every 3 frames)
                 if isinstance(mob, Skeleton):
                     mob.update(WORLD_MAP, player, MOBS, ARROWS)
                 else:
                     mob.update(WORLD_MAP, player, MOBS)
-            elif distance_sq <= 1440000 and i % 15 == mob_ai_frame_counter:  # ~1200 pixels (far - every 15 frames)
+            elif distance_sq <= 4000000 and i % 15 == mob_ai_frame_counter:  # ~2000 pixels = 50 blocks (far - every 15 frames)
                 # Only basic physics update for distant mobs, skip animations
                 if hasattr(mob, 'basic_update'):
                     mob.basic_update(WORLD_MAP)
                 else:
                     mob.update(WORLD_MAP, player, MOBS)
-            # Skip update entirely for very distant mobs (>1200 pixels) - HUGE performance gain
+            # Skip update entirely for very distant mobs (>50 blocks) - HUGE performance gain
         
         # Update boats
         for boat in BOATS:
@@ -25050,6 +25402,10 @@ while running:
             players_online = len(multiplayer_client.get_other_players()) + 1
             online_text = chat_font.render(f"{players_online} online", True, (255, 255, 255))
             screen.blit(online_text, (SCREEN_WIDTH - 25 - online_text.get_width(), 8))
+        
+        # Draw help overlay if active
+        if SHOW_HELP_OVERLAY:
+            draw_help_overlay(screen)
 
         # 5. UPDATE DISPLAY & CLOCK
         pygame.display.flip()

@@ -1,8 +1,11 @@
 import streamlit as st
 import subprocess
+import sys
 import os
 from pathlib import Path
 import base64
+import json
+from datetime import datetime
 
 # Set page config
 st.set_page_config(
@@ -14,9 +17,47 @@ st.set_page_config(
 # Get the base directory
 base_dir = Path(__file__).parent
 
+# Initialize accounts system
+ACCOUNTS_FILE = base_dir / "accounts.json"
+
+def load_accounts():
+    """Load saved accounts"""
+    if ACCOUNTS_FILE.exists():
+        try:
+            with open(ACCOUNTS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_accounts(accounts):
+    """Save accounts to file"""
+    with open(ACCOUNTS_FILE, 'w') as f:
+        json.dump(accounts, f, indent=2)
+
+def add_account(username):
+    """Add or update account"""
+    accounts = load_accounts()
+    accounts[username] = {
+        "created": datetime.now().isoformat(),
+        "last_login": datetime.now().isoformat(),
+        "play_count": accounts.get(username, {}).get("play_count", 0)
+    }
+    save_accounts(accounts)
+    return True
+
+# Initialize session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'username' not in st.session_state:
+    st.session_state.username = None
+if 'show_realm_selector' not in st.session_state:
+    st.session_state.show_realm_selector = False
+
 # Function to load background image
+@st.cache_data(show_spinner=False)
 def get_base64_image(image_path):
-    """Convert image to base64 string."""
+    """Convert image to base64 string (cached)."""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -67,11 +108,104 @@ st.markdown("""
 
 # Title
 st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Select a version and start playing!</p>', unsafe_allow_html=True)
+
+# Login System
+if not st.session_state.logged_in:
+    st.markdown('<p class="subtitle">Login or Create Account</p>', unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["🔑 Login", "➕ Create Account"])
+    
+    with tab1:
+        st.markdown("### Login to Existing Account")
+        accounts = load_accounts()
+        
+        if accounts:
+            account_names = list(accounts.keys())
+            selected_account = st.selectbox("Select Account:", account_names)
+            
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("🎮 Login", type="primary", use_container_width=True):
+                    st.session_state.logged_in = True
+                    st.session_state.username = selected_account
+                    # Update last login
+                    accounts[selected_account]["last_login"] = datetime.now().isoformat()
+                    save_accounts(accounts)
+                    st.rerun()
+            
+            with col2:
+                if st.button("🗑️ Delete Account", use_container_width=True):
+                    del accounts[selected_account]
+                    save_accounts(accounts)
+                    st.success(f"Account '{selected_account}' deleted!")
+                    st.rerun()
+        else:
+            st.info("No accounts found. Create a new account in the 'Create Account' tab!")
+    
+    with tab2:
+        st.markdown("### Create New Account")
+        new_username = st.text_input("Username:", placeholder="Enter your username")
+        if st.button("✅ Create Account", type="primary", use_container_width=True):
+            if new_username:
+                if len(new_username) < 3:
+                    st.error("Username must be at least 3 characters!")
+                elif new_username in accounts:
+                    st.error("Username already exists!")
+                elif new_username.lower() in ["player", "example", "testuser", ""]:
+                    st.error("Please choose a unique username!")
+                else:
+                    add_account(new_username)
+                    st.session_state.logged_in = True
+                    st.session_state.username = new_username
+                    st.success(f"Welcome, {new_username}! 🎉")
+                    st.balloons()
+                    st.rerun()
+            else:
+                st.error("Please enter a username!")
+    
+    # Show existing accounts preview
+    if accounts:
+        st.markdown("---")
+        st.markdown("### 👥 Existing Accounts")
+        for username, data in accounts.items():
+            if username.lower() in ["player", "example", "testuser", ""]:
+                continue
+            last_login = data.get('last_login', 'Never')
+            if last_login != 'Never':
+                try:
+                    last_login = datetime.fromisoformat(last_login).strftime("%Y-%m-%d %H:%M")
+                except:
+                    pass
+            st.text(f"👤 {username} - Last login: {last_login}")
+    
+    st.stop()
+
+# User is logged in
+st.markdown(f'<p class="subtitle">Welcome back, <strong>{st.session_state.username}</strong>! 🎮</p>', unsafe_allow_html=True)
+
+# Logout button in sidebar
+with st.sidebar:
+    st.markdown(f"### 👤 {st.session_state.username}")
+    accounts = load_accounts()
+    if st.session_state.username in accounts:
+        account_data = accounts[st.session_state.username]
+        st.text(f"Play Count: {account_data.get('play_count', 0)}")
+        try:
+            created = datetime.fromisoformat(account_data.get('created', datetime.now().isoformat()))
+            st.text(f"Member since: {created.strftime('%Y-%m-%d')}")
+        except:
+            st.text(f"Member since: Unknown")
+    
+    st.markdown("---")
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.rerun()
 
 # Define game versions organized by category
+@st.cache_data(show_spinner=False)
 def get_game_versions():
-    """Scan directories and get all available game versions."""
+    """Scan directories and get all available game versions (cached)."""
     versions = {}
     
     # Pre-Classic
@@ -134,10 +268,10 @@ for category, versions in all_versions.items():
         dropdown_options.append(display_name)
         version_map[display_name] = version_path
 
-# Find default selection (Alpha 3 Overwold)
+# Find default selection (Alpha 3 Overworld)
 default_index = 0
 for i, option in enumerate(dropdown_options):
-    if "Alpha 3 Overwold" in option:
+    if "Alpha 3 Overworld" in option or "Alpha 4 Overworld" in option:
         default_index = i
         break
 
@@ -153,17 +287,440 @@ selected_version = st.selectbox(
 # Display version info
 if selected_version:
     st.info(f"📦 Selected: **{selected_version}**")
+    st.text(f"👤 Playing as: {st.session_state.username}")
+
+# ===== AKRAM DLC TOGGLE =====
+st.markdown("---")
+st.markdown("### 🔥 Akram DLC Features")
+
+# Initialize DLC state if not exists
+if 'akram_dlc_enabled' not in st.session_state:
+    st.session_state.akram_dlc_enabled = True  # Default enabled for enhanced experience
+
+# Create toggle with nice styling
+dlc_col1, dlc_col2 = st.columns([3, 1])
+
+with dlc_col1:
+    st.markdown("""
+    **Akram DLC** adds custom features beyond Minecraft:
+    - 🦌 **Custom Animals**: Deer, Bear, Elephant, Narwhal, Turtle, Panda, Fox, Penguin, Camel
+    - 🏺 **Custom Items**: Deer Horn, Narwhal Horn, custom spawn eggs
+    - 🎨 **Enhanced Textures**: Custom animal textures and sprites
+    - 🌊 **Ocean Life**: Whale, Dolphin, Shark, Nautilus creatures
+    - 🐾 **Wildlife Variety**: Expanded animal ecosystem beyond vanilla Minecraft
+    
+    *All standard Minecraft features (portals, enchanting, combat, etc.) remain enabled*
+    
+    *Disable for pure vanilla Minecraft animal roster*
+    """)
+
+with dlc_col2:
+    # Toggle button
+    if st.session_state.akram_dlc_enabled:
+        dlc_button_text = "🔥 DLC: ON"
+        dlc_button_type = "primary"
+        dlc_help_text = "Custom animals and content enabled - Enhanced wildlife!"
+    else:
+        dlc_button_text = "⚪ DLC: OFF"
+        dlc_button_type = "secondary" 
+        dlc_help_text = "Vanilla animals only - Standard Minecraft creatures"
+    
+    if st.button(dlc_button_text, use_container_width=True, type=dlc_button_type, help=dlc_help_text):
+        st.session_state.akram_dlc_enabled = not st.session_state.akram_dlc_enabled
+        st.rerun()
+
+# Show current DLC status
+if st.session_state.akram_dlc_enabled:
+    st.success("🔥 **Akram DLC ENABLED** - Custom animals and wildlife active!")
+else:
+    st.warning("⚪ **Vanilla Mode** - Standard Minecraft animals only")
+
+# ===== FEATURE POLL =====
+st.markdown("---")
+st.markdown("### 📊 Vote for Next Update!")
+
+# Initialize poll vote if not exists
+if 'feature_vote' not in st.session_state:
+    st.session_state.feature_vote = None
+
+# Load existing votes from file
+poll_file = base_dir / "feature_poll.json"
+if poll_file.exists():
+    try:
+        with open(poll_file, 'r') as f:
+            poll_data = json.load(f)
+    except:
+        poll_data = {"option1": 0, "option2": 0, "option3": 0, "option4": 0, "voters": []}
+else:
+    poll_data = {"option1": 0, "option2": 0, "option3": 0, "option4": 0, "voters": []}
+
+# Feature options
+poll_col1, poll_col2 = st.columns([3, 1])
+
+with poll_col1:
+    st.markdown("""
+    **Choose what we add next:**
+    - 🐱 **Option 1: Cats & Mod Support** - Tameable cats, mod loading system
+    - 🌾 **Option 2: Farms & Bug Fixes** - Automated farms, performance improvements
+    - 🌳 **Option 3: Mangrove Swamps & Alligators** - New biome, swamp mobs
+    - 🏰 **Option 4: Structure Update** - More villages, dungeons, strongholds
+    """)
+
+with poll_col2:
+    # Check if user already voted
+    username = st.session_state.username
+    has_voted = username in poll_data.get("voters", [])
+    
+    if not has_voted:
+        vote_option = st.radio(
+            "Your Vote:",
+            ["🐱 Cats & Mods", "🌾 Farms & Fixes", "🌳 Mangroves & Alligators", "🏰 Structures"],
+            label_visibility="collapsed"
+        )
+        
+        if st.button("✅ Submit Vote", use_container_width=True, type="primary"):
+            # Map vote to option
+            vote_map = {
+                "🐱 Cats & Mods": "option1",
+                "🌾 Farms & Fixes": "option2",
+                "🌳 Mangroves & Alligators": "option3",
+                "🏰 Structures": "option4"
+            }
+            
+            chosen_option = vote_map[vote_option]
+            poll_data[chosen_option] += 1
+            poll_data.setdefault("voters", []).append(username)
+            
+            # Save votes
+            with open(poll_file, 'w') as f:
+                json.dump(poll_data, f, indent=2)
+            
+            st.session_state.feature_vote = vote_option
+            st.success(f"✅ Vote recorded for: {vote_option}")
+            st.balloons()
+            st.rerun()
+    else:
+        st.info("✅ You already voted!")
+
+# Show poll results
+total_votes = poll_data.get("option1", 0) + poll_data.get("option2", 0) + poll_data.get("option3", 0) + poll_data.get("option4", 0)
+if total_votes > 0:
+    st.markdown("**Current Results:**")
+    
+    option1_pct = (poll_data.get("option1", 0) / total_votes) * 100
+    option2_pct = (poll_data.get("option2", 0) / total_votes) * 100
+    option3_pct = (poll_data.get("option3", 0) / total_votes) * 100
+    option4_pct = (poll_data.get("option4", 0) / total_votes) * 100
+    
+    st.progress(option1_pct / 100, text=f"🐱 Cats & Mods: {option1_pct:.1f}% ({poll_data.get('option1', 0)} votes)")
+    st.progress(option2_pct / 100, text=f"🌾 Farms & Fixes: {option2_pct:.1f}% ({poll_data.get('option2', 0)} votes)")
+    st.progress(option3_pct / 100, text=f"🌳 Mangroves & Alligators: {option3_pct:.1f}% ({poll_data.get('option3', 0)} votes)")
+    st.progress(option4_pct / 100, text=f"🏰 Structures: {option4_pct:.1f}% ({poll_data.get('option4', 0)} votes)")
+    
+    st.caption(f"Total votes: {total_votes}")
+
+# ===== BUG REPORT SYSTEM =====
+st.markdown("---")
+st.markdown("### 🐛 Bug Reports")
+
+# Helper functions for bug reports
+def load_bugs():
+    """Load bug reports from file"""
+    bugs_file = base_dir / "bugs.json"
+    if bugs_file.exists():
+        try:
+            with open(bugs_file, 'r') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_bugs(bugs):
+    """Save bug reports to file"""
+    bugs_file = base_dir / "bugs.json"
+    with open(bugs_file, 'w') as f:
+        json.dump(bugs, f, indent=2)
+
+def is_admin(username):
+    """Check if user is an admin"""
+    admins_file = base_dir / "admins.txt"
+    if admins_file.exists():
+        try:
+            with open(admins_file, 'r') as f:
+                admins = [line.strip() for line in f.readlines() if line.strip() and not line.strip().startswith('#')]
+                return username in admins
+        except:
+            return False
+    return False
+
+# Load bugs
+bugs = load_bugs()
+user_is_admin = is_admin(st.session_state.username)
+
+# Tab system for viewing and reporting
+bug_tab1, bug_tab2 = st.tabs(["📋 View Reports", "➕ Report Bug"])
+
+with bug_tab1:
+    st.markdown("#### All Bug Reports")
+    
+    if bugs:
+        # Filter options
+        status_filter = st.selectbox("Filter by status:", ["All", "Open", "In Progress", "Fixed", "Closed"], key="bug_filter")
+        
+        # Apply filter
+        filtered_bugs = bugs
+        if status_filter != "All":
+            filtered_bugs = [b for b in bugs if b.get("status", "Open") == status_filter]
+        
+        # Display bugs
+        for i, bug in enumerate(filtered_bugs):
+            bug_id = bug.get("id", i)
+            title = bug.get("title", "Untitled Bug")
+            description = bug.get("description", "No description")
+            reporter = bug.get("reporter", "Anonymous")
+            status = bug.get("status", "Open")
+            date = bug.get("date", "Unknown")
+            version = bug.get("version", "Unknown")
+            
+            # Color code by status
+            status_colors = {
+                "Open": "🔴",
+                "In Progress": "🟡",
+                "Fixed": "🟢",
+                "Closed": "⚪"
+            }
+            status_icon = status_colors.get(status, "🔵")
+            
+            with st.expander(f"{status_icon} **#{bug_id}**: {title} - *by {reporter}*"):
+                st.markdown(f"**Description:** {description}")
+                st.text(f"Version: {version} | Reported: {date}")
+                st.text(f"Status: {status}")
+                
+                # Admin controls
+                if user_is_admin:
+                    st.markdown("---")
+                    st.markdown("**Admin Controls:**")
+                    
+                    admin_col1, admin_col2, admin_col3 = st.columns(3)
+                    
+                    with admin_col1:
+                        new_status = st.selectbox(
+                            "Change Status:",
+                            ["Open", "In Progress", "Fixed", "Closed"],
+                            index=["Open", "In Progress", "Fixed", "Closed"].index(status),
+                            key=f"status_{bug_id}"
+                        )
+                    
+                    with admin_col2:
+                        if st.button("💾 Save Status", key=f"save_{bug_id}"):
+                            # Find and update bug
+                            for b in bugs:
+                                if b.get("id") == bug_id:
+                                    b["status"] = new_status
+                                    b["last_updated"] = datetime.now().isoformat()
+                                    b["updated_by"] = st.session_state.username
+                                    break
+                            save_bugs(bugs)
+                            st.success(f"Bug #{bug_id} status updated to {new_status}!")
+                            st.rerun()
+                    
+                    with admin_col3:
+                        if st.button("🗑️ Delete", key=f"delete_{bug_id}"):
+                            bugs = [b for b in bugs if b.get("id") != bug_id]
+                            save_bugs(bugs)
+                            st.success(f"Bug #{bug_id} deleted!")
+                            st.rerun()
+        
+        st.caption(f"Showing {len(filtered_bugs)} of {len(bugs)} reports")
+    else:
+        st.info("📭 No bug reports yet. Be the first to report!")
+
+with bug_tab2:
+    st.markdown("#### Submit a Bug Report")
+    
+    bug_form_col1, bug_form_col2 = st.columns([2, 1])
+    
+    with bug_form_col1:
+        bug_title = st.text_input("Bug Title:", placeholder="Brief description of the bug")
+        bug_description = st.text_area(
+            "Detailed Description:",
+            placeholder="Provide steps to reproduce, what happened vs. what should happen, etc.",
+            height=150
+        )
+    
+    with bug_form_col2:
+        bug_version = st.selectbox(
+            "Affected Version:",
+            ["Alpha 4 Overworld", "Alpha 4 End", "Alpha 4 Nether", "Alpha 3", 
+             "Classic", "Indev", "Bedrock Mobile", "Other"]
+        )
+        bug_severity = st.selectbox(
+            "Severity:",
+            ["Low", "Medium", "High", "Critical"]
+        )
+    
+    if st.button("📤 Submit Bug Report", type="primary", use_container_width=True):
+        if bug_title and bug_description:
+            # Generate bug ID
+            bug_id = len(bugs) + 1
+            
+            # Create bug report
+            new_bug = {
+                "id": bug_id,
+                "title": bug_title,
+                "description": bug_description,
+                "reporter": st.session_state.username,
+                "version": bug_version,
+                "severity": bug_severity,
+                "status": "Open",
+                "date": datetime.now().isoformat(),
+                "last_updated": datetime.now().isoformat()
+            }
+            
+            bugs.append(new_bug)
+            save_bugs(bugs)
+            
+            st.success(f"✅ Bug report #{bug_id} submitted successfully!")
+            st.balloons()
+            st.info("Thank you for helping improve PyCraft! 🎮")
+            st.rerun()
+        else:
+            st.error("❌ Please fill in both title and description!")
+
+# Admin status indicator
+if user_is_admin:
+    st.info("🔑 **Admin Mode**: You can edit and manage all bug reports")
+
 
 # Launch button
+st.markdown("---")
+
+# Multiplayer options
+st.markdown("### 🌐 Multiplayer")
+
+# Server IP input for joining
+server_ip = st.text_input("Server IP Address", value="127.0.0.1", help="Enter the server IP to connect to")
+server_port = st.number_input("Port", value=5555, min_value=1024, max_value=65535, help="Server port (default 5555)")
+
+mp_col1, mp_col2 = st.columns(2)
+
+with mp_col1:
+    start_server_button = st.button(
+        "🖥️ Host Server",
+        use_container_width=True,
+        help="Start a multiplayer server for others to join"
+    )
+
+with mp_col2:
+    join_server_button = st.button(
+        "🌍 Join Server",
+        use_container_width=True,
+        help="Connect to a multiplayer server"
+    )
+
 st.markdown("---")
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
     launch_button = st.button(
-        "🚀 LAUNCH",
+        "🚀 LAUNCH SINGLEPLAYER",
         use_container_width=True,
         type="primary"
     )
+
+# Meme of the Month Section
+st.markdown("---")
+st.markdown("### 😂 Meme of the Month")
+
+# Get current month and display appropriate meme
+current_month = datetime.now().month
+meme_files = {
+    2: "meme_february.jpg",
+    3: "meme_march.jpg"
+}
+
+# Default to February if month not found
+meme_file = meme_files.get(current_month, "meme_february.jpg")
+meme_path = base_dir / "Assets" / meme_file
+
+if meme_path.exists():
+    try:
+        meme_col1, meme_col2, meme_col3 = st.columns([1, 2, 1])
+        with meme_col2:
+            st.image(str(meme_path), caption=f"Meme of the Month - {datetime.now().strftime('%B')}", use_container_width=True)
+    except Exception as e:
+        st.info("😅 Meme not available this month!")
+else:
+    st.info("😅 Meme not available this month!")
+
+# --- Handle button actions ---
+
+# Handle server hosting
+if start_server_button:
+    server_path = base_dir / "Alpha" / "multiplayer_server.py"
+    
+    if server_path.exists():
+        with st.spinner("🖥️ Starting multiplayer server..."):
+            try:
+                server_dir = str(server_path.parent)
+                
+                if os.name == 'nt':  # Windows
+                    subprocess.Popen(
+                        f'start cmd /k "cd /d {server_dir} && python multiplayer_server.py --port {int(server_port)}"',
+                        shell=True
+                    )
+                else:
+                    subprocess.Popen(
+                        ["python", str(server_path), "--port", str(int(server_port))],
+                        cwd=server_dir
+                    )
+                
+                # Get local IP
+                import socket
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    local_ip = s.getsockname()[0]
+                    s.close()
+                except Exception:
+                    local_ip = "127.0.0.1"
+                
+                st.success(f"✅ Server started on port {int(server_port)}!")
+                st.info(f"💡 Share this IP with friends: **{local_ip}**")
+                st.code(f"IP: {local_ip}\nPort: {int(server_port)}")
+            except Exception as e:
+                st.error(f"❌ Error starting server: {str(e)}")
+    else:
+        st.error("❌ Multiplayer server file not found!")
+
+# Handle Join Server
+if join_server_button:
+    if selected_version in version_map:
+        game_path = version_map[selected_version]
+        with st.spinner(f"🌍 Connecting to {server_ip}:{int(server_port)}..."):
+            try:
+                game_dir = str(Path(game_path).parent)
+                game_file = Path(game_path).name
+                dlc_arg = "--akram-dlc" if st.session_state.akram_dlc_enabled else "--vanilla"
+                
+                if os.name == 'nt':
+                    subprocess.Popen(
+                        f'start cmd /k "cd /d {game_dir} && python "{game_file}" --username {st.session_state.username} {dlc_arg} --multiplayer {server_ip} {int(server_port)}"',
+                        shell=True
+                    )
+                else:
+                    subprocess.Popen(
+                        ["python", game_path, "--username", st.session_state.username, dlc_arg, 
+                         "--multiplayer", server_ip, str(int(server_port))],
+                        cwd=game_dir
+                    )
+                
+                st.success(f"✅ Joining server at {server_ip}:{int(server_port)} as {st.session_state.username}!")
+                st.info("💡 The game is connecting in a separate window.")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    else:
+        st.error("❌ Select a game version first!")
 
 # Handle launch
 if launch_button:
@@ -177,20 +734,30 @@ if launch_button:
                 game_dir = str(Path(game_path).parent)
                 game_file = Path(game_path).name
                 
-                # Launch the game as a subprocess with proper working directory
+                # Prepare DLC argument
+                dlc_arg = "--akram-dlc" if st.session_state.akram_dlc_enabled else "--vanilla"
+                
+                # Launch the game as a subprocess with username and DLC setting
                 if os.name == 'nt':  # Windows
                     # Use start command to keep window open
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && python "{game_file}""',
+                        f'start cmd /k "cd /d {game_dir} && python "{game_file}" --username {st.session_state.username} {dlc_arg}"',
                         shell=True
                     )
                 else:  # Linux/Mac
                     subprocess.Popen(
-                        ["python", game_path],
+                        ["python", game_path, "--username", st.session_state.username, dlc_arg],
                         cwd=game_dir
                     )
                 
-                st.success(f"✅ {selected_version} launched successfully!")
+                # Update play count
+                accounts = load_accounts()
+                if st.session_state.username in accounts:
+                    accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                    save_accounts(accounts)
+                
+                dlc_status = "with Akram DLC" if st.session_state.akram_dlc_enabled else "in Vanilla Mode"
+                st.success(f"✅ {selected_version} launched successfully as {st.session_state.username} {dlc_status}!")
                 st.balloons()
                 st.info("💡 The game is running in a separate window. You can close this launcher or launch another version.")
                 
@@ -203,6 +770,6 @@ if launch_button:
 # Footer
 st.markdown("---")
 st.markdown(
-    '<p style="text-align: center; color: #999; font-size: 0.9rem;">PyCraft Launcher v1.0 | Made with Streamlit</p>',
+    '<p style="text-align: center; color: #999; font-size: 0.9rem;">PyCraft Launcher v2.0 | Account System & Realms</p>',
     unsafe_allow_html=True
 )
