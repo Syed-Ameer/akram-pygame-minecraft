@@ -116,13 +116,11 @@ st.markdown("---")
 is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 
 if is_cloud:
-    # CLOUD MODE - Download only
-    st.error("🌐 **You're on Streamlit Cloud - Games Cannot Run Here!**")
-    st.warning("Pygame requires a display window which cloud servers don't have. You must download and run locally.")
-    
+    # CLOUD MODE - Browser play available!
+    st.success("🌐 **Play in Browser** or **Download** for offline play!")
     st.markdown("---")
-    st.markdown("### 📥 Download PyCraft to Play")
-    st.markdown("**Download the installer and run it on your computer:**")
+    st.markdown("### 📥 Download for Offline Play (Optional)")
+    st.markdown("**Want to play offline? Download the full version:**")
 else:
     # LOCAL MODE - Show download for new users
     st.markdown("### 📥 First Time Here? Download PyCraft")
@@ -489,7 +487,7 @@ with play_col2:
             use_container_width=True,
             type="primary",
             disabled=True,
-            help="⚠️ Download the game to your computer to play! (Use button at top)"
+            help="💻 Download version only - Use Browser Play below for instant gameplay!"
         )
         launch_button = False
     else:
