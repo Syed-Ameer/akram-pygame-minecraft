@@ -113,33 +113,117 @@ st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_
 is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 if is_cloud:
     st.info("🌐 **You're viewing PyCraft on Streamlit Cloud!**")
-    st.markdown("### 🎮 To Play PyCraft:")
+    st.markdown("### 🎮 One-Click Install - Play in 2 Minutes!")
     st.markdown("""
-    Pygame games need a local computer to run (they create windows and use your keyboard/mouse).
-    
-    **Download PyCraft to play:**
+    **Easiest way to play:**
+    1. Click the download button below
+    2. Run the downloaded file
+    3. Everything installs automatically!
     """)
+    
+    # Create installer script for download
+    installer_script = """'''
+PyCraft One-Click Installer
+Downloads and installs PyCraft automatically
+'''
+import os
+import sys
+import subprocess
+import urllib.request
+import zipfile
+
+def main():
+    print(\"\"\"
+    ⛏️  PyCraft One-Click Installer
+    ================================
+    This will automatically:
+    1. Download PyCraft from GitHub
+    2. Install dependencies (pygame, streamlit, ursina)
+    3. Launch the game launcher
+    
+    Press Enter to continue or Ctrl+C to cancel...
+    \"\"\")
+    input()
+    
+    # Download repository
+    print("\\n📥 Downloading PyCraft from GitHub...")
+    repo_url = "https://github.com/Syed-Ameer/akram-pygame-minecraft/archive/refs/heads/feature-texture-v1.zip"
+    zip_path = "pycraft.zip"
+    
+    try:
+        urllib.request.urlretrieve(repo_url, zip_path)
+        print("✅ Download complete!")
+    except Exception as e:
+        print(f"❌ Download failed: {e}")
+        input("\\nPress Enter to exit...")
+        return
+    
+    # Extract ZIP
+    print("\\n📂 Extracting files...")
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(".")
+        os.remove(zip_path)
+        extracted_folder = "akram-pygame-minecraft-feature-texture-v1"
+        if os.path.exists(extracted_folder):
+            os.chdir(extracted_folder)
+            print(f"✅ Extracted to: {os.getcwd()}")
+    except Exception as e:
+        print(f"❌ Extraction failed: {e}")
+        input("\\nPress Enter to exit...")
+        return
+    
+    # Install dependencies
+    print("\\n📦 Installing dependencies...")
+    for package in ["pygame", "streamlit", "ursina"]:
+        print(f"Installing {package}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
+        print(f"✅ {package} installed!")
+    
+    # Launch
+    print("\\n🚀 Launching PyCraft...")
+    print("The launcher will open at http://localhost:8501")
+    print("Press Ctrl+C to stop\\n")
+    
+    try:
+        subprocess.run([sys.executable, "-m", "streamlit", "run", "launcher.py"])
+    except KeyboardInterrupt:
+        print("\\n\\n👋 Thanks for playing PyCraft!")
+    
+    input("\\nPress Enter to exit...")
+
+if __name__ == "__main__":
+    main()
+'''"""
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.link_button(
-            "⬇️ Download from GitHub",
-            "https://github.com/Syed-Ameer/akram-pygame-minecraft",
+        st.download_button(
+            label="⬇️ DOWNLOAD INSTALLER",
+            data=installer_script,
+            file_name="install_pycraft.py",
+            mime="text/x-python",
             use_container_width=True,
             type="primary"
         )
     
     st.markdown("---")
-    st.markdown("#### 🚀 Quick Start After Download:")
-    st.markdown("""
-    1. **Download** the repository (green "Code" button → Download ZIP)
-    2. **Extract** the ZIP file
-    3. **Run** `PLAY.bat` (Windows) or `streamlit run launcher.py` (Mac/Linux)
-    4. **Play!** The launcher opens in your browser and launches the game window
-    """)
+    st.markdown("#### 🚀 After Download:")
+    st.code("python install_pycraft.py", language="bash")
+    st.markdown("That's it! The installer does everything automatically.")
     
     st.markdown("---")
-    st.success("💡 **Features:** 25,000+ lines of code | Alpha v1.0 trilogy | Multiplayer | Custom mobs | Full Minecraft mechanics")
+    st.markdown("#### 📖 Manual Installation (Advanced)")
+    with st.expander("Click if automatic install doesn't work"):
+        st.markdown("""
+        1. Download from [GitHub](https://github.com/Syed-Ameer/akram-pygame-minecraft)
+        2. Extract the ZIP file
+        3. Run `PLAY.bat` (Windows) or `streamlit run launcher.py`
+        """)
+    
+    st.markdown("---")
+    st.success("💡 **Features:** 25,000+ lines | Alpha v1.0 | Multiplayer | Custom mobs | Full mechanics")
+    st.stop()
 
 # Login System
 if not st.session_state.logged_in:
