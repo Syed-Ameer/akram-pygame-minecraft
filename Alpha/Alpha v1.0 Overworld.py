@@ -1609,7 +1609,8 @@ def save_world(world_name, world_map, player, mobs, time_of_day, loaded_chunks):
         'original_game_mode': ORIGINAL_GAME_MODE,
         'creative_mode': player.creative_mode,
         'can_fly': player.can_fly,
-        'biome_map': BIOME_MAP
+        'biome_map': BIOME_MAP,
+        'world_chests': WORLD_CHESTS  # Save chest inventories
     }
     
     with open(world_path, 'wb') as f:
@@ -23401,6 +23402,12 @@ while running:
                                 print(f"📂 Loading world data...")
                                 WORLD_MAP = loaded_data['world_map']
                                 GRID_WIDTH = len(WORLD_MAP[0])
+                                
+                                # Restore chest inventories
+                                global WORLD_CHESTS
+                                WORLD_CHESTS = loaded_data.get('world_chests', {})
+                                print(f"📦 Loaded {len(WORLD_CHESTS)} chests with loot")
+                                
                                 player.rect.x, player.rect.y = loaded_data['player_pos']
                                 player.health = loaded_data['player_health']
                                 player.hunger = loaded_data['player_hunger']
