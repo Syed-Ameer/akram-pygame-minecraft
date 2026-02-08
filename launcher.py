@@ -117,9 +117,9 @@ is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MOD
 
 if is_cloud:
     # CLOUD MODE - Browser play available!
-    st.success("🌐 **Play in Browser** or **Download** for offline play!")
+    st.success("🌐 **Streamlit Cloud Mode** - Click play buttons to launch in browser!")
     st.markdown("---")
-    st.markdown("### 📥 Download for Offline Play (Optional)")
+    st.markdown("### 📥 Or Download for Offline Play (Optional)")
     st.markdown("**Want to play offline? Download the full version:**")
 else:
     # LOCAL MODE - Show download for new users
@@ -487,15 +487,28 @@ selected_version = st.selectbox(
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
     if is_cloud_env:
-        st.button(
-            "🚀 PLAY SINGLEPLAYER",
+        # On cloud - launch browser version
+        play_button_cloud = st.button(
+            "🚀 PLAY IN BROWSER",
             use_container_width=True,
             type="primary",
-            disabled=True,
-            help="💻 Download version only - Use Browser Play below for instant gameplay!"
+            help=f"Launch {selected_version} in browser window"
         )
         launch_button = False
+        
+        if play_button_cloud:
+            # Open browser version in new tab
+            browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+            st.markdown(f"""
+                <script>
+                    window.open('{browser_url}', '_blank');
+                </script>
+            """, unsafe_allow_html=True)
+            st.success(f"🎮 Opening {selected_version} in browser...")
+            st.info("💡 A new window should open. If blocked, click the link below:")
+            st.markdown(f"[🌐 Click here to play]({browser_url})", unsafe_allow_html=True)
     else:
+        # Local - launch desktop version
         launch_button = st.button(
             "🚀 PLAY SINGLEPLAYER",
             use_container_width=True,
