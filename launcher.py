@@ -547,21 +547,16 @@ if selected_version:
 # Handle Streamlit gameplay mode
 if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit":
     st.markdown("---")
-    st.markdown("### 🎮 Game Running in Streamlit")
     
     try:
         from streamlit_pygame_runner import run_pygame_in_streamlit
         
-        # Back button
-        if st.button("← Back to Launcher"):
-            st.session_state.game_mode = None
-            st.rerun()
+        # Get the game path
+        selected_game = st.session_state.selected_game
+        game_path = version_map.get(selected_game, None)
         
         # Run the game
-        run_pygame_in_streamlit(st.session_state.selected_game)
-        
-        st.markdown("---")
-        st.info("💡 Use the controls above to play! This is experimental - for full experience use browser version.")
+        run_pygame_in_streamlit(selected_game, game_path)
         
     except Exception as e:
         st.error(f"❌ Error loading game: {e}")
