@@ -490,37 +490,26 @@ with launcher_col1:
 with launcher_col2:
     st.markdown("")  # Spacing
     st.markdown("")  # Spacing
-    # Button to launch desktop launcher
+    # Button to launch web version
     if st.button(
         "🖥️ Open Desktop Launcher",
         use_container_width=True,
         type="primary",
         help="Opens the desktop game launcher"
     ):
-        desktop_launcher_path = base_dir / "desktop_launcher.py"
+        web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
         
-        if desktop_launcher_path.exists():
-            try:
-                python_exe = sys.executable
-                
-                if os.name == 'nt':  # Windows
-                    subprocess.Popen(
-                        f'start cmd /k "{python_exe}" "{desktop_launcher_path}"',
-                        shell=True,
-                        cwd=str(base_dir)
-                    )
-                else:  # Linux/Mac
-                    subprocess.Popen(
-                        [python_exe, str(desktop_launcher_path)],
-                        cwd=str(base_dir)
-                    )
-                
-                st.success("✅ Desktop Launcher opened!")
-                st.info("🎮 Browse with ← → arrows, press ENTER to launch games")
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-        else:
-            st.error("❌ desktop_launcher.py not found!")
+        try:
+            webbrowser.open_new_tab(web_url)
+            st.success("✅ Opening game launcher in browser...")
+            st.info("🎮 Browse with ← → arrows, press ENTER to launch games")
+            st.info("💡 Check your browser tabs if it didn't open automatically")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+        
+        # Always show link as backup
+        st.markdown(f"### [🌐 Click Here to Open Game Launcher]({web_url})")
+        st.code(web_url, language="text")
 
 # Show all available versions organized by category
 with st.expander("📋 View All Available Versions"):
