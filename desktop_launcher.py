@@ -11,7 +11,7 @@ from pathlib import Path
 # Auto-install dependencies on first run
 def auto_install_dependencies():
     """Install required packages if missing"""
-    required = ["pygame", "ursina", "pillow", "numpy", "panda3d"]
+    required = ["pygame", "pillow", "numpy"]
     
     print("🔧 Checking dependencies...")
     missing = []
