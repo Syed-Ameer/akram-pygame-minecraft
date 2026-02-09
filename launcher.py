@@ -509,36 +509,65 @@ with browser_col2:
         # Also show link
         st.markdown(f"[🌐 Click here if browser didn't open]({browser_url})")
 
+# Optional: Embed the web game as iframe
+with st.expander("🎯 Play Embedded in Streamlit"):
+    st.markdown("*Web launcher will load below. Use ← → arrows to browse, ENTER to play.*")
+    st.components.v1.iframe(
+        "https://syed-ameer.github.io/akram-pygame-minecraft/",
+        height=950,
+        scrolling=False
+    )
 
-# Optional: Show screenshot or info about desktop launcher
-with st.expander("ℹ️ About Desktop Launcher"):
+# Desktop launcher option
+st.markdown("---")
+st.markdown("### 🖥️ Desktop Launcher (Local)")
+
+desktop_col1, desktop_col2 = st.columns([3, 1])
+
+with desktop_col1:
     st.markdown("""
-    The **Desktop Launcher** is a beautiful Pygame interface that lets you:
-    
-    - 📋 Browse all game versions with smooth carousel navigation
-    - ✅ See which games are playable vs coming soon
-    - 🎨 Enjoy gradient backgrounds and professional UI
-    - 🚀 Launch games instantly in separate windows
+    **Desktop Launcher Features:**
+    - 🎮 Native Pygame interface with beautiful UI
+    - ⚡ Launch full-featured Python games
+    - 💾 Auto-installs dependencies (pygame, pillow, numpy)
+    - 🚀 Games run in separate windows
     - 🔄 Return to launcher after closing games
     
-    **Perfect for:**
-    - Installing once and playing anytime
-    - Offline gameplay
-    - Best performance (native Python)
-    - Full game features without browser limits
+    *For best performance and offline play!*
     """)
 
-# Show all available versions organized by category
-with st.expander("📋 View All Available Versions"):
-    st.markdown("### 🎮 Complete Version List")
-    st.markdown("*All versions below are launchable from the dropdown above!*")
-    
-    for category, versions in all_versions.items():
-        if versions:  # Only show categories that have versions
-            st.markdown(f"**{category}:** ({len(versions)} versions)")
-            for version_name, version_path in versions:
-                # Check if file exists
-                exists = "✅" if Path(version_path).exists() else "❌"
+with desktop_col2:
+    st.markdown("")  # Spacing
+    if st.button(
+        "🖥️ Open Desktop Launcher",
+        use_container_width=True,
+        type="secondary",
+        help="Opens desktop_launcher.py in new window"
+    ):
+        desktop_launcher_path = base_dir / "desktop_launcher.py"
+        
+        if desktop_launcher_path.exists():
+            try:
+                python_exe = sys.executable
+                
+                if os.name == 'nt':  # Windows
+                    subprocess.Popen(
+                        f'start cmd /k "{python_exe}" "{desktop_launcher_path}"',
+                        shell=True,
+                        cwd=str(base_dir)
+                    )
+                else:  # Linux/Mac
+                    subprocess.Popen(
+                        [python_exe, str(desktop_launcher_path)],
+                        cwd=str(base_dir)
+                    )
+                
+                st.success("✅ Desktop Launcher opened!")
+                st.info("🎮 Use ← → arrows to browse, ENTER to launch")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+        else:
+            st.error("❌ desktop_launcher.py not found!          exists = "✅" if Path(version_path).exists() else "❌"
                 st.text(f"  {exists} {version_name}")
             st.markdown("")  # Spacing
 
