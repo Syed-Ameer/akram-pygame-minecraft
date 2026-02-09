@@ -3144,11 +3144,14 @@ def generate_pillager_outpost(world, height_map, col_start, mobs):
     max_height_diff = 3
     
     # Check for space and flatness
+    # Allow outposts in ALL biomes (not just grass/dirt)
+    allowed_surfaces = [GRASS_ID, COARSE_DIRT_ID, SAND_ID, SNOW_ID, MUD_ID, SANDSTONE_ID]
+    
     for col in range(col_start, col_start + outpost_width):
         if col >= GRID_WIDTH:
             return 0
         surface_block_id = world[height_map[col]][col]
-        if surface_block_id not in [GRASS_ID, COARSE_DIRT_ID]:  # Plains or Taiga
+        if surface_block_id not in allowed_surfaces:
             return 0
         if abs(height_map[col] - height_map[col_start]) > max_height_diff:
             return 0
