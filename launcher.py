@@ -466,60 +466,48 @@ if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit"
 
 # ===== BROWSER PLAY OPTION =====
 st.markdown("---")
-st.markdown("### � Interactive Desktop Launcher")
+st.markdown("### 🌐 Play in Browser (Web Version)")
 
-st.info("🎮 **Desktop Launcher** - Browse all 27 versions with arrow keys!")
+st.info("🎮 **Pygbag Web Edition** - Play in your browser without installation!")
 
 browser_col1, browser_col2 = st.columns([3, 1])
 
 with browser_col1:
     st.markdown("""
-    **Desktop Launcher Features:**
-    - ✨ All 27 versions in interactive launcher
+    **Browser Edition Features:**
+    - ✨ All 27 versions in interactive web launcher
+    - 🌐 Works on any device with a browser
     - 🎮 Use ← → arrow keys to browse versions
-    - ⌨️ Press ENTER to launch selected game  
-    - 🖥️ Full-featured desktop games
-    - 💾 Auto-installs dependencies (pygame, pillow, numpy)
-    - 🚀 Games launch in separate windows
+    - ⌨️ Press ENTER to launch selected game
+    - 💾 No installation required
+    - 🚀 Powered by Pygbag WebAssembly
     
-    *Browse beautifully, launch instantly!*
+    *Classic 5 fully playable now, more versions being added!*
     """)
 
 with browser_col2:
     st.markdown("")  # Spacing
     st.markdown("")  # Spacing
-    # Button to launch desktop launcher
+    # Button to launch web version
     if st.button(
-        "🌐 Launch Desktop Launcher",
+        "🌐 Launch Browser Game",
         use_container_width=True,
         type="primary",
-        help="Opens the desktop game launcher with all 27 versions"
+        help="Opens the Pygbag web version in your browser"
     ):
-        desktop_launcher_path = base_dir / "desktop_launcher.py"
+        browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
         
-        if desktop_launcher_path.exists():
-            with st.spinner("🎮 Launching Desktop Game Launcher..."):
-                try:
-                    python_exe = sys.executable
-                    
-                    if os.name == 'nt':  # Windows
-                        subprocess.Popen(
-                            f'start cmd /k "{python_exe}" "{desktop_launcher_path}"',
-                            shell=True,
-                            cwd=str(base_dir)
-                        )
-                    else:  # Linux/Mac
-                        subprocess.Popen(
-                            [python_exe, str(desktop_launcher_path)],
-                            cwd=str(base_dir)
-                        )
-                    
-                    st.success("✅ Desktop Launcher opened!")
-                    st.info("🎮 Use ← → arrows to browse games, press ENTER to launch")
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-        else:
-            st.error("❌ desktop_launcher.py not found!")
+        # Open in browser
+        import webbrowser
+        try:
+            webbrowser.open(browser_url)
+            st.success("✅ Opening web launcher in browser...")
+            st.info("🎮 Use ← → arrows to browse games, press ENTER to launch")
+        except Exception as e:
+            st.warning("⚠️ Couldn't auto-open browser")
+        
+        # Also show link
+        st.markdown(f"[🌐 Click here if browser didn't open]({browser_url})")
 
 
 # Optional: Show screenshot or info about desktop launcher
