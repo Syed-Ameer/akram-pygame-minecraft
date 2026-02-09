@@ -408,13 +408,34 @@ with play_col2:
         
         launch_button = False
     else:
-        # Local - launch desktop version
-        launch_button = st.button(
-            "🚀 PLAY SINGLEPLAYER",
-            use_container_width=True,
-            type="primary",
-            help=f"Launch {selected_version}"
+        # Local - show both desktop and browser options
+        st.markdown("**Choose Launch Mode:**")
+        launch_mode = st.radio(
+            "Select how to play:",
+            ["🖥️ Desktop (Launch Real Game)", "🌐 Browser (Web Version)"],
+            label_visibility="collapsed"
         )
+        
+        if launch_mode.startswith("🖥️"):
+            launch_button = st.button(
+                "🚀 LAUNCH DESKTOP GAME",
+                use_container_width=True,
+                type="primary",
+                help=f"Launch {selected_version} in new window - Full featured desktop version!"
+            )
+        else:
+            launch_button = False
+            if st.button(
+                "🌐 OPEN BROWSER VERSION",
+                use_container_width=True,
+                type="secondary",
+                help="Play in browser"
+            ):
+                browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+                st.markdown(f'<script>window.open("{browser_url}", "_blank");</script>', unsafe_allow_html=True)
+                st.success("🎮 Opening browser launcher...")
+                st.markdown(f"[🌐 Click here if it didn't open]({browser_url})")
+
 
 # Display version info
 if selected_version:
