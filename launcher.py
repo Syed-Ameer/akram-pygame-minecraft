@@ -466,87 +466,36 @@ if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit"
     
     st.stop()  # Don't show rest of launcher
 
-# ===== BROWSER PLAY OPTION =====
+# ===== DESKTOP LAUNCHER =====
 st.markdown("---")
-st.markdown("### 🌐 Play in Browser (Web Version)")
+st.markdown("### 🎮 Desktop Game Launcher")
 
-st.info("🎮 **Pygbag Web Edition** - Play in your browser without installation!")
+st.info("🖥️ **Local Desktop Edition** - Launch games directly on your PC!")
 
-browser_col1, browser_col2 = st.columns([3, 1])
+launcher_col1, launcher_col2 = st.columns([3, 1])
 
-with browser_col1:
-    st.markdown("""
-    **Browser Edition Features:**
-    - ✨ All 27 versions in interactive web launcher
-    - 🌐 Works on any device with a browser
-    - 🎮 Use ← → arrow keys to browse versions
-    - ⌨️ Press ENTER to launch selected game
-    - 💾 No installation required
-    - 🚀 Powered by Pygbag WebAssembly
-    
-    *Classic 5 fully playable now, more versions being added!*
-    """)
-
-with browser_col2:
-    st.markdown("")  # Spacing
-    st.markdown("")  # Spacing
-    # Button to launch web version
-    if st.button(
-        "🌐 Launch Browser Game",
-        use_container_width=True,
-        type="primary",
-        help="Opens the Pygbag web version in your browser"
-    ):
-        browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-        
-        # Open in browser
-        try:
-            webbrowser.open_new_tab(browser_url)
-            st.success("✅ Opening web launcher in browser...")
-            st.info("🎮 Use ← → arrows to browse games, press ENTER to launch")
-            st.info("💡 Check your browser tabs if it didn't open a new window")
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-            st.warning("⚠️ Please use the link below to open manually")
-        
-        # Always show link as backup
-        st.markdown(f"### [🌐 Click Here to Open PyCraft]({browser_url})")
-        st.code(browser_url, language="text")
-
-# Optional: Embed the web game as iframe
-with st.expander("🎯 Play Embedded in Streamlit"):
-    st.markdown("*Web launcher will load below. Use ← → arrows to browse, ENTER to play.*")
-    st.components.v1.iframe(
-        "https://syed-ameer.github.io/akram-pygame-minecraft/",
-        height=950,
-        scrolling=False
-    )
-
-# Desktop launcher option
-st.markdown("---")
-st.markdown("### 🖥️ Desktop Launcher (Local)")
-
-desktop_col1, desktop_col2 = st.columns([3, 1])
-
-with desktop_col1:
+with launcher_col1:
     st.markdown("""
     **Desktop Launcher Features:**
-    - 🎮 Native Pygame interface with beautiful UI
-    - ⚡ Launch full-featured Python games
-    - 💾 Auto-installs dependencies (pygame, pillow, numpy)
-    - 🚀 Games run in separate windows
-    - 🔄 Return to launcher after closing games
+    - ✨ All 27 versions available locally
+    - 🎮 Use ← → arrow keys to browse versions
+    - ⌨️ Press ENTER to launch selected game
+    - 💾 Full-featured Python games
+    - 🚀 No internet required after installation
+    - ⚡ Best performance and compatibility
     
-    *For best performance and offline play!*
+    *Launches real Python games in separate windows!*
     """)
 
-with desktop_col2:
+with launcher_col2:
     st.markdown("")  # Spacing
+    st.markdown("")  # Spacing
+    # Button to launch desktop launcher
     if st.button(
         "🖥️ Open Desktop Launcher",
         use_container_width=True,
-        type="secondary",
-        help="Opens desktop_launcher.py in new window"
+        type="primary",
+        help="Opens the desktop game launcher"
     ):
         desktop_launcher_path = base_dir / "desktop_launcher.py"
         
@@ -567,7 +516,7 @@ with desktop_col2:
                     )
                 
                 st.success("✅ Desktop Launcher opened!")
-                st.info("🎮 Opens web browser with PyCraft game launcher")
+                st.info("🎮 Browse with ← → arrows, press ENTER to launch games")
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
         else:
