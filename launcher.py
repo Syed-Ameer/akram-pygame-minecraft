@@ -466,59 +466,79 @@ if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit"
 
 # ===== BROWSER PLAY OPTION =====
 st.markdown("---")
-st.markdown("### 🌐 Play in Browser (Web Version)")
+st.markdown("### � Interactive Desktop Launcher")
 
-st.info("🎮 **NEW!** Browse and select from all 27 versions in the web launcher!")
+st.info("🎮 **Desktop Launcher** - Browse all 27 versions with arrow keys!")
 
 browser_col1, browser_col2 = st.columns([3, 1])
 
 with browser_col1:
     st.markdown("""
-    **Browser Edition Features:**
+    **Desktop Launcher Features:**
     - ✨ All 27 versions in interactive launcher
-    - 🌐 Works on any device with a browser
     - 🎮 Use ← → arrow keys to browse versions
-    - ⌨️ Press ENTER to launch selected game
-    - 💾 Account persistence across sessions
-    - 🎮 Powered by Pygbag WebAssembly
+    - ⌨️ Press ENTER to launch selected game  
+    - 🖥️ Full-featured desktop games
+    - 💾 Auto-installs dependencies (pygame, pillow, numpy)
+    - 🚀 Games launch in separate windows
     
-    *Classic 5 fully playable now, more versions being added!*
+    *Browse beautifully, launch instantly!*
     """)
 
 with browser_col2:
     st.markdown("")  # Spacing
     st.markdown("")  # Spacing
-    # Link button to Pygbag version
-    st.markdown("""
-        <a href="https://syed-ameer.github.io/akram-pygame-minecraft/" target="_blank">
-            <button style="
-                background-color: #4CAF50;
-                border: none;
-                color: white;
-                padding: 15px 32px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 16px;
-                margin: 4px 2px;
-                cursor: pointer;
-                border-radius: 8px;
-                width: 100%;
-                font-weight: bold;
-            ">
-                🌐 Launch Browser Game
-            </button>
-        </a>
-    """, unsafe_allow_html=True)
+    # Button to launch desktop launcher
+    if st.button(
+        "🌐 Launch Desktop Launcher",
+        use_container_width=True,
+        type="primary",
+        help="Opens the desktop game launcher with all 27 versions"
+    ):
+        desktop_launcher_path = base_dir / "desktop_launcher.py"
+        
+        if desktop_launcher_path.exists():
+            with st.spinner("🎮 Launching Desktop Game Launcher..."):
+                try:
+                    python_exe = sys.executable
+                    
+                    if os.name == 'nt':  # Windows
+                        subprocess.Popen(
+                            f'start cmd /k "{python_exe}" "{desktop_launcher_path}"',
+                            shell=True,
+                            cwd=str(base_dir)
+                        )
+                    else:  # Linux/Mac
+                        subprocess.Popen(
+                            [python_exe, str(desktop_launcher_path)],
+                            cwd=str(base_dir)
+                        )
+                    
+                    st.success("✅ Desktop Launcher opened!")
+                    st.info("🎮 Use ← → arrows to browse games, press ENTER to launch")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+        else:
+            st.error("❌ desktop_launcher.py not found!")
 
-# Optional: Embed the game as iframe
-with st.expander("🎯 Play Embedded (Experimental)"):
-    st.markdown("*Game will load in the frame below. May take a moment to initialize.*")
-    st.components.v1.iframe(
-        "https://syed-ameer.github.io/akram-pygame-minecraft/",
-        height=950,
-        scrolling=False
-    )
+
+# Optional: Show screenshot or info about desktop launcher
+with st.expander("ℹ️ About Desktop Launcher"):
+    st.markdown("""
+    The **Desktop Launcher** is a beautiful Pygame interface that lets you:
+    
+    - 📋 Browse all game versions with smooth carousel navigation
+    - ✅ See which games are playable vs coming soon
+    - 🎨 Enjoy gradient backgrounds and professional UI
+    - 🚀 Launch games instantly in separate windows
+    - 🔄 Return to launcher after closing games
+    
+    **Perfect for:**
+    - Installing once and playing anytime
+    - Offline gameplay
+    - Best performance (native Python)
+    - Full game features without browser limits
+    """)
 
 # Show all available versions organized by category
 with st.expander("📋 View All Available Versions"):
