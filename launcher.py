@@ -563,11 +563,23 @@ with desktop_col2:
                     )
                 
                 st.success("✅ Desktop Launcher opened!")
-                st.info("🎮 Use ← → arrows to browse, ENTER to launch")
+                st.info("🎮 Opens web browser with PyCraft game launcher")
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
         else:
-            st.error("❌ desktop_launcher.py not found!          exists = "✅" if Path(version_path).exists() else "❌"
+            st.error("❌ desktop_launcher.py not found!")
+
+# Show all available versions organized by category
+with st.expander("📋 View All Available Versions"):
+    st.markdown("### 🎮 Complete Version List")
+    st.markdown("*All versions below are launchable from the dropdown above!*")
+    
+    for category, versions in all_versions.items():
+        if versions:  # Only show categories that have versions
+            st.markdown(f"**{category}:** ({len(versions)} versions)")
+            for version_name, version_path in versions:
+                # Check if file exists
+                exists = "✅" if Path(version_path).exists() else "❌"
                 st.text(f"  {exists} {version_name}")
             st.markdown("")  # Spacing
 
