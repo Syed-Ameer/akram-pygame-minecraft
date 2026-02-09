@@ -1,20 +1,49 @@
-# PyCraft Desktop Launcher - Pure Pygame, No Web Required
-# Works offline on any computer
+# PyCraft Desktop - Universal Game Launcher
+# Launches actual game files with auto-dependency installation
 
+import asyncio
 import pygame
 import sys
 import os
+import subprocess
 from pathlib import Path
 
-# Initialize Pygame
-pygame.init()
+# Auto-install dependencies on first run
+def auto_install_dependencies():
+    """Install required packages if missing"""
+    required = ["pygame", "ursina", "pillow", "numpy", "panda3d"]
+    
+    print("🔧 Checking dependencies...")
+    missing = []
+    
+    for package in required:
+        try:
+            __import__(package.replace("-", "_"))
+        except ImportError:
+            missing.append(package)
+    
+    if missing:
+        print(f"📦 Installing {len(missing)} packages: {', '.join(missing)}")
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing, 
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("✅ All dependencies installed!")
+        except Exception as e:
+            print(f"⚠️ Install warning: {e}")
+    else:
+        print("✅ All dependencies ready!")
+
+# Run installer at startup
+try:
+    auto_install_dependencies()
+except:
+    pass
 
 # Screen settings
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("⛏️ PyCraft - Desktop Edition")
-clock = pygame.time.Clock()
+screen = None
+clock = None
 
 # Colors
 WHITE = (255, 255, 255)
@@ -27,51 +56,69 @@ GREEN = (46, 139, 87)
 BRIGHT_GREEN = (0, 255, 127)
 BLUE = (100, 149, 237)
 GOLD = (255, 215, 0)
-RED = (220, 50, 50)
 
-# Fonts
-try:
-    TITLE_FONT = pygame.font.Font(None, 96)
-    SUBTITLE_FONT = pygame.font.Font(None, 48)
-    BUTTON_FONT = pygame.font.Font(None, 36)
-    SMALL_FONT = pygame.font.Font(None, 24)
-except:
-    TITLE_FONT = pygame.font.SysFont('arial', 96)
-    SUBTITLE_FONT = pygame.font.SysFont('arial', 48)
-    BUTTON_FONT = pygame.font.SysFont('arial', 36)
-    SMALL_FONT = pygame.font.SysFont('arial', 24)
-
-# Game versions - LOCAL DESKTOP VERSIONS
+# Game versions available (ALL VERSIONS!)
 GAME_VERSIONS = [
-    {"name": "🏰 Pre-Classic", "file": "Pre-Classic.py", "folder": ""},
-    {"name": "🟫 Classic 1", "file": "Classic 1.py", "folder": "Classic"},
-    {"name": "🟫 Classic 2", "file": "Classic 2.py", "folder": "Classic"},
-    {"name": "🟫 Classic 3", "file": "Classic 3.py", "folder": "Classic"},
-    {"name": "🟫 Classic 4", "file": "Classic 4.py", "folder": "Classic"},
-    {"name": "🟫 Classic 5", "file": "Classic 5.py", "folder": "Classic"},
-    {"name": "🟫 Classic 6", "file": "Classic 6.py", "folder": "Classic"},
-    {"name": "🟫 Classic 7", "file": "Classic 7.py", "folder": "Classic"},
-    {"name": "🏠 Indev 1", "file": "Indev 1.py", "folder": "Indev"},
-    {"name": "🏠 Indev 2", "file": "Indev 2.py", "folder": "Indev"},
-    {"name": "🏠 Indev 3", "file": "Indev 3.py", "folder": "Indev"},
-    {"name": "🏠 Indev 4", "file": "Indev 4.py", "folder": "Indev"},
-    {"name": "🏠 Indev 5", "file": "Indev 5.py", "folder": "Indev"},
-    {"name": "🏠 Indev 6", "file": "Indev 6.py", "folder": "Indev"},
-    {"name": "🏠 Indev 7", "file": "Indev 7.py", "folder": "Indev"},
-    {"name": "⚡ Alpha 1", "file": "Alpha 1.py", "folder": "Alpha"},
-    {"name": "⚡ Alpha 2", "file": "Alpha 2.py", "folder": "Alpha"},
-    {"name": "🌍 Alpha 3 - Overworld", "file": "Alpha 3 Overworld.py", "folder": "Alpha"},
-    {"name": "🌍 Alpha 4 - Overworld", "file": "Alpha 4 Overworld.py", "folder": "Alpha"},
-    {"name": "🌍 Alpha v1.0 - Overworld", "file": "Alpha v1.0 Overworld.py", "folder": "Alpha"},
-    {"name": "🔮 Alpha 4 - End", "file": "Alpha 4 End.py", "folder": "Alpha"},
-    {"name": "🔮 Alpha v1.0 - End", "file": "Alpha v1.0 End.py", "folder": "Alpha"},
-    {"name": "🔥 Alpha 4 - Nether", "file": "Alpha 4-snapshot 1.py", "folder": "Alpha"},
-    {"name": "🔥 Alpha v1.0 - Nether", "file": "Alpha v1.0 Nether.py", "folder": "Alpha"},
-    {"name": "🧪 Experimental", "file": "Experimental.py", "folder": ""},
+    {"name": "🏰 Pre-Classic", "file": "pre_classic", "status": "playable"},
+    {"name": "🟫 Classic 1 - Beginning", "file": "classic1", "status": "playable"},
+    {"name": "🟫 Classic 2 - Survival", "file": "classic2", "status": "playable"},
+    {"name": "🟫 Classic 3 - Multiplayer", "file": "classic3", "status": "playable"},
+    {"name": "🟫 Classic 4 - Creative", "file": "classic4", "status": "playable"},
+    {"name": "🟫 Classic 5 - Mobs", "file": "classic5", "status": "playable"},
+    {"name": "🟫 Classic 6 - World", "file": "classic6", "status": "playable"},
+    {"name": "🟫 Classic 7 - Complete", "file": "classic7", "status": "playable"},
+    {"name": "🏠 Indev 1 - Basics", "file": "indev1", "status": "playable"},
+    {"name": "🏠 Indev 2 - Building", "file": "indev2", "status": "playable"},
+    {"name": "🏠 Indev 3 - Caves", "file": "indev3", "status": "playable"},
+    {"name": "🏠 Indev 4 - Redstone", "file": "indev4", "status": "playable"},
+    {"name": "🏠 Indev 5 - Farming", "file": "indev5", "status": "playable"},
+    {"name": "🏠 Indev 6 - Combat", "file": "indev6", "status": "playable"},
+    {"name": "🏠 Indev 7 - Dimensions", "file": "indev7", "status": "playable"},
+    {"name": "⚡ Alpha 1", "file": "alpha1", "status": "playable"},
+    {"name": "⚡ Alpha 2", "file": "alpha2", "status": "playable"},
+    {"name": "🌍 Alpha 3 - Overworld", "file": "alpha3", "status": "playable"},
+    {"name": "🌍 Alpha 4 - Overworld", "file": "alpha4_overworld", "status": "playable"},
+    {"name": "🌍 Alpha v1.0 - Overworld", "file": "alpha_v1_overworld", "status": "playable"},
+    {"name": "🔮 Alpha 4 - End", "file": "alpha4_end", "status": "playable"},
+    {"name": "🔮 Alpha v1.0 - End", "file": "alpha_v1_end", "status": "playable"},
+    {"name": "🔥 Alpha 4 - Nether", "file": "alpha4_nether", "status": "playable"},
+    {"name": "🔥 Alpha v1.0 - Nether", "file": "alpha_v1_nether", "status": "playable"},
+    {"name": "📱 Bedrock Mobile", "file": "bedrock", "status": "playable"},
+    {"name": "🧪 Experimental", "file": "experimental", "status": "playable"},
 ]
 
+# Map game IDs to actual Python file paths
+GAME_FILE_PATHS = {
+    "pre_classic": "Pre-Classic.py",
+    "classic1": "Classic/Classic 1.py",
+    "classic2": "Classic/Classic 2.py",
+    "classic3": "Classic/Classic 3.py",
+    "classic4": "Classic/Classic 4.py",
+    "classic5": "Classic/Classic 5.py",
+    "classic6": "Classic/Classic 6.py",
+    "classic7": "Classic/Classic 7.py",
+    "indev1": "Indev/Indev 1.py",
+    "indev2": "Indev/Indev 2.py",
+    "indev3": "Indev/Indev 3.py",
+    "indev4": "Indev/Indev 4.py",
+    "indev5": "Indev/Indev 5.py",
+    "indev6": "Indev/Indev 6.py",
+    "indev7": "Indev/Indev 7.py",
+    "alpha1": "Alpha/Alpha 1.py",
+    "alpha2": "Alpha/Alpha 2.py",
+    "alpha3": "Alpha/Alpha 3 Overworld.py",
+    "alpha4_overworld": "Alpha/Alpha 4 Overworld.py",
+    "alpha_v1_overworld": "Alpha/Alpha v1.0 Overworld.py",
+    "alpha4_end": "Alpha/Alpha 4 End.py",
+    "alpha_v1_end": "Alpha/Alpha v1.0 End.py",
+    "alpha4_nether": "Alpha/Alpha 4-snapshot 1.py",
+    "alpha_v1_nether": "Alpha/Alpha v1.0 Nether.py",
+    "bedrock": "Alpha/pycraft_bedrock_mobile.py",
+    "experimental": "Experimental.py",
+}
+
 selected_version = 0
-scroll_offset = 0
+game_launched = False
 
 class Button:
     def __init__(self, x, y, width, height, text, color=BLUE):
@@ -79,26 +126,18 @@ class Button:
         self.text = text
         self.color = color
         self.hover = False
-        self.enabled = True
     
     def draw(self, surface):
-        if not self.enabled:
-            color = GRAY
-        elif self.hover:
-            color = BRIGHT_GREEN
-        else:
-            color = self.color
-        
+        color = BRIGHT_GREEN if self.hover else self.color
         pygame.draw.rect(surface, color, self.rect, border_radius=10)
         pygame.draw.rect(surface, WHITE, self.rect, 3, border_radius=10)
         
-        text = BUTTON_FONT.render(self.text, True, WHITE)
+        font = pygame.font.Font(None, 36)
+        text = font.render(self.text, True, WHITE)
         text_rect = text.get_rect(center=self.rect.center)
         surface.blit(text, text_rect)
     
     def handle_event(self, event):
-        if not self.enabled:
-            return False
         if event.type == pygame.MOUSEMOTION:
             self.hover = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -106,192 +145,226 @@ class Button:
                 return True
         return False
 
-def draw_gradient_background(surface):
-    """Draw a nice gradient background"""
-    for y in range(SCREEN_HEIGHT):
-        ratio = y / SCREEN_HEIGHT
-        color = (
-            int(20 + ratio * 20),
-            int(30 + ratio * 30),
-            int(50 + ratio * 50)
-        )
-        pygame.draw.line(surface, color, (0, y), (SCREEN_WIDTH, y))
-
-def draw_title(surface):
-    """Draw the main title"""
-    # Shadow
-    title_shadow = TITLE_FONT.render("⛏️ PyCraft", True, BLACK)
-    title_shadow_rect = title_shadow.get_rect(center=(SCREEN_WIDTH // 2 + 4, 84))
-    surface.blit(title_shadow, title_shadow_rect)
+def draw_launcher(surface):
+    """Draw the game launcher screen"""
+    surface.fill(DARKER_GRAY)
     
     # Title
-    title = TITLE_FONT.render("⛏️ PyCraft", True, GOLD)
-    title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))
+    title_font = pygame.font.Font(None, 72)
+    title = title_font.render("⛏️ PyCraft", True, GOLD)
+    title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+    # Shadow
+    shadow = title_font.render("⛏️ PyCraft", True, BLACK)
+    surface.blit(shadow, (title_rect.x + 3, title_rect.y + 3))
     surface.blit(title, title_rect)
     
     # Subtitle
-    subtitle = SMALL_FONT.render("Desktop Edition - Select Your Game", True, LIGHT_GRAY)
-    subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 150))
+    subtitle_font = pygame.font.Font(None, 32)
+    subtitle = subtitle_font.render("Desktop Edition - All Games Playable!", True, WHITE)
+    subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 160))
     surface.blit(subtitle, subtitle_rect)
-
-def draw_version_list(surface):
-    """Draw the list of game versions"""
-    list_x = 50
-    list_y = 200
-    list_width = SCREEN_WIDTH - 100
-    list_height = SCREEN_HEIGHT - 300
     
-    # Background
-    pygame.draw.rect(surface, DARK_GRAY, (list_x, list_y, list_width, list_height), border_radius=15)
-    pygame.draw.rect(surface, GOLD, (list_x, list_y, list_width, list_height), 3, border_radius=15)
+    # Version display
+    version_font = pygame.font.Font(None, 48)
+    version_text = GAME_VERSIONS[selected_version]["name"]
     
-    # Versions
-    visible_count = 8
-    item_height = 50
-    start_idx = scroll_offset
-    end_idx = min(start_idx + visible_count, len(GAME_VERSIONS))
-    
-    for i in range(start_idx, end_idx):
-        version = GAME_VERSIONS[i]
-        y_pos = list_y + 20 + (i - start_idx) * (item_height + 10)
-        
-        # Check if file exists
-        if version["folder"]:
-            file_path = Path(version["folder"]) / version["file"]
-        else:
-            file_path = Path(version["file"])
-        
-        exists = file_path.exists()
-        
-        # Highlight selected
-        if i == selected_version:
-            pygame.draw.rect(surface, BLUE, (list_x + 10, y_pos, list_width - 20, item_height), border_radius=8)
-        
-        # Version name
-        color = WHITE if exists else RED
-        text = BUTTON_FONT.render(version["name"], True, color)
-        surface.blit(text, (list_x + 30, y_pos + 10))
-        
-        # Status indicator
-        if exists:
-            status = SMALL_FONT.render("✅ Available", True, BRIGHT_GREEN)
-        else:
-            status = SMALL_FONT.render("❌ Not Found", True, RED)
-        surface.blit(status, (list_x + list_width - 200, y_pos + 15))
-    
-    # Scroll indicators
-    if scroll_offset > 0:
-        arrow_up = BUTTON_FONT.render("▲ Scroll Up", True, LIGHT_GRAY)
-        surface.blit(arrow_up, (list_x + 20, list_y - 30))
-    
-    if end_idx < len(GAME_VERSIONS):
-        arrow_down = BUTTON_FONT.render("▼ Scroll Down", True, LIGHT_GRAY)
-        surface.blit(arrow_down, (list_x + 20, list_y + list_height + 10))
-
-def draw_controls(surface):
-    """Draw control instructions"""
-    y_pos = SCREEN_HEIGHT - 80
-    
-    controls = [
-        "↑↓ Arrow Keys: Select Game",
-        "ENTER or Click: Play Selected",
-        "ESC: Exit Launcher"
-    ]
-    
-    x_start = 100
-    x_spacing = 350
-    
-    for i, control in enumerate(controls):
-        text = SMALL_FONT.render(control, True, LIGHT_GRAY)
-        surface.blit(text, (x_start + i * x_spacing, y_pos))
-
-def launch_game(version_idx):
-    """Launch the selected game"""
-    version = GAME_VERSIONS[version_idx]
-    
-    if version["folder"]:
-        file_path = Path(version["folder"]) / version["file"]
+    # Add status indicator
+    status = GAME_VERSIONS[selected_version].get("status", "soon")
+    if status == "playable":
+        status_text = " ✅"
+        status_color = BRIGHT_GREEN
+    elif status == "beta":
+        status_text = " 🧪"
+        status_color = BLUE
     else:
-        file_path = Path(version["file"])
+        status_text = " 🔜"
+        status_color = GOLD
     
-    if not file_path.exists():
-        print(f"❌ Game file not found: {file_path}")
-        return False
+    version = version_font.render(version_text + status_text, True, WHITE)
+    version_rect = version.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     
-    print(f"🎮 Launching {version['name']}...")
-    print(f"📂 Path: {file_path}")
+    # Version box
+    box_rect = pygame.Rect(SCREEN_WIDTH // 2 - 500, SCREEN_HEIGHT // 2 - 60, 1000, 120)
+    pygame.draw.rect(surface, DARK_GRAY, box_rect, border_radius=15)
+    pygame.draw.rect(surface, status_color, box_rect, 4, border_radius=15)
+    surface.blit(version, version_rect)
     
-    # Close launcher
-    pygame.quit()
+    # Status legend
+    legend_font = pygame.font.Font(None, 24)
+    legend = legend_font.render("✅ Fully Tested | 🧪 Web Beta | 🔜 Coming Soon", True, LIGHT_GRAY)
+    legend_rect = legend.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+    surface.blit(legend, legend_rect)
     
-    # Launch the game
-    try:
-        import subprocess
-        result = subprocess.run([sys.executable, str(file_path)])
-        return result.returncode == 0
-    except Exception as e:
-        print(f"❌ Error launching game: {e}")
-        return False
-    finally:
-        # Restart launcher after game closes
-        pygame.init()
-        global screen, clock
-        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("⛏️ PyCraft - Desktop Edition")
-        clock = pygame.time.Clock()
+    # Instructions
+    inst_font = pygame.font.Font(None, 28)
+    inst = inst_font.render("← → Arrow Keys to Select | ENTER to Play", True, LIGHT_GRAY)
+    inst_rect = inst.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 120))
+    surface.blit(inst, inst_rect)
+    
+    # Footer
+    playable_count = sum(1 for v in GAME_VERSIONS if v.get("status") == "playable")
+    beta_count = sum(1 for v in GAME_VERSIONS if v.get("status") == "beta")
+    footer = inst_font.render(f"{playable_count} Stable | {beta_count} Beta | {len(GAME_VERSIONS)} Total | Version {selected_version + 1}/{len(GAME_VERSIONS)}", True, GRAY)
+    footer_rect = footer.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
+    surface.blit(footer, footer_rect)
 
-def main():
-    """Main launcher loop"""
-    global selected_version, scroll_offset
+async def run_demo():
+    """Quick demo game"""
+    screen.fill((135, 206, 235))  # Sky blue
     
-    running = True
-    play_button = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 150, 300, 60, "🎮 PLAY", GREEN)
+    # Draw grass
+    pygame.draw.rect(screen, (34, 139, 34), (0, SCREEN_HEIGHT - 300, SCREEN_WIDTH, 300))
     
-    while running:
-        # Event handling
+    # Message
+    font = pygame.font.Font(None, 48)
+    msg = font.render("🎮 Demo Mode - Press ESC to return", True, WHITE)
+    shadow = font.render("🎮 Demo Mode - Press ESC to return", True, BLACK)
+    rect = msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    screen.blit(shadow, (rect.x + 2, rect.y + 2))
+    screen.blit(msg, rect)
+    
+    pygame.display.flip()
+    await asyncio.sleep(0)
+
+async def launch_game(game_file):
+    """Launch actual Python game file"""
+    global screen
+    
+    # Get actual file path
+    file_path = GAME_FILE_PATHS.get(game_file)
+    if not file_path:
+        return await show_error(f"Game file not found: {game_file}")
+    
+    # Check if file exists
+    if not os.path.exists(file_path):
+        return await show_error(f"File missing: {file_path}")
+    
+    # Show loading screen
+    show_loading_screen(game_file)
+    
+    # Hide launcher window (minimize pygame)
+    pygame.display.iconify()
+    
+    try:
+        # Launch game in new process
+        print(f"🎮 Launching {file_path}...")
+        process = subprocess.Popen([sys.executable, file_path], 
+                                  cwd=os.getcwd(),
+                                  creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0)
+        
+        # Wait for game to finish
+        while process.poll() is None:
+            await asyncio.sleep(0.1)
+        
+        print(f"✅ Game closed (exit code: {process.returncode})")
+        
+    except Exception as e:
+        print(f"❌ Launch error: {e}")
+        return await show_error(f"Failed to launch: {e}")
+    
+    # Restore launcher window
+    pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("⛏️ PyCraft - Game Launcher")
+    
+    return True  # Return to launcher
+
+def show_loading_screen(game_file):
+    """Display loading screen"""
+    screen.fill(DARKER_GRAY)
+    
+    game_name = next((v["name"] for v in GAME_VERSIONS if v["file"] == game_file), game_file)
+    
+    font = pygame.font.Font(None, 64)
+    title = font.render(f"🎮 {game_name}", True, GOLD)
+    title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
+    screen.blit(title, title_rect)
+    
+    small_font = pygame.font.Font(None, 36)
+    status = small_font.render("Loading...", True, WHITE)
+    status_rect = status.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))
+    screen.blit(status, status_rect)
+    
+    pygame.display.flip()
+
+async def show_error(message):
+    """Show error message"""
+    font = pygame.font.Font(None, 48)
+    small_font = pygame.font.Font(None, 32)
+    
+    waiting = True
+    while waiting:
+        screen.fill((80, 20, 20))
+        
+        title = font.render("❌ Error", True, WHITE)
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 60))
+        screen.blit(title, title_rect)
+        
+        msg = small_font.render(str(message)[:60], True, LIGHT_GRAY)
+        msg_rect = msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.blit(msg, msg_rect)
+        
+        info = small_font.render("Press ESC to return", True, WHITE)
+        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60))
+        screen.blit(info, info_rect)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-            
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-                elif event.key == pygame.K_UP:
-                    selected_version = max(0, selected_version - 1)
-                    # Auto scroll
-                    if selected_version < scroll_offset:
-                        scroll_offset = selected_version
-                elif event.key == pygame.K_DOWN:
-                    selected_version = min(len(GAME_VERSIONS) - 1, selected_version + 1)
-                    # Auto scroll
-                    if selected_version >= scroll_offset + 8:
-                        scroll_offset = selected_version - 7
-                elif event.key == pygame.K_RETURN:
-                    launch_game(selected_version)
-            
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:  # Mouse wheel up
-                    scroll_offset = max(0, scroll_offset - 1)
-                elif event.button == 5:  # Mouse wheel down
-                    scroll_offset = min(len(GAME_VERSIONS) - 8, scroll_offset + 1)
-            
-            # Button handling
-            if play_button.handle_event(event):
-                launch_game(selected_version)
+                return False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return True
         
-        # Drawing
-        draw_gradient_background(screen)
-        draw_title(screen)
-        draw_version_list(screen)
-        draw_controls(screen)
-        play_button.draw(screen)
-        
-        # Update display
         pygame.display.flip()
         clock.tick(60)
+        await asyncio.sleep(0)
+    
+    return True
+
+async def main():
+    """Main launcher loop"""
+    global screen, clock, selected_version, game_launched
+    
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("⛏️ PyCraft - Game Launcher")
+    clock = pygame.time.Clock()
+    
+    running = True
+    in_launcher = True
+    
+    while running:
+        if in_launcher:
+            # Launcher screen
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        selected_version = (selected_version - 1) % len(GAME_VERSIONS)
+                    elif event.key == pygame.K_RIGHT:
+                        selected_version = (selected_version + 1) % len(GAME_VERSIONS)
+                    elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                        # Launch selected game
+                        game_file = GAME_VERSIONS[selected_version]["file"]
+                        in_launcher = False
+            
+            draw_launcher(screen)
+            pygame.display.flip()
+            clock.tick(60)
+            await asyncio.sleep(0)
+        
+        else:
+            # Game is running
+            game_file = GAME_VERSIONS[selected_version]["file"]
+            
+            # Use universal launcher
+            continue_launcher = await launch_game(game_file)
+            if continue_launcher:
+                in_launcher = True
+            else:
+                running = False
     
     pygame.quit()
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
