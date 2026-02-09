@@ -25,7 +25,6 @@ def check_and_install():
     """Check for required packages and install if missing"""
     required_packages = {
         'pygame': 'pygame',
-        'streamlit': 'streamlit',
     }
     
     missing_packages = []
@@ -51,21 +50,20 @@ def check_and_install():
     return True
 
 def launch_launcher():
-    """Launch the Streamlit launcher"""
+    """Launch the Desktop launcher"""
     print("\n" + "="*60)
-    print("🚀 Launching PyCraft Launcher...")
+    print("🚀 Launching PyCraft Desktop Launcher...")
     print("="*60)
-    print("\n💡 The launcher will open in your web browser!")
-    print("💡 If it doesn't auto-open, go to: http://localhost:8501")
-    print("\n⚠️  To stop the launcher, press Ctrl+C in this window\n")
+    print("\n💡 Select your game and press PLAY!")
+    print("\n⚠️  Press ESC to close the launcher\n")
     
     try:
-        subprocess.run([sys.executable, "-m", "streamlit", "run", "launcher.py"])
+        subprocess.run([sys.executable, "desktop_launcher.py"])
     except KeyboardInterrupt:
         print("\n\n👋 Thanks for playing PyCraft!")
     except Exception as e:
         print(f"\n❌ Error launching: {e}")
-        print("\n💡 Try running manually: streamlit run launcher.py")
+        print("\n💡 Try running manually: python desktop_launcher.py")
 
 if __name__ == "__main__":
     try:

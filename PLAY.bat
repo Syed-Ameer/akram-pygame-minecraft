@@ -1,10 +1,10 @@
 @echo off
-title PyCraft v1.0 Launcher
+title PyCraft Desktop Launcher
 color 0A
 echo.
 echo ========================================
-echo    PyCraft v1.0 - Click to Play!
+echo    PyCraft - Desktop Edition
 echo ========================================
 echo.
-python install_and_play.py
+python desktop_install.py
 pause
