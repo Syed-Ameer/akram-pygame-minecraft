@@ -2,6 +2,7 @@ import streamlit as st
 import subprocess
 import sys
 import os
+import webbrowser
 from pathlib import Path
 import base64
 import json
@@ -498,16 +499,18 @@ with browser_col2:
         browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
         
         # Open in browser
-        import webbrowser
         try:
-            webbrowser.open(browser_url)
+            webbrowser.open_new_tab(browser_url)
             st.success("✅ Opening web launcher in browser...")
             st.info("🎮 Use ← → arrows to browse games, press ENTER to launch")
+            st.info("💡 Check your browser tabs if it didn't open a new window")
         except Exception as e:
-            st.warning("⚠️ Couldn't auto-open browser")
+            st.error(f"❌ Error: {e}")
+            st.warning("⚠️ Please use the link below to open manually")
         
-        # Also show link
-        st.markdown(f"[🌐 Click here if browser didn't open]({browser_url})")
+        # Always show link as backup
+        st.markdown(f"### [🌐 Click Here to Open PyCraft]({browser_url})")
+        st.code(browser_url, language="text")
 
 # Optional: Embed the web game as iframe
 with st.expander("🎯 Play Embedded in Streamlit"):
