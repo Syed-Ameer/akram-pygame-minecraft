@@ -16,12 +16,16 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
         height: Viewer height
     """
     
-    # noVNC HTML with fast connection and timeout
+    # noVNC HTML with instant loading
     vnc_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>PyCraft - Game Display</title>
+        <meta charset="UTF-8">
+        <!-- Pre-load noVNC library -->
+        <link rel="preconnect" href="https://unpkg.com">
+        <script src="https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js" async></script>
         <style>
             body {{
                 margin: 0;
@@ -43,6 +47,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 padding: 10px;
                 border-radius: 5px;
                 z-index: 1000;
+                font-size: 14px;
             }}
             .loading {{
                 position: absolute;
@@ -51,17 +56,17 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 transform: translate(-50%, -50%);
                 color: #fff;
                 font-family: Arial;
-                font-size: 18px;
+                font-size: 16px;
                 text-align: center;
             }}
             .spinner {{
-                border: 4px solid rgba(255,255,255,0.3);
-                border-top: 4px solid #fff;
+                border: 3px solid rgba(255,255,255,0.3);
+                border-top: 3px solid #4CAF50;
                 border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
+                width: 30px;
+                height: 30px;
+                animation: spin 0.8s linear infinite;
+                margin: 0 auto 15px;
             }}
             @keyframes spin {{
                 0% {{ transform: rotate(0deg); }}
@@ -72,137 +77,71 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
     <body>
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div>Loading VNC client...</div>
-            <div style="font-size: 12px; margin-top: 10px; color: #888;">Initializing display connection</div>
+            <div>Connecting...</div>
         </div>
         <div class="status" id="status" style="display: none;"></div>
         <div id="screen"></div>
         
         <script>
-            // Multiple CDN fallbacks for noVNC library
-            const cdnUrls = [
-                'https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js',
-                'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/noVNC/1.3.0/core/rfb.min.js'
-            ];
+            let connected = false;
+            let retryCount = 0;
             
-            let currentCdnIndex = 0;
-            let scriptLoaded = false;
-            
-            function loadNextCdn() {{
-                if (currentCdnIndex >= cdnUrls.length) {{
-                    document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ Unable to load VNC client</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">Check internet connection</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Retrying in 3 seconds...</div>';
-                    
-                    // Retry from first CDN after 3 seconds
-                    setTimeout(() => {{
-                        currentCdnIndex = 0;
-                        document.getElementById('loading').innerHTML = 
-                            '<div class="spinner"></div>' +
-                            '<div>Retrying VNC client load...</div>';
-                        loadNextCdn();
-                    }}, 3000);
-                    return;
-                }}
-                
-                const script = document.createElement('script');
-                script.src = cdnUrls[currentCdnIndex];
-                script.onload = function() {{
-                    scriptLoaded = true;
-                    setTimeout(initVNC, 100);
-                }};
-                script.onerror = function() {{
-                    currentCdnIndex++;
-                    loadNextCdn();
-                }};
-                document.head.appendChild(script);
-            }}
-            
-            // Wait for RFB to be available before trying to connect
-            function initVNC() {{
-                // Check if RFB is defined
+            function attemptConnection() {{
+                // Quick check if RFB is available
                 if (typeof RFB === 'undefined') {{
+                    if (retryCount < 20) {{ // 4 seconds max wait for library
+                        retryCount++;
+                        setTimeout(attemptConnection, 200);
+                        return;
+                    }}
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ VNC client not loaded</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">Library initialization failed</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Retrying...</div>';
-                    
-                    // Try next CDN
-                    currentCdnIndex++;
-                    setTimeout(loadNextCdn, 1000);
+                        '<div style="color: #ff6b6b;">❌ Failed to load</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px;">Refresh page to retry</div>';
                     return;
                 }}
                 
-                document.getElementById('loading').innerHTML = 
-                    '<div class="spinner"></div>' +
-                    '<div>Connecting to game display...</div>' +
-                    '<div style="font-size: 12px; margin-top: 10px; color: #888;">This may take 5-10 seconds</div>';
-                5 seconds - increased)
-                connectionTimeout = setTimeout(() => {{
+                // Connection timeout
+                const timeout = setTimeout(() => {{
                     if (!connected) {{
                         document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff9800;">⏱️ Connection taking longer than expected...</div>' +
-                            '<div style="font-size: 14px; margin-top: 10px;">VNC server starting up</div>' +
-                            '<div style="font-size: 12px; margin-top: 10px;">Still trying to connect...</div>';
-                        
-                        // Extended timeout (30 seconds total)
-                        setTimeout(() => {{
-                            if (!connected) {{
-                                document.getElementById('loading').innerHTML = 
-                                    '<div style="color: #ff6b6b;">❌ Connection timeout</div>' +
-                                    '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready</div>' +
-                                    '<div style="font-size: 12px; margin-top: 10px;">Refresh page to retry</div>';
-                            }}
-                        }}, 15000);
+                            '<div style="color: #ff9800;">⏱️ Still connecting...</div>';
                     }}
-                }}, 15      '<div style="color: #ff6b6b;">⚠️ Connection timeout</div>' +
-                            '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready yet</div>' +
-                            '<div style="font-size: 12px; margin-top: 10px;">Game may still be starting up...</div>';
-                    }}
-                }}, 10000);
+                }}, 20000);
                 
                 try {{
                     const rfb = new RFB(document.getElementById('screen'), 
                         'ws://{host}:{port}/websockify',
-                        {{
-                            credentials: {{}}
-                        }}
+                        {{ credentials: {{}} }}
                     );
                     
                     rfb.addEventListener("connect", () => {{
                         connected = true;
-                        clearTimeout(connectionTimeout);
+                        clearTimeout(timeout);
                         document.getElementById('loading').style.display = 'none';
                         document.getElementById('status').style.display = 'block';
-                        document.getElementById('status').textContent = '✅ Connected - Game Running!';
+                        document.getElementById('status').textContent = '✅ Connected!';
                         setTimeout(() => {{
                             document.getElementById('status').style.display = 'none';
-                        }}, 3000);
+                        }}, 2000);
                     }});
                     
                     rfb.addEventListener("disconnect", () => {{
                         document.getElementById('status').textContent = '❌ Disconnected';
                         document.getElementById('status').style.display = 'block';
-                        document.getElementById('loading').style.display = 'none';
                     }});
                     
                     rfb.scaleViewport = true;
                     rfb.resizeSession = true;
                 }} catch (e) {{
-                    clearTimeout(connectionTimeout);
+                    clearTimeout(timeout);
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ Connection failed</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">' + e.message + '</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px;">VNC server may not be running</div>';
+                        '<div style="color: #ff6b6b;">❌ Failed</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px;">' + e.message + '</div>';
                 }}
             }}
             
-            // Start loading process
-            window.onload = function() {{
-                loadNextCdn();
-            }};
+            // Start immediately
+            attemptConnection();
         </script>
     </body>
     </html>
