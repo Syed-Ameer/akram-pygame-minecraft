@@ -52,23 +52,7 @@ try:
 except Exception as e:
     print(f"⚠️ Dependency check failed: {e}")
 
-# Import virtual display for cloud
-VIRTUAL_DISPLAY_AVAILABLE = False
-VNC_VIEWER_AVAILABLE = False
-
-try:
-    from virtual_display import ensure_display
-    VIRTUAL_DISPLAY_AVAILABLE = True
-except ImportError:
-    def ensure_display():
-        return True
-
-try:
-    from vnc_viewer import show_game_display
-    VNC_VIEWER_AVAILABLE = True
-except ImportError:
-    def show_game_display():
-        pass
+# No VNC - Simple Popen approach
 
 # Set page config
 st.set_page_config(
@@ -79,13 +63,6 @@ st.set_page_config(
 
 # Get the base directory
 base_dir = Path(__file__).parent
-
-# Ensure virtual display is running on cloud
-is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-if is_cloud_env:
-    display_ready = ensure_display()
-    if not display_ready:
-        st.error("⚠️ Virtual display failed to start. Games may not work properly on cloud.")
 
 # Initialize accounts system
 ACCOUNTS_FILE = base_dir / "accounts.json"
@@ -389,9 +366,6 @@ for i, option in enumerate(dropdown_options):
 # ===== QUICK PLAY SECTION - MOST PROMINENT =====
 st.markdown("### 🎮 Quick Play")
 
-# Check if on cloud
-is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-
 # Initialize auto-launch tracking
 if 'last_launched_version' not in st.session_state:
     st.session_state.last_launched_version = None
@@ -411,94 +385,51 @@ auto_launch = st.session_state.auto_launch_enabled and (selected_version != st.s
 # BIG PLAY BUTTON (or auto-launch indicator)
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
-    if is_cloud_env:
-        # On cloud - launch with virtual display
-        if not auto_launch:
-            cloud_launch_button = st.button(
-                "🚀 PLAY ON CLOUD",
-                use_container_width=True,
-                type="primary",
-                help="Launch game on virtual display - Real subprocess execution!"
-            )
-        else:
-            cloud_launch_button = False
-            st.info("🎮 Auto-launching game...")
-        
-        if cloud_launch_button or auto_launch:
-            if selected_version in version_map:
-                game_path = version_map[selected_version]
-                
-                with st.spinner(f"🎮 Launching {selected_version} on cloud..."):
-                    try:
-                        game_dir = str(Path(game_path).parent)
-                        game_file = Path(game_path).name
-                        python_exe = sys.executable
-                        
-                        # CRITICAL: Ensure virtual display is running with VNC/websockify
-                        st.info("🖥️ Starting virtual display infrastructure...")
-                        if not ensure_display():
-                            st.error("❌ Failed to start virtual display")
-                            st.stop()
-                        
-                        # Give VNC server time to fully initialize
-                        import time
-                        time.sleep(2)
-                        
-                        st.info(f"🎮 Launching {selected_version}...")
-                        
-                        game_process = subprocess.Popen(
-                            [python_exe, game_file, "--username", st.session_state.username],
-                            cwd=game_dir,
-                            env={**os.environ, 'SDL_VIDEODRIVER': 'x11'},
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE
-                        )
-                        
-                        # Give game time to start rendering
-                        time.sleep(1)
-                        
-                        # Update play count
-                        accounts = load_accounts()
-                        if st.session_state.username in accounts:
-                            accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
-                            save_accounts(accounts)
-                        
-                        # Update last launched version
-                        st.session_state.last_launched_version = selected_version
-                        
-                        st.success(f"✅ {selected_version} launched successfully!")
-                        st.balloons()
-                        
-                        # Auto-show game display instantly
-                        if VNC_VIEWER_AVAILABLE:
-                            show_game_display()
-                        else:
-                            st.error("VNC viewer module not available")
-                        
-                        # Advanced connection info (collapsed by default)
-                        with st.expander("🔧 Advanced: Manual VNC Connection"):
-                            st.code("VNC Display: localhost:5900\nnoVNC Web: http://localhost:6080")
-                            st.caption("Use any VNC client to connect to these addresses")
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
-                        st.info("💡 Try the browser version instead:")
-                        web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-                        st.markdown(f"### [🌐 Play in Browser]({web_url})")
-        
-        launch_button = False
+    if not auto_launch:
+        launch_button = st.button(
+            "🚀 PLAY GAME",
+            use_container_width=True,
+            type="primary",
+            help=f"Launch {selected_version} - Opens in new window"
+        )
     else:
-        # Local - auto-launch or show button
-        if not auto_launch:
-            launch_button = st.button(
-                "🚀 PLAY SINGLEPLAYER",
-                use_container_width=True,
-                type="primary",
-                help=f"Launch {selected_version}"
-            )
-        else:
-            launch_button = True
-            st.info("🎮 Auto-launching game...")
+        launch_button = True
+        st.info("🎮 Auto-launching game...")
+
+if launch_button or auto_launch:
+    if selected_version in version_map:
+        game_path = version_map[selected_version]
+        
+        with st.spinner(f"🎮 Launching {selected_version}..."):
+            try:
+                game_dir = str(Path(game_path).parent)
+                game_file = Path(game_path).name
+                python_exe = sys.executable
+                
+                # Simple Popen - game launches in new window
+                game_process = subprocess.Popen(
+                    [python_exe, game_file, "--username", st.session_state.username],
+                    cwd=game_dir,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                
+                # Update play count
+                accounts = load_accounts()
+                if st.session_state.username in accounts:
+                    accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                    save_accounts(accounts)
+                
+                # Update last launched version
+                st.session_state.last_launched_version = selected_version
+                
+                st.success(f"✅ {selected_version} launched successfully!")
+                st.balloons()
+                st.info("🎮 Game is running in a separate window")
+                st.caption("Check your taskbar or desktop for the game window")
+                
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
 
 # Display version info
 if selected_version:
