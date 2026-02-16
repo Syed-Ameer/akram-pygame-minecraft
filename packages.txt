@@ -1,0 +1,5 @@
+xvfb
+x11vnc
+fluxbox
+websockify
+novnc
