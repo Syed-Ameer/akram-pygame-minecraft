@@ -7,6 +7,10 @@ pygame>=2.5.0
 # Launcher UI
 streamlit>=1.28.0
 
+# Virtual display for cloud deployment
+pyvirtualdisplay>=3.0
+pillow>=10.0.0
+
 # Standard library dependencies (included with Python)
 # - random
 # - math

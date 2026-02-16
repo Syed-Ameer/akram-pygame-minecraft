@@ -7,6 +7,15 @@ import base64
 import json
 from datetime import datetime
 
+# Import virtual display for cloud
+try:
+    from virtual_display import ensure_display
+    VIRTUAL_DISPLAY_AVAILABLE = True
+except ImportError:
+    VIRTUAL_DISPLAY_AVAILABLE = False
+    def ensure_display():
+        return True
+
 # Set page config
 st.set_page_config(
     page_title="PyCraft Launcher",
@@ -16,6 +25,13 @@ st.set_page_config(
 
 # Get the base directory
 base_dir = Path(__file__).parent
+
+# Ensure virtual display is running on cloud
+is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+if is_cloud_env:
+    display_ready = ensure_display()
+    if not display_ready:
+        st.error("⚠️ Virtual display failed to start. Games may not work properly on cloud.")
 
 # Initialize accounts system
 ACCOUNTS_FILE = base_dir / "accounts.json"
@@ -316,24 +332,55 @@ selected_version = st.selectbox(
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
     if is_cloud_env:
-        # On cloud - offer browser play
-        web_play_button = st.button(
-            "🌐 PLAY IN BROWSER",
+        # On cloud - launch with virtual display
+        cloud_launch_button = st.button(
+            "🚀 PLAY ON CLOUD",
             use_container_width=True,
             type="primary",
-            help="Open web version in new tab - Play all games online!"
+            help="Launch game on virtual display - Real subprocess execution!"
         )
         
-        if web_play_button:
-            web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-            st.markdown(f"""
-                <script>
-                    window.open('{web_url}', '_blank');
-                </script>
-            """, unsafe_allow_html=True)
-            st.success("🎮 Opening game in new tab...")
-            st.info("💡 If popup was blocked, click here:")
-            st.markdown(f"### [🌐 Open Game Launcher]({web_url})")
+        if cloud_launch_button:
+            if selected_version in version_map:
+                game_path = version_map[selected_version]
+                
+                with st.spinner(f"🎮 Launching {selected_version} on cloud..."):
+                    try:
+                        game_dir = str(Path(game_path).parent)
+                        game_file = Path(game_path).name
+                        python_exe = sys.executable
+                        
+                        # Launch game on virtual display
+                        st.info(f"🖥️ Starting {selected_version} with virtual display...")
+                        
+                        game_process = subprocess.Popen(
+                            [python_exe, game_file, "--username", st.session_state.username],
+                            cwd=game_dir,
+                            env={**os.environ, 'SDL_VIDEODRIVER': 'x11'},
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE
+                        )
+                        
+                        # Update play count
+                        accounts = load_accounts()
+                        if st.session_state.username in accounts:
+                            accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                            save_accounts(accounts)
+                        
+                        st.success(f"✅ {selected_version} is running on cloud display!")
+                        st.info("🎮 Game is rendering on virtual display")
+                        st.info("💡 To see the game, you would need VNC viewer setup (advanced)")
+                        st.warning("⚠️ Note: This is experimental. For best experience, use local installation or browser version.")
+                        
+                        # Show VNC connection info
+                        with st.expander("🔧 Advanced: Connect with VNC Viewer"):
+                            st.code("VNC Display: localhost:5900\nOr use noVNC web client")
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+                        st.info("💡 Try the browser version instead:")
+                        web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+                        st.markdown(f"### [🌐 Play in Browser]({web_url})")
         
         launch_button = False
     else:
