@@ -454,19 +454,34 @@ with play_col2:
                         # Update last launched version
                         st.session_state.last_launched_version = selected_version
                         
-                        st.success(f"✅ {selected_version} is running on cloud display!")
+                        st.success(f"✅ {selected_version} launched successfully!")
+                        st.balloons()
                         
-                        # Show game display via VNC
-                        if VNC_VIEWER_AVAILABLE:
-                            show_game_display()
-                        else:
-                            st.info("🎮 Game is rendering on virtual display")
-                            st.info("💡 To see the game, you would need VNC viewer setup (advanced)")
-                            st.warning("⚠️ Note: This is experimental. For best experience, use local installation or browser version.")
-                            
-                            # Show VNC connection info
-                            with st.expander("🔧 Advanced: Connect with VNC Viewer"):
-                                st.code("VNC Display: localhost:5900\nOr use noVNC web client at: http://localhost:6080")
+                        # Fast display options (no slow auto-loading)
+                        st.info("🎮 Game is running on virtual display")
+                        
+                        # Quick access buttons
+                        view_col1, view_col2 = st.columns(2)
+                        
+                        with view_col1:
+                            if st.button("📺 View Game Display", use_container_width=True, type="primary"):
+                                if VNC_VIEWER_AVAILABLE:
+                                    with st.spinner("🔌 Connecting to display..."):
+                                        show_game_display()
+                                else:
+                                    st.warning("VNC viewer not available")
+                        
+                        with view_col2:
+                            st.link_button(
+                                "🌐 Browser Version",
+                                "https://syed-ameer.github.io/akram-pygame-minecraft/",
+                                use_container_width=True
+                            )
+                        
+                        # Advanced connection info (collapsed by default)
+                        with st.expander("🔧 Advanced: Manual VNC Connection"):
+                            st.code("VNC Display: localhost:5900\nnoVNC Web: http://localhost:6080")
+                            st.caption("Use any VNC client to connect to these addresses")
                         
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
@@ -818,28 +833,70 @@ with st.expander("🎮 Host or Join Multiplayer Server"):
 
 # Meme of the Month Section
 st.markdown("---")
-st.markdown("### 😂 Meme of the Month")
 
-# Get current month and display appropriate meme
-current_month = datetime.now().month
-meme_files = {
-    2: "meme_february.jpg",
-    3: "meme_march.jpg"
-}
-
-# Default to February if month not found
-meme_file = meme_files.get(current_month, "meme_february.jpg")
-meme_path = base_dir / "Assets" / meme_file
-
-if meme_path.exists():
-    try:
-        meme_col1, meme_col2, meme_col3 = st.columns([1, 2, 1])
-        with meme_col2:
-            st.image(str(meme_path), caption=f"Meme of the Month - {datetime.now().strftime('%B')}", use_container_width=True)
-    except Exception as e:
+# Auto-expand meme section with prominent display
+meme_container = st.container()
+with meme_container:
+    st.markdown("### 😂 Meme of the Month")
+    
+    # Get current month and display appropriate meme
+    current_month = datetime.now().month
+    meme_files = {
+        2: "meme_february.jpg",
+        3: "meme_march.jpg"
+    }
+    
+    # Default to February if month not found
+    meme_file = meme_files.get(current_month, "meme_february.jpg")
+    meme_path = base_dir / "Assets" / meme_file
+    
+    # Auto-display meme prominently (always visible, no click needed)
+    if meme_path.exists():
+        try:
+            meme_col1, meme_col2, meme_col3 = st.columns([1, 2, 1])
+            with meme_col2:
+                st.image(str(meme_path), caption=f"🔥 Meme of the Month - {datetime.now().strftime('%B')} 🔥", use_container_width=True)
+                
+                # Auto-reaction system (no button needed)
+                if 'meme_reactions' not in st.session_state:
+                    st.session_state.meme_reactions = {}
+                
+                current_meme_id = f"{datetime.now().strftime('%Y-%m')}"
+                
+                # Show reaction buttons
+                react_col1, react_col2, react_col3, react_col4 = st.columns(4)
+                
+                with react_col1:
+                    if st.button("😂 LMAO", key="meme_laugh", use_container_width=True):
+                        st.session_state.meme_reactions[current_meme_id] = "😂"
+                        st.success("😂 Reaction saved!")
+                        st.balloons()
+                
+                with react_col2:
+                    if st.button("🔥 Fire", key="meme_fire", use_container_width=True):
+                        st.session_state.meme_reactions[current_meme_id] = "🔥"
+                        st.success("🔥 Reaction saved!")
+                
+                with react_col3:
+                    if st.button("💀 Dead", key="meme_dead", use_container_width=True):
+                        st.session_state.meme_reactions[current_meme_id] = "💀"
+                        st.success("💀 Reaction saved!")
+                
+                with react_col4:
+                    if st.button("⭐ Save", key="meme_save", use_container_width=True):
+                        st.session_state.meme_reactions[current_meme_id] = "⭐"
+                        st.success("⭐ Meme saved!")
+                
+                # Show user's reaction if they've reacted
+                if current_meme_id in st.session_state.meme_reactions:
+                    reaction = st.session_state.meme_reactions[current_meme_id]
+                    st.info(f"Your reaction: {reaction}")
+                    
+        except Exception as e:
+            st.info("😅 Meme not available this month!")
+    else:
         st.info("😅 Meme not available this month!")
-else:
-    st.info("😅 Meme not available this month!")
+        st.caption("🎨 Upload your meme suggestions to Assets/ folder!")
 
 # --- Handle button actions ---
 
