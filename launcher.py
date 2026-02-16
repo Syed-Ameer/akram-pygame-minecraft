@@ -457,20 +457,25 @@ with play_col2:
                         st.success(f"✅ {selected_version} launched successfully!")
                         st.balloons()
                         
-                        # Auto-show game display with improved loading
-                        st.info("🎮 Game Display - Loading with timeout protection...")
+                        # Show display with experimental warning
+                        st.warning("⚠️ Cloud VNC Display (Experimental) - Loading may fail")
+                        st.info("💡 Recommended: Use browser version for best experience")
                         
-                        if VNC_VIEWER_AVAILABLE:
-                            # Auto-display with fast timeout handling
-                            show_game_display()
-                        else:
-                            st.warning("⚠️ VNC viewer not available")
-                            st.info("💡 Try the browser version instead:")
-                            st.link_button(
-                                "🌐 Play in Browser",
-                                "https://syed-ameer.github.io/akram-pygame-minecraft/",
-                                use_container_width=True
-                            )
+                        # Browser version button (prominent)
+                        st.link_button(
+                            "🌐 PLAY IN BROWSER (RECOMMENDED)",
+                            "https://syed-ameer.github.io/akram-pygame-minecraft/",
+                            use_container_width=True,
+                            type="primary"
+                        )
+                        
+                        # VNC viewer in expander (optional)
+                        with st.expander("🖥️ Try VNC Display (May Not Work)"):
+                            st.caption("Cloud VNC requires CDN access and may timeout")
+                            if VNC_VIEWER_AVAILABLE:
+                                show_game_display()
+                            else:
+                                st.error("VNC viewer module not available")
                         
                         # Advanced connection info (collapsed by default)
                         with st.expander("🔧 Advanced: Manual VNC Connection"):

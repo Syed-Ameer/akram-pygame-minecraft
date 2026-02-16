@@ -68,7 +68,6 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 100% {{ transform: rotate(360deg); }}
             }}
         </style>
-        <script src="https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js"></script>
     </head>
     <body>
         <div class="loading" id="loading">
@@ -80,6 +79,39 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
         <div id="screen"></div>
         
         <script>
+            // Multiple CDN fallbacks for noVNC library
+            const cdnUrls = [
+                'https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js',
+                'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/noVNC/1.3.0/core/rfb.min.js'
+            ];
+            
+            let currentCdnIndex = 0;
+            let scriptLoaded = false;
+            
+            function loadNextCdn() {{
+                if (currentCdnIndex >= cdnUrls.length) {{
+                    document.getElementById('loading').innerHTML = 
+                        '<div style="color: #ff6b6b;">❌ VNC client unavailable</div>' +
+                        '<div style="font-size: 14px; margin-top: 10px;">All CDN sources failed to load</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Cloud VNC is experimental - Use browser version instead</div>' +
+                        '<div style="margin-top: 20px;"><a href="https://syed-ameer.github.io/akram-pygame-minecraft/" style="color: #4CAF50; text-decoration: none; font-size: 16px;">🌐 Play in Browser →</a></div>';
+                    return;
+                }}
+                
+                const script = document.createElement('script');
+                script.src = cdnUrls[currentCdnIndex];
+                script.onload = function() {{
+                    scriptLoaded = true;
+                    setTimeout(initVNC, 100);
+                }};
+                script.onerror = function() {{
+                    currentCdnIndex++;
+                    loadNextCdn();
+                }};
+                document.head.appendChild(script);
+            }}
+            
             // Wait for RFB to be available before trying to connect
             function initVNC() {{
                 // Check if RFB is defined
@@ -145,9 +177,9 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 }}
             }}
             
-            // Wait for page to load, then wait a bit more for RFB to be available
+            // Start loading process
             window.onload = function() {{
-                setTimeout(initVNC, 100);
+                loadNextCdn();
             }};
         </script>
     </body>
