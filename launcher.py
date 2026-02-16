@@ -1,8 +1,6 @@
 import streamlit as st
 import subprocess
-import sys
 import os
-import webbrowser
 from pathlib import Path
 import base64
 import json
@@ -12,22 +10,88 @@ from datetime import datetime
 st.set_page_config(
     page_title="PyCraft Launcher",
     page_icon="⛏️",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="centered"
 )
 
 # Get the base directory
 base_dir = Path(__file__).parent
 
-# Simplified launcher - no accounts needed
+# Initialize file paths
+ACCOUNTS_FILE = base_dir / "accounts.json"
+REALMS_FILE = base_dir / "realms.json"
+BUGS_FILE = base_dir / "bugs.json"
+POLL_FILE = base_dir / "feature_poll.json"
+
+def load_accounts():
+    """Load saved accounts"""
+    if ACCOUNTS_FILE.exists():
+        with open(ACCOUNTS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_accounts(accounts):
+    """Save accounts to file"""
+    with open(ACCOUNTS_FILE, 'w') as f:
+        json.dump(accounts, f, indent=2)
+
+def add_account(username):
+    """Add or update account"""
+    accounts = load_accounts()
+    accounts[username] = {
+        "created": datetime.now().isoformat(),
+        "last_login": datetime.now().isoformat(),
+        "play_count": accounts.get(username, {}).get("play_count", 0)
+    }
+    save_accounts(accounts)
+    return True
+
+def load_poll():
+    """Load feature poll data"""
+    if POLL_FILE.exists():
+        with open(POLL_FILE, 'r') as f:
+            return json.load(f)
+    return {"option1": 0, "option2": 0, "option3": 0, "option4": 0, "voters": []}
+
+def save_poll(poll_data):
+    """Save poll data"""
+    with open(POLL_FILE, 'w') as f:
+        json.dump(poll_data, f, indent=2)
+
+def load_bugs():
+    """Load bug reports"""
+    if BUGS_FILE.exists():
+        with open(BUGS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_bugs(bugs):
+    """Save bug reports"""
+    with open(BUGS_FILE, 'w') as f:
+        json.dump(bugs, f, indent=2)
+
+def load_realms():
+    """Load saved realms"""
+    if REALMS_FILE.exists():
+        with open(REALMS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_realms(realms):
+    """Save realms"""
+    with open(REALMS_FILE, 'w') as f:
+        json.dump(realms, f, indent=2)
+
 # Initialize session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'username' not in st.session_state:
+    st.session_state.username = None
 if 'show_realm_selector' not in st.session_state:
     st.session_state.show_realm_selector = False
 
 # Function to load background image
-@st.cache_data(show_spinner=False)
 def get_base64_image(image_path):
-    """Convert image to base64 string (cached)."""
+    """Convert image to base64 string."""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -79,197 +143,95 @@ st.markdown("""
 # Title
 st.markdown('<h1 class="main-title">⛏️ PyCraft Launcher</h1>', unsafe_allow_html=True)
 
-# Download section at top (for new users)
-st.markdown("---")
+# Login System
+if not st.session_state.logged_in:
+    st.markdown('<p class="subtitle">Login or Create Account</p>', unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["🔑 Login", "➕ Create Account"])
+    
+    with tab1:
+        st.markdown("### Login to Existing Account")
+        accounts = load_accounts()
+        
+        if accounts:
+            account_names = list(accounts.keys())
+            selected_account = st.selectbox("Select Account:", account_names)
+            
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("🎮 Login", type="primary", use_container_width=True):
+                    st.session_state.logged_in = True
+                    st.session_state.username = selected_account
+                    # Update last login
+                    accounts[selected_account]["last_login"] = datetime.now().isoformat()
+                    save_accounts(accounts)
+                    st.rerun()
+            
+            with col2:
+                if st.button("🗑️ Delete Account", use_container_width=True):
+                    del accounts[selected_account]
+                    save_accounts(accounts)
+                    st.success(f"Account '{selected_account}' deleted!")
+                    st.rerun()
+        else:
+            st.info("No accounts found. Create a new account in the 'Create Account' tab!")
+    
+    with tab2:
+        st.markdown("### Create New Account")
+        new_username = st.text_input("Username:", placeholder="Enter your username (e.g., AkramSyed2014!)")
+        
+        if st.button("✅ Create Account", type="primary", use_container_width=True):
+            if new_username:
+                if len(new_username) < 3:
+                    st.error("Username must be at least 3 characters!")
+                elif new_username in load_accounts():
+                    st.error("Username already exists!")
+                else:
+                    add_account(new_username)
+                    st.session_state.logged_in = True
+                    st.session_state.username = new_username
+                    st.success(f"Welcome, {new_username}! 🎉")
+                    st.balloons()
+                    st.rerun()
+            else:
+                st.error("Please enter a username!")
+    
+    # Show existing accounts preview
+    if load_accounts():
+        st.markdown("---")
+        st.markdown("### 👥 Existing Accounts")
+        accounts = load_accounts()
+        for username, data in accounts.items():
+            last_login = data.get('last_login', 'Never')
+            if last_login != 'Never':
+                last_login = datetime.fromisoformat(last_login).strftime("%Y-%m-%d %H:%M")
+            st.text(f"👤 {username} - Last login: {last_login}")
+    
+    st.stop()
 
-# Check if running on Streamlit Cloud
-is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+# User is logged in
+st.markdown(f'<p class="subtitle">Welcome back, <strong>{st.session_state.username}</strong>! 🎮</p>', unsafe_allow_html=True)
 
-if is_cloud:
-    # CLOUD MODE - Browser play available!
-    st.success("🌐 **Streamlit Cloud Mode** - Click play buttons to launch in browser!")
+# Logout button in sidebar
+with st.sidebar:
+    st.markdown(f"### 👤 {st.session_state.username}")
+    accounts = load_accounts()
+    if st.session_state.username in accounts:
+        account_data = accounts[st.session_state.username]
+        st.text(f"Play Count: {account_data.get('play_count', 0)}")
+        created = datetime.fromisoformat(account_data.get('created', datetime.now().isoformat()))
+        st.text(f"Member since: {created.strftime('%Y-%m-%d')}")
+    
     st.markdown("---")
-    st.markdown("### 📥 Or Download for Offline Play (Optional)")
-    st.markdown("**Want to play offline? Download the full version:**")
-else:
-    # LOCAL MODE - Show download for new users
-    st.markdown("### 📥 First Time Here? Download PyCraft")
-    st.markdown("**If you haven't downloaded PyCraft yet**, click below for one-click installation:")
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.rerun()
 
-# Create installer script for download
-installer_script = """'''
-PyCraft One-Click Installer
-Downloads and installs PyCraft automatically
-'''
-import os
-import sys
-import subprocess
-import urllib.request
-import zipfile
-
-def main():
-    print(\"\"\"
-    ⛏️  PyCraft One-Click Installer
-    ================================
-    This will automatically:
-    1. Download PyCraft from GitHub
-    2. Install dependencies (pygame, streamlit, ursina)
-    3. Launch the game launcher
-    
-    Press Enter to continue or Ctrl+C to cancel...
-    \"\"\")
-    input()
-    
-    # Download repository
-    print("\\n📥 Downloading PyCraft from GitHub...")
-    repo_url = "https://github.com/Syed-Ameer/akram-pygame-minecraft/archive/refs/heads/feature-texture-v1.zip"
-    zip_path = "pycraft.zip"
-    
-    try:
-        urllib.request.urlretrieve(repo_url, zip_path)
-        print("✅ Download complete!")
-    except Exception as e:
-        print(f"❌ Download failed: {e}")
-        input("\\nPress Enter to exit...")
-        return
-    
-    # Extract ZIP
-    print("\\n📂 Extracting files...")
-    try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(".")
-        os.remove(zip_path)
-        extracted_folder = "akram-pygame-minecraft-feature-texture-v1"
-        if os.path.exists(extracted_folder):
-            os.chdir(extracted_folder)
-            print(f"✅ Extracted to: {os.getcwd()}")
-    except Exception as e:
-        print(f"❌ Extraction failed: {e}")
-        input("\\nPress Enter to exit...")
-        return
-    
-    # Install dependencies
-    print("\\n📦 Installing dependencies...")
-    for package in ["pygame", "streamlit", "ursina"]:
-        print(f"Installing {package}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
-        print(f"✅ {package} installed!")
-    
-    # Create launch shortcut
-    print("\\n🎯 Creating game launcher shortcut...")
-    if sys.platform == 'win32':
-        play_script = "@echo off\\n"
-        play_script += "title PyCraft Launcher\\n"
-        play_script += "echo Launching PyCraft...\\n"
-        play_script += f'"{sys.executable}" -m streamlit run launcher.py\\n'
-        play_script += "pause"
-        with open("PLAY_PYCRAFT.bat", "w") as f:
-            f.write(play_script)
-        print("✅ Created PLAY_PYCRAFT.bat")
-    else:
-        play_script = "#!/bin/bash\\n"
-        play_script += 'echo "Launching PyCraft..."\\n'
-        play_script += f'"{sys.executable}" -m streamlit run launcher.py'
-        with open("play_pycraft.sh", "w") as f:
-            f.write(play_script)
-        os.chmod("play_pycraft.sh", 0o755)
-        print("✅ Created play_pycraft.sh")
-    
-    # Launch
-    print("\\n🚀 Launching PyCraft...")
-    print("The launcher will open at http://localhost:8501")
-    print("Press Ctrl+C to stop\\n")
-    
-    try:
-        subprocess.run([sys.executable, "-m", "streamlit", "run", "launcher.py"])
-    except KeyboardInterrupt:
-        print("\\n\\n👋 Thanks for playing PyCraft!")
-        print(f"\\n💡 To play again, run: PLAY_PYCRAFT.bat")
-        print(f"   Located at: {os.getcwd()}")
-    
-    input("\\nPress Enter to exit...")
-
-if __name__ == "__main__":
-    main()
-'''"""
-
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.download_button(
-        label="⬇️ DOWNLOAD INSTALLER",
-        data=installer_script,
-        file_name="install_pycraft.py",
-        mime="text/x-python",
-        use_container_width=True,
-        type="primary"
-    )
-
-with st.expander("ℹ️ How to install (click to expand)"):
-    st.markdown("""
-    **After downloading:**
-    1. Run: `python install_pycraft.py`
-    2. Wait for automatic setup (downloads, installs dependencies)
-    3. Double-click **PLAY_PYCRAFT.bat** anytime to play!
-    
-    The installer creates a permanent launcher shortcut in your game folder.
-    """)
-
-st.markdown("#### 🛠️ Manual Installation")
-with st.expander("Prefer manual setup? Click here"):
-    st.markdown("""
-    **Manual Download & Setup:**
-    
-    1. **Get the code:**
-    """)
-    
-    col_a, col_b = st.columns([1, 1])
-    with col_a:
-        st.link_button(
-            "📦 Download ZIP from GitHub",
-            "https://github.com/Syed-Ameer/akram-pygame-minecraft/archive/refs/heads/feature-texture-v1.zip",
-            use_container_width=True
-        )
-    with col_b:
-        st.link_button(
-            "🔗 Visit GitHub Repository",
-            "https://github.com/Syed-Ameer/akram-pygame-minecraft",
-            use_container_width=True
-        )
-    
-    st.markdown("""
-    2. **Extract the ZIP file** to a folder
-    
-    3. **Install dependencies:**
-    """)
-    st.code("pip install pygame streamlit ursina", language="bash")
-    
-    st.markdown("""
-    4. **Launch the launcher:**
-    """)
-    st.code("streamlit run launcher.py", language="bash")
-    
-    st.markdown("""
-    5. **Or run games directly:**
-    """)
-    st.code('python "Alpha/Alpha v1.0 Overworld.py"', language="bash")
-    
-    st.success("✅ That's it! The launcher will open in your browser.")
-
-st.markdown("---")
-
-# Show download reminder for cloud users
-is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-if is_cloud:
-    st.info("💡 **Browsing on Streamlit Cloud?** Download the installer above to play on your computer. You can still explore the launcher features below!")
-
-# Show launcher for everyone
-st.markdown("### 🎮 Game Launcher")
-st.markdown('<p class="subtitle">Select your game and start playing! No account needed. 🎮</p>', unsafe_allow_html=True)
-
+    st.text(f"👤 Playing as: {st.session_state.username}")
 # Define game versions organized by category
-@st.cache_data(show_spinner=False)
 def get_game_versions():
-    """Scan directories and get all available game versions (cached)."""
+    """Scan directories and get all available game versions."""
     versions = {}
     
     # Pre-Classic
@@ -332,277 +294,396 @@ for category, versions in all_versions.items():
         dropdown_options.append(display_name)
         version_map[display_name] = version_path
 
-# Find default selection (Alpha v1.0 Overworld is prioritized)
+# Find default selection (Alpha 3 Overwold)
 default_index = 0
 for i, option in enumerate(dropdown_options):
-    if "Alpha v1.0 Overworld" in option:
+    if "Alpha 3 Overwold" in option:
         default_index = i
         break
-    elif "Alpha 4 Overworld" in option:
-        default_index = i
-    elif "Alpha 3 Overworld" in option and default_index == 0:
-        default_index = i
 
-# ===== QUICK PLAY SECTION - MOST PROMINENT =====
-st.markdown("### 🎮 Quick Play")
-
-# Show total available versions
-total_versions = len(dropdown_options)
-st.success(f"✅ **{total_versions} Game Versions Available** - All Launchable from this Launcher!")
-
-# Check if on cloud
-is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-
-# Version selector with prominent play button
+# Create dropdown
+st.markdown("### 🎮 Select Game Version")
 selected_version = st.selectbox(
-    "🎮 Select Game Version:",
+    "Choose a version to play:",
     options=dropdown_options,
     index=default_index,
-    help=f"Choose any of the {total_versions} available versions!"
+    label_visibility="collapsed"
 )
-
-# BIG PLAY BUTTON
-play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
-with play_col2:
-    if is_cloud_env:
-        # On cloud - offer multiple options
-        cloud_play_option = st.radio(
-            "Choose play mode:",
-            ["🖼️ Play in Streamlit (Experimental)", "🌐 Play in Browser (Full Version)", "📥 Download Only"],
-            label_visibility="collapsed",
-            horizontal=True
-        )
-        
-        if cloud_play_option == "🖼️ Play in Streamlit (Experimental)":
-            play_button_streamlit = st.button(
-                "🎮 PLAY IN STREAMLIT",
-                use_container_width=True,
-                type="primary",
-                help=f"Run {selected_version} right here in Streamlit!"
-            )
-            
-            if play_button_streamlit:
-                st.session_state.game_mode = "streamlit"
-                st.session_state.selected_game = selected_version
-                st.rerun()
-        
-        elif cloud_play_option == "🌐 Play in Browser (Full Version)":
-            play_button_cloud = st.button(
-                "🚀 OPEN IN NEW WINDOW",
-                use_container_width=True,
-                type="primary",
-                help=f"Launch full browser version"
-            )
-            
-            if play_button_cloud:
-                browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-                st.markdown(f"""
-                    <script>
-                        window.open('{browser_url}', '_blank');
-                    </script>
-                """, unsafe_allow_html=True)
-                st.success(f"🎮 Opening browser launcher...")
-                st.info("💡 A new window should open. If blocked, click the link below:")
-                st.markdown(f"[🌐 Click here to play]({browser_url})", unsafe_allow_html=True)
-        
-        else:  # Download only
-            st.info("📥 Use the download section below to get the full version")
-        
-        launch_button = False
-    else:
-        # Local - show both desktop and browser options
-        st.markdown("**Choose Launch Mode:**")
-        launch_mode = st.radio(
-            "Select how to play:",
-            ["🖥️ Desktop (Launch Real Game)", "🌐 Browser (Web Version)"],
-            label_visibility="collapsed"
-        )
-        
-        if launch_mode.startswith("🖥️"):
-            launch_button = st.button(
-                "🚀 LAUNCH DESKTOP GAME",
-                use_container_width=True,
-                type="primary",
-                help=f"Launch {selected_version} in new window - Full featured desktop version!"
-            )
-        else:
-            launch_button = False
-            if st.button(
-                "🌐 OPEN BROWSER VERSION",
-                use_container_width=True,
-                type="secondary",
-                help="Play in browser"
-            ):
-                browser_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
-                st.markdown(f'<script>window.open("{browser_url}", "_blank");</script>', unsafe_allow_html=True)
-                st.success("🎮 Opening browser launcher...")
-                st.markdown(f"[🌐 Click here if it didn't open]({browser_url})")
-
 
 # Display version info
 if selected_version:
-    st.caption(f"📦 {selected_version}")
+    st.info(f"📦 Selected: **{selected_version}**")
 
-# Handle Streamlit gameplay mode
-if 'game_mode' in st.session_state and st.session_state.game_mode == "streamlit":
-    st.markdown("---")
-    
-    try:
-        from streamlit_pygame_runner import run_pygame_in_streamlit
-        
-        # Get the game path
-        selected_game = st.session_state.selected_game
-        game_path = version_map.get(selected_game, None)
-        
-        # Run the game
-        run_pygame_in_streamlit(selected_game, game_path)
-        
-    except Exception as e:
-        st.error(f"❌ Error loading game: {e}")
-        st.info("💡 Try the browser version instead!")
-        if st.button("🌐 Open Browser Version"):
-            st.session_state.game_mode = None
-            st.rerun()
-    
-    st.stop()  # Don't show rest of launcher
-
-# ===== DESKTOP LAUNCHER =====
+# Launch button
 st.markdown("---")
-st.markdown("### 🎮 Desktop Game Launcher")
+col1, col2, col3 = st.columns([1, 2, 1])
 
-st.info("🖥️ **Local Desktop Edition** - Launch games directly on your PC!")
-
-launcher_col1, launcher_col2 = st.columns([3, 1])
-
-with launcher_col1:
-    st.markdown("""
-    **Desktop Launcher Features:**
-    - ✨ All 27 versions available locally
-    - 🎮 Use ← → arrow keys to browse versions
-    - ⌨️ Press ENTER to launch selected game
-    - 💾 Full-featured Python games
-    - 🚀 No internet required after installation
-    - ⚡ Best performance and compatibility
-    
-    *Launches real Python games in separate windows!*
-    """)
-
-with launcher_col2:
-    st.markdown("")  # Spacing
-    st.markdown("")  # Spacing
-    # Button to launch web version
-    if st.button(
-        "🖥️ Open Desktop Launcher",
+with col2:
+    launch_button = st.button(
+        "🚀 LAUNCH",
         use_container_width=True,
-        type="primary",
-        help="Opens the desktop game launcher"
-    ):
-        web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+        type="primary"
+    )
+
+# Multiplayer button
+st.markdown("###, mp_col3 = st.columns(3)")
+
+with mp_col1:
+    start_server_button = st.button(
+        "🖥️ Start Server",
+        use_container_width=True
+    )
+
+with mp_col2:
+    join_server_button = st.button(
+        "🌍 Direct Connect",
+        use_container_width=True
+    )
+
+with mp_col3:
+  Realms System
+if realm_button or st.session_state.show_realm_selector:
+    st.session_state.show_realm_selector = True
+    st.markdown("---")
+    st.markdown("### 🏰 PyCraft Realms")
+    
+    realm_tab1, realm_tab2, realm_tab3 = st.tabs(["🌍 My Realms", "➕ Join Realm", "📖 Realm List"])
+    
+    saved_realms = load_realms()
+    
+    with realm_tab1:
+        st.markdown("#### Your Saved Realms")
+        if saved_realms:
+            realm_to_delete = None
+            for realm_name, realm_data in saved_realms.items():
+                col1, col2, col3 = st.columns([3, 2, 1])
+                with col1:
+                    st.markdown(f"**🏰 {realm_name}**")
+                    st.text(f"📍 {realm_data['ip']}:{realm_data['port']}")
+                with col2:
+                    if st.button(f"🎮 Connect", key=f"connect_{realm_name}"):
+                        # Connect to this realm
+                        if selected_version in version_ including username
+                    if os.name == 'nt':  # Windows
+                        subprocess.Popen(
+                            f'start cmd /k "cd /d {game_dir} && python "{game_file}" --multiplayer {server_ip} {server_port} --username {st.session_state.username}"',
+                            shell=True
+                        )
+                    else:  # Linux/Mac
+                        subprocess.Popen(
+                            ["python", game_path, "--multiplayer", server_ip, str(server_port), "--username", st.session_state.username],
+                            cwd=game_dir
+                        )
+                    
+                    # Update play count
+                    accounts = load_accounts()
+                    if st.session_state.username in accounts:
+                        accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                        save_accounts(accounts)
+                    
+                    st.success(f"✅ Connecting to server as {st.session_state.username}
+                                        subprocess.Popen(
+                                            ["python", game_path, "--multiplayer", realm_data["ip"], str(realm_data["port"]), "--username", st.session_state.username],
+                                            cwd=game_dir
+                                        )
+                                    
+                                    # Update play count
+                                    accounts = load_accounts()
+                                    if st.session_state.username in accounts:
+                                        accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                                        save_accounts(accounts)
+                                    
+                                    st.success(f"✅ Connecting to {realm_name}...")
+                                    st.balloons()
+                                except Exception as e:
+                                    st.error(f"❌ Error: {str(e)}")
+                with col3:
+                    if st.button("🗑️", key=f"del_{realm_name}"):
+                        realm_to_delete = realm_name
+                
+                st.markdown("---")
+            
+            if realm_to_delete:
+                del saved_realms[realm_to_delete]
+                save_realms(saved_realms)
+                st.rerun()
+        else:
+            st.info("No saved realms. Add one in the 'Join Realm' tab!")
+    
+    with realm_tab2:
+        st.markdown("#### Add New Realm")
+        realm_name_input = st.text_input("Realm Name:", placeholder="e.g., My Awesome Server")
+        realm_ip_input = st.text_input("Server IP Address:", value="localhost", placeholder="e.g., 192.168.1.100")
+        realm_port_input = st.number_input("Port:", min_value=1024, max_value=65535, value=5555)
         
-        try:
-            webbrowser.open_new_tab(web_url)
-            st.success("✅ Opening game launcher in browser...")
-            st.info("🎮 Browse with ← → arrows, press ENTER to launch games")
-            st.info("💡 Check your browser tabs if it didn't open automatically")
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 Save & Connect", type="primary", use_container_width=True):
+                if realm_name_input:
+                    # Save realm
+                    saved_realms[realm_name_input] = {
+                        "ip": realm_ip_input,
+                        "port": realm_port_input,
+                        "added_by": st.session_state.username,
+                        "added_date": datetime.now().isoformat()
+                    }
+                    save_realms(saved_realms)
+                    
+                    # Connect
+                    if selected_version in version_map:
+                        game_path = version_map[selected_version]
+                        game_dir = str(Path(game_path).parent)
+                        game_file = Path(game_path).name
+                        
+                        try:
+                            if os.name == 'nt':
+                                subprocess.Popen(
+                                    f'start cmd /k "cd /d {game_dir} && python "{game_file}" --multiplayer {realm_ip_input} {realm_port_input} --username {st.session_state.username}"',
+                                    shell=True
+                                )
+                            else:
+                                subprocess.Popen(
+                                    ["python", game_path, "--multiplayer", realm_ip_input, str(realm_port_input), "--username", st.session_state.username],
+                                    cwd=game_dir
+                                )
+                            
+                            # Update play count
+                            accounts = load_accounts()
+                            if st.session_state.username in accounts:
+                                accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                                save_accounts(accounts)
+                            
+                            st.success(f"✅ Realm saved and connecting!")
+                            st.balloons()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                else:
+                    st.error("Please enter a realm name!")
         
-        # Always show link as backup
-        st.markdown(f"### [🌐 Click Here to Open Game Launcher]({web_url})")
-        st.code(web_url, language="text")
-
-# Show all available versions organized by category
-with st.expander("📋 View All Available Versions"):
-    st.markdown("### 🎮 Complete Version List")
-    st.markdown("*All versions below are launchable from the dropdown above!*")
+        with col2:
+            if st.button("🌐 Connect Only", use_container_width=True):
+                if selected_version in version_map:
+                    game_path = version_map[selected_version]
+                    game_dir = str(Path(game_path).parent)
+                    game_file = Path(game_path).name
+                    
+                    try:
+                        if os.name == 'nt':
+                            subprocess.Popen(
+                                f'start cmd /k "cd /d {game_dir} && python "{game_file}" --multiplayer {realm_ip_input} {realm_port_input} --username {st.session_state.username}"',
+                                shell=True
+                            )
+                        else:
+                            subprocess.Popen(
+                                ["python", game_path, "--multiplayer", realm_ip_input, str(realm_port_input), "--username", st.session_state.username],
+                                cwd=game_dir
+                            )
+                        
+                        # Update play count
+                        accounts = load_accounts()
+                        if st.session_state.username in accounts:
+                            accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                            save_accounts(accounts)
+                        
+                        st.success(f"✅ Connecting...")
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
     
-    for category, versions in all_versions.items():
-        if versions:  # Only show categories that have versions
-            st.markdown(f"**{category}:** ({len(versions)} versions)")
-            for version_name, version_path in versions:
-                # Check if file exists
-                exists = "✅" if Path(version_path).exists() else "❌"
-                st.text(f"  {exists} {version_name}")
-            st.markdown("")  # Spacing
-
-# ===== AKRAM DLC TOGGLE =====
-st.markdown("---")
-st.markdown("### 🔥 Akram DLC Features")
-
-# Initialize DLC state if not exists
-if 'akram_dlc_enabled' not in st.session_state:
-    st.session_state.akram_dlc_enabled = True  # Default enabled for enhanced experience
-
-# Create toggle with nice styling
-dlc_col1, dlc_col2 = st.columns([3, 1])
-
-with dlc_col1:
-    st.markdown("""
-    **Akram DLC** adds custom features beyond Minecraft:
-    - 🦌 **Custom Animals**: Deer, Bear, Elephant, Narwhal, Turtle, Panda, Fox, Penguin, Camel
-    - 🏺 **Custom Items**: Deer Horn, Narwhal Horn, custom spawn eggs
-    - 🎨 **Enhanced Textures**: Custom animal textures and sprites
-    - 🌊 **Ocean Life**: Whale, Dolphin, Shark, Nautilus creatures
-    - 🐾 **Wildlife Variety**: Expanded animal ecosystem beyond vanilla Minecraft
+    with realm_tab3:
+        st.markdown("#### 📋 All Available Realms")
+        if saved_realms:
+            for realm_name, realm_data in saved_realms.items():
+                with st.expander(f"🏰 {realm_name}"):
+                    st.text(f"IP: {realm_data['ip']}")
+                    st.text(f"Port: {realm_data['port']}")
+                    st.text(f"Added by: {realm_data.get('added_by', 'Unknown')}")
+                    added_date = realm_data.get('added_date', '')
+                    if added_date:
+                        date_str = datetime.fromisoformat(added_date).strftime("%Y-%m-%d %H:%M")
+                        st.text(f"Added: {date_str}")
+        else:
+            st.info("No realms available yet!")
     
-    *All standard Minecraft features (portals, enchanting, combat, etc.) remain enabled*
-    
-    *Disable for pure vanilla Minecraft animal roster*
-    """)
-
-with dlc_col2:
-    # Toggle button
-    if st.session_state.akram_dlc_enabled:
-        dlc_button_text = "🔥 DLC: ON"
-        dlc_button_type = "primary"
-        dlc_help_text = "Custom animals and content enabled - Enhanced wildlife!"
-    else:
-        dlc_button_text = "⚪ DLC: OFF"
-        dlc_button_type = "secondary" 
-        dlc_help_text = "Vanilla animals only - Standard Minecraft creatures"
-    
-    if st.button(dlc_button_text, use_container_width=True, type=dlc_button_type, help=dlc_help_text):
-        st.session_state.akram_dlc_enabled = not st.session_state.akram_dlc_enabled
+    if st.button("⬅️ Back to Main Menu"):
+        st.session_state.show_realm_selector = False
         st.rerun()
+    
+    st.stop()
 
-# Show current DLC status
-if st.session_state.akram_dlc_enabled:
-    st.success("🔥 **Akram DLC ENABLED** - Custom animals and wildlife active!")
-else:
-    st.warning("⚪ **Vanilla Mode** - Standard Minecraft animals only")
-
-# Voting system removed for simplified launcher
-
-# Multiplayer options
+# ===== VOTING SYSTEM =====
 st.markdown("---")
-st.markdown("### 🌐 Multiplayer Options")
+st.markdown("### 🗳️ Vote for Next Feature!")
 
-with st.expander("🎮 Host or Join Multiplayer Server"):
-    # Server IP input for joining
-    server_ip = st.text_input("Server IP Address", value="127.0.0.1", help="Enter the server IP to connect to")
-    server_port = st.number_input("Port", value=5555, min_value=1024, max_value=65535, help="Server port (default 5555)")
+poll_data = load_poll()
+
+# Check if user has voted
+has_voted = st.session_state.username in poll_data.get("voters", [])
+
+if not has_voted:
+    st.markdown("**What should we add next?**")
+    vote_option = st.radio(
+        "Select your choice:",
+        ["🐉 More Mobs & Animals", "🏗️ New Building Blocks", "⚔️ Better Combat & Weapons", "🌍 New Biomes & Dimensions"],
+        label_visibility="collapsed"
+    )
     
-    mp_col1, mp_col2 = st.columns(2)
+    if st.button("✅ Submit Vote", type="primary"):
+        # Map display text to option keys
+        vote_map = {
+            "🐉 More Mobs & Animals": "option1",
+            "🏗️ New Building Blocks": "option2",
+            "⚔️ Better Combat & Weapons": "option3",
+            "🌍 New Biomes & Dimensions": "option4"
+        }
+        
+        option_key = vote_map[vote_option]
+        poll_data[option_key] = poll_data.get(option_key, 0) + 1
+        
+        if "voters" not in poll_data:
+            poll_data["voters"] = []
+        poll_data["voters"].append(st.session_state.username)
+        
+        save_poll(poll_data)
+        st.success("✅ Thanks for voting!")
+        st.balloons()
+        st.rerun()
+else:
+    st.success("✅ You've already voted! Thank you!")
+
+# Show results
+st.markdown("#### 📊 Current Results")
+total_votes = poll_data.get("option1", 0) + poll_data.get("option2", 0) + poll_data.get("option3", 0) + poll_data.get("option4", 0)
+
+if total_votes > 0:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("🐉 More Mobs", poll_data.get("option1", 0))
+        st.metric("⚔️ Better Combat", poll_data.get("option3", 0))
+    with col2:
+        st.metric("🏗️ New Blocks", poll_data.get("option2", 0))
+        st.metric("🌍 New Biomes", poll_data.get("option4", 0))
     
-    with mp_col1:
-        start_server_button = st.button(
-            "🖥️ Host Server",
-            use_container_width=True,
-            help="Start a multiplayer server for others to join"
-        )
+    st.caption(f"Total votes: {total_votes}")
+else:
+    st.info("No votes yet. Be the first to vote!")
+
+# ===== MEME OF THE MONTH =====
+st.markdown("---")
+st.markdown("### 😂 Meme of the Month")
+
+meme_path = base_dir / "Assets" / "meme_of_month.png"
+if meme_path.exists():
+    try:
+        st.image(str(meme_path), use_column_width=True, caption="Community Meme of the Month! 🎉")
+    except:
+        st.info("📸 Meme image found but couldn't be displayed.")
+else:
+    st.info("📸 No meme this month! Check back later.")
+    st.caption("💡 Admins can add memes to Assets/meme_of_month.png")
+
+# ===== BUG REPORTS =====
+st.markdown("---")
+st.markdown("### 🐛 Report a Bug")
+
+with st.expander("📝 Submit Bug Report"):
+    bug_title = st.text_input("Bug Title:", placeholder="e.g., Game crashes when opening chest")
+    bug_description = st.text_area("Description:", placeholder="Describe the bug in detail...")
     
-    with mp_col2:
-        join_server_button = st.button(
-            "🌍 Join Server",
-            use_container_width=True,
-            help="Connect to a multiplayer server"
-        )
+    if st.button("📤 Submit Bug Report", type="primary"):
+        if bug_title and bug_description:
+            bugs = load_bugs()
+            bug_report = {
+                "id": len(bugs) + 1,
+                "title": bug_title,
+                "description": bug_description,
+                "version": selected_version,
+                "reported_by": st.session_state.username,
+                "date": datetime.now().isoformat(),
+                "status": "Open"
+            }
+            bugs.append(bug_report)
+            save_bugs(bugs)
+            st.success("✅ Bug report submitted! Thank you!")
+            st.balloons()
+        else:
+            st.error("Please fill in all fields!")
 
-# Meme of the month removed - doesn't work on foreign computers
+# Show recent bugs
+bugs = load_bugs()
+if bugs:
+    st.markdown("#### 📋 Recent Bug Reports")
+    recent_bugs = sorted(bugs, key=lambda x: x.get('date', ''), reverse=True)[:3]
+    
+    for bug in recent_bugs:
+        status_emoji = "🟢" if bug.get('status') == 'Fixed' else "🔴"
+        with st.expander(f"{status_emoji} {bug.get('title', 'Untitled')} - by {bug.get('reported_by', 'Unknown')}"):
+            st.text(f"Version: {bug.get('version', 'Unknown')}")
+            st.text(f"Status: {bug.get('status', 'Open')}")
+            try:
+                date_str = datetime.fromisoformat(bug.get('date', '')).strftime("%Y-%m-%d %H:%M")
+                st.text(f"Reported: {date_str}")
+            except:
+                pass
+            st.markdown(f"**Description:** {bug.get('description', 'No description')}")
 
-# --- Handle button actions ---
+# ===== MULTIPLAYER SECTION =====
+st.markdown("---")
+st.markdown("### 🌐 Multiplayer")
 
-# Handle server hosting
+mp_col1, mp_col2 = st.columns(2)
+
+with mp_col1:
+    start_server_button = st.button(
+        "🖥️ Start Server",
+        use_container_width=True
+    )
+
+with mp_col2:
+    join_server_button = st.button(
+        "🌍 Join Server",
+        use_container_width=True
+    )
+
+# Server IP input (shown if joining)
+if join_server_button:
+    st.markdown("#### 🔗 Enter Server Details")
+    server_ip = st.text_input("Server IP Address", value="localhost", placeholder="e.g., 192.168.1.100 or localhost")
+    server_port = st.number_input("Port", min_value=1024, max_value=65535, value=5555)
+    
+    join_confirm = st.button("✅ Connect to Server", type="primary")
+    
+    if join_confirm:
+        # Store server info and launch with multiplayer enabled
+        st.session_state['multiplayer_mode'] = True
+        st.session_state['server_ip'] = server_ip
+        st.session_state['server_port'] = server_port
+        
+        if selected_version in version_map:
+            game_path = version_map[selected_version]
+            
+            with st.spinner(f"🌐 Connecting to {server_ip}:{server_port}..."):
+                try:
+                    game_dir = str(Path(game_path).parent)
+                    game_file = Path(game_path).name
+                    
+                    # Launch with multiplayer arguments
+                    if os.name == 'nt':  # Windows
+                        subprocess.Popen(
+                            f'start cmd /k "cd /d {game_dir} && python "{game_file}" --multiplayer {server_ip} {server_port}"',
+                            shell=True
+                        )
+                    else:  # Linux/Mac
+                        subprocess.Popen(
+                            ["python", game_path, "--multiplayer", server_ip, str(server_port)],
+                            cwd=game_dir
+                        )
+                    
+                    st.success(f"✅ Connecting to server...")
+                    st.balloons()
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+# Handle server start
 if start_server_button:
     server_path = base_dir / "Alpha" / "multiplayer_server.py"
     
@@ -610,123 +691,70 @@ if start_server_button:
         with st.spinner("🖥️ Starting multiplayer server..."):
             try:
                 server_dir = str(server_path.parent)
-                python_exe = sys.executable
                 
                 if os.name == 'nt':  # Windows
                     subprocess.Popen(
-                        f'start cmd /k "cd /d {server_dir} && "{python_exe}" multiplayer_server.py --port {int(server_port)}"',
+                        f'start cmd /k "cd /d {server_dir} && python multiplayer_server.py"',
                         shell=True
                     )
                 else:
                     subprocess.Popen(
-                        [python_exe, str(server_path), "--port", str(int(server_port))],
+                        ["python", str(server_path)],
                         cwd=server_dir
                     )
                 
-                # Get local IP
-                import socket
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    local_ip = s.getsockname()[0]
-                    s.close()
-                except Exception:
-                    local_ip = "127.0.0.1"
-                
-                st.success(f"✅ Server started on port {int(server_port)}!")
-                st.info(f"💡 Share this IP with friends: **{local_ip}**")
-                st.code(f"IP: {local_ip}\nPort: {int(server_port)}")
+                st.success("✅ Server started! Players can now connect to your IP address on port 5555")
+                st.info("💡 Share your IP address with friends so they can join.")
+                st.code("Your local IP: Check your network settings")
             except Exception as e:
                 st.error(f"❌ Error starting server: {str(e)}")
     else:
         st.error("❌ Multiplayer server file not found!")
-
-# Handle Join Server
-if join_server_button:
-    if selected_version in version_map:
-        game_path = version_map[selected_version]
-        with st.spinner(f"🌍 Connecting to {server_ip}:{int(server_port)}..."):
-            try:
-                game_dir = str(Path(game_path).parent)
-                game_file = Path(game_path).name
-                python_exe = sys.executable
-                
-                if os.name == 'nt':
-                    subprocess.Popen(
-                        f'start cmd /k "cd /d {game_dir} && "{python_exe}" "{game_file}""',
-                        shell=True
-                    )
-                else:
-                    subprocess.Popen(
-                        [python_exe, game_path],
-                        cwd=game_dir
-                    )
-                
-                st.success(f"✅ Joining server at {server_ip}:{int(server_port)}!")
-                st.info("💡 The game is connecting in a separate window.")
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-    else:
-        st.error("❌ Select a game version first!")
 
 # Handle launch
 if launch_button:
     if selected_version in version_map:
         game_path = version_map[selected_version]
         
-        # Verify game file exists
-        if not Path(game_path).exists():
-            st.error(f"❌ Game file not found: {game_path}")
-            st.warning("💡 Make sure you've extracted all files from the ZIP!")
-        else:
-            # Show loading message
-            with st.spinner(f"🎮 Launching {selected_version}..."):
-                try:
-                    # Get the directory of the game file
-                    game_dir = str(Path(game_path).parent.resolve())
-                    game_file = Path(game_path).name
-                    
-                    # Use the same Python interpreter that's running this launcher
-                    python_exe = sys.executable
-                    
-                    # Debug info
-                    st.info(f"📂 Game directory: {game_dir}")
-                    st.info(f"📄 Game file: {game_file}")
-                    st.info(f"🐍 Python: {python_exe}")
-                    
-                    # Launch the game as a subprocess
-                    if os.name == 'nt':  # Windows
-                        # Create launch command
-                        cmd = f'cd /d "{game_dir}" && "{python_exe}" "{game_file}"'
-                        st.code(f"Running: {cmd}", language="bash")
-                        
-                        # Use start command to keep window open
-                        subprocess.Popen(
-                            f'start cmd /k "{cmd}"',
-                            shell=True,
-                            cwd=game_dir
-                        )
-                    else:  # Linux/Mac
-                        subprocess.Popen(
-                            [python_exe, game_file],
-                            cwd=game_dir
-                        )
-                    
-                    st.success(f"✅ {selected_version} launched successfully!")
-                    st.balloons()
-                    st.info("💡 The game window should open in 2-5 seconds. Check your taskbar!")
-                    st.warning("⚠️ If nothing happens, check the command window that opened for error messages.")
-                    
-                except Exception as e:
-                    st.error(f"❌ Error launching game: {str(e)}")
-                    st.error(f"Path: {game_path}")
-                    st.code(f"Python: {sys.executable}\nGame Dir: {game_dir}\nGame File: {game_file}")
+        # Show loading message
+        with st.spinner(f"🎮 Launching {selected_versiousername
+                if os.name == 'nt':  # Windows
+                    # Use start command to keep window open
+                    subprocess.Popen(
+                        f'start cmd /k "cd /d {game_dir} && python "{game_file}" --username {st.session_state.username}"',
+                        shell=True
+                    )
+                else:  # Linux/Mac
+                    subprocess.Popen(
+                        ["python", game_path, "--username", st.session_state.username],
+                        cwd=game_dir
+                    )
+                
+                # Update play count
+                accounts = load_accounts()
+                if st.session_state.username in accounts:
+                    accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                    save_accounts(accounts)
+                
+                st.success(f"✅ {selected_version} launched successfully as {st.session_state.username}
+                    subprocess.Popen(
+                        ["python", game_path],
+                        cwd=game_dir
+                    )
+                
+                st.success(f"✅ {selected_version} launched successfully!")
+                st.balloons()
+                st.info("💡 The game is running in a separate window. You can close this launcher or launch another version.")
+                
+            except Exception as e:
+                st.error(f"❌ Error launching game: {str(e)}")
+                st.error(f"Path: {game_path}")
     else:
         st.error("❌ Selected version not found!")
 
 # Footer
 st.markdown("---")
 st.markdown(
-    '<p style="text-align: center; color: #999; font-size: 0.9rem;">PyCraft Launcher v2.0 | Account System & Realms</p>',
+    '<p style="text-align: center; color: #999; font-size: 0.9rem;">PyCraft Launcher v1.0 | Made with Streamlit</p>',
     unsafe_allow_html=True
 )
