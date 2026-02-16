@@ -7,6 +7,51 @@ import base64
 import json
 from datetime import datetime
 
+# ===== AUTO-INSTALL DEPENDENCIES =====
+def check_and_install_packages():
+    """Automatically install missing packages"""
+    required_packages = {
+        'pygame': 'pygame>=2.5.0',
+        'streamlit': 'streamlit>=1.28.0',
+        'pyvirtualdisplay': 'pyvirtualdisplay>=3.0',
+        'PIL': 'pillow>=10.0.0'
+    }
+    
+    missing_packages = []
+    
+    # Check which packages are missing
+    for package, install_name in required_packages.items():
+        try:
+            __import__(package)
+        except ImportError:
+            missing_packages.append(install_name)
+    
+    # Install missing packages
+    if missing_packages:
+        print(f"📦 Installing {len(missing_packages)} missing package(s)...")
+        for package in missing_packages:
+            print(f"   Installing {package}...")
+            try:
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", package, "--quiet"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                print(f"   ✅ {package} installed successfully")
+            except Exception as e:
+                print(f"   ⚠️ Failed to install {package}: {e}")
+        
+        print("✅ All dependencies installed!")
+        return True
+    
+    return False
+
+# Run auto-installer (silent if everything is installed)
+try:
+    check_and_install_packages()
+except Exception as e:
+    print(f"⚠️ Dependency check failed: {e}")
+
 # Import virtual display for cloud
 VIRTUAL_DISPLAY_AVAILABLE = False
 VNC_VIEWER_AVAILABLE = False
