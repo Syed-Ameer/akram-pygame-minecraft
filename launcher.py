@@ -8,13 +8,22 @@ import json
 from datetime import datetime
 
 # Import virtual display for cloud
+VIRTUAL_DISPLAY_AVAILABLE = False
+VNC_VIEWER_AVAILABLE = False
+
 try:
     from virtual_display import ensure_display
     VIRTUAL_DISPLAY_AVAILABLE = True
 except ImportError:
-    VIRTUAL_DISPLAY_AVAILABLE = False
     def ensure_display():
         return True
+
+try:
+    from vnc_viewer import show_game_display
+    VNC_VIEWER_AVAILABLE = True
+except ImportError:
+    def show_game_display():
+        pass
 
 # Set page config
 st.set_page_config(
@@ -368,13 +377,18 @@ with play_col2:
                             save_accounts(accounts)
                         
                         st.success(f"✅ {selected_version} is running on cloud display!")
-                        st.info("🎮 Game is rendering on virtual display")
-                        st.info("💡 To see the game, you would need VNC viewer setup (advanced)")
-                        st.warning("⚠️ Note: This is experimental. For best experience, use local installation or browser version.")
                         
-                        # Show VNC connection info
-                        with st.expander("🔧 Advanced: Connect with VNC Viewer"):
-                            st.code("VNC Display: localhost:5900\nOr use noVNC web client")
+                        # Show game display via VNC
+                        if VNC_VIEWER_AVAILABLE:
+                            show_game_display()
+                        else:
+                            st.info("🎮 Game is rendering on virtual display")
+                            st.info("💡 To see the game, you would need VNC viewer setup (advanced)")
+                            st.warning("⚠️ Note: This is experimental. For best experience, use local installation or browser version.")
+                            
+                            # Show VNC connection info
+                            with st.expander("🔧 Advanced: Connect with VNC Viewer"):
+                                st.code("VNC Display: localhost:5900\nOr use noVNC web client at: http://localhost:6080")
                         
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
