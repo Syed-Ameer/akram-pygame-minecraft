@@ -287,6 +287,23 @@ with st.sidebar:
             st.text(f"Member since: Unknown")
     
     st.markdown("---")
+    st.markdown("### ⚙️ Settings")
+    
+    # Auto-launch toggle
+    auto_launch_toggle = st.checkbox(
+        "🚀 Auto-Launch Games",
+        value=st.session_state.get('auto_launch_enabled', True),
+        help="Automatically launch game when version selected (no button click needed)"
+    )
+    
+    if auto_launch_toggle != st.session_state.get('auto_launch_enabled', True):
+        st.session_state.auto_launch_enabled = auto_launch_toggle
+        if auto_launch_toggle:
+            st.success("✅ Auto-launch enabled!")
+        else:
+            st.info("ℹ️ Manual launch mode - click PLAY button to start")
+    
+    st.markdown("---")
     if st.button("🚪 Logout", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.username = None
@@ -375,6 +392,12 @@ st.markdown("### 🎮 Quick Play")
 # Check if on cloud
 is_cloud_env = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 
+# Initialize auto-launch tracking
+if 'last_launched_version' not in st.session_state:
+    st.session_state.last_launched_version = None
+if 'auto_launch_enabled' not in st.session_state:
+    st.session_state.auto_launch_enabled = True
+
 # Version selector with prominent play button
 selected_version = st.selectbox(
     "🎮 Select Game Version:",
@@ -382,19 +405,26 @@ selected_version = st.selectbox(
     index=default_index
 )
 
-# BIG PLAY BUTTON
+# AUTO-LAUNCH: Launch automatically when version changes
+auto_launch = st.session_state.auto_launch_enabled and (selected_version != st.session_state.last_launched_version)
+
+# BIG PLAY BUTTON (or auto-launch indicator)
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
     if is_cloud_env:
         # On cloud - launch with virtual display
-        cloud_launch_button = st.button(
-            "🚀 PLAY ON CLOUD",
-            use_container_width=True,
-            type="primary",
-            help="Launch game on virtual display - Real subprocess execution!"
-        )
+        if not auto_launch:
+            cloud_launch_button = st.button(
+                "🚀 PLAY ON CLOUD",
+                use_container_width=True,
+                type="primary",
+                help="Launch game on virtual display - Real subprocess execution!"
+            )
+        else:
+            cloud_launch_button = False
+            st.info("🎮 Auto-launching game...")
         
-        if cloud_launch_button:
+        if cloud_launch_button or auto_launch:
             if selected_version in version_map:
                 game_path = version_map[selected_version]
                 
@@ -421,6 +451,9 @@ with play_col2:
                             accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
                             save_accounts(accounts)
                         
+                        # Update last launched version
+                        st.session_state.last_launched_version = selected_version
+                        
                         st.success(f"✅ {selected_version} is running on cloud display!")
                         
                         # Show game display via VNC
@@ -443,12 +476,17 @@ with play_col2:
         
         launch_button = False
     else:
-        launch_button = st.button(
-            "🚀 PLAY SINGLEPLAYER",
-            use_container_width=True,
-            type="primary",
-            help=f"Launch {selected_version}"
-        )
+        # Local - auto-launch or show button
+        if not auto_launch:
+            launch_button = st.button(
+                "🚀 PLAY SINGLEPLAYER",
+                use_container_width=True,
+                type="primary",
+                help=f"Launch {selected_version}"
+            )
+        else:
+            launch_button = True
+            st.info("🎮 Auto-launching game...")
 
 # Display version info
 if selected_version:
@@ -920,6 +958,9 @@ if launch_button:
                     if st.session_state.username in accounts:
                         accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
                         save_accounts(accounts)
+                    
+                    # Update last launched version for auto-launch tracking
+                    st.session_state.last_launched_version = selected_version
                     
                     st.success(f"✅ {selected_version} launched successfully!")
                     st.balloons()
