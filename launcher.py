@@ -457,23 +457,17 @@ with play_col2:
                         st.success(f"✅ {selected_version} launched successfully!")
                         st.balloons()
                         
-                        # Fast display options (no slow auto-loading)
-                        st.info("🎮 Game is running on virtual display")
+                        # Auto-show game display with improved loading
+                        st.info("🎮 Game Display - Loading with timeout protection...")
                         
-                        # Quick access buttons
-                        view_col1, view_col2 = st.columns(2)
-                        
-                        with view_col1:
-                            if st.button("📺 View Game Display", use_container_width=True, type="primary"):
-                                if VNC_VIEWER_AVAILABLE:
-                                    with st.spinner("🔌 Connecting to display..."):
-                                        show_game_display()
-                                else:
-                                    st.warning("VNC viewer not available")
-                        
-                        with view_col2:
+                        if VNC_VIEWER_AVAILABLE:
+                            # Auto-display with fast timeout handling
+                            show_game_display()
+                        else:
+                            st.warning("⚠️ VNC viewer not available")
+                            st.info("💡 Try the browser version instead:")
                             st.link_button(
-                                "🌐 Browser Version",
+                                "🌐 Play in Browser",
                                 "https://syed-ameer.github.io/akram-pygame-minecraft/",
                                 use_container_width=True
                             )
