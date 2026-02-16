@@ -23,9 +23,6 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
     <head>
         <title>PyCraft - Game Display</title>
         <meta charset="UTF-8">
-        <!-- Pre-load noVNC library -->
-        <link rel="preconnect" href="https://unpkg.com">
-        <script src="https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js" async></script>
         <style>
             body {{
                 margin: 0;
@@ -83,24 +80,47 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
         <div id="screen"></div>
         
         <script>
-            let connected = false;
-            let retryCount = 0;
+            // Try multiple CDN sources until one works
+            const cdnSources = [
+                'https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js',
+                'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/noVNC/1.3.0/core/rfb.min.js'
+            ];
             
-            function attemptConnection() {{
-                // Quick check if RFB is available
-                if (typeof RFB === 'undefined') {{
-                    if (retryCount < 20) {{ // 4 seconds max wait for library
-                        retryCount++;
-                        setTimeout(attemptConnection, 200);
-                        return;
-                    }}
+            let cdnIndex = 0;
+            let connected = false;
+            
+            function loadScript() {{
+                if (cdnIndex >= cdnSources.length) {{
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ Failed to load</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px;">Refresh page to retry</div>';
+                        '<div style="color: #ff6b6b;">❌ Connection unavailable</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px;">Try closing and reopening launcher</div>';
                     return;
                 }}
                 
-                // Connection timeout
+                const script = document.createElement('script');
+                script.src = cdnSources[cdnIndex];
+                script.async = true;
+                
+                script.onload = function() {{
+                    setTimeout(connectVNC, 100);
+                }};
+                
+                script.onerror = function() {{
+                    cdnIndex++;
+                    loadScript();
+                }};
+                
+                document.head.appendChild(script);
+            }}
+            
+            function connectVNC() {{
+                if (typeof RFB === 'undefined') {{
+                    cdnIndex++;
+                    loadScript();
+                    return;
+                }}
+                
                 const timeout = setTimeout(() => {{
                     if (!connected) {{
                         document.getElementById('loading').innerHTML = 
@@ -135,13 +155,13 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 }} catch (e) {{
                     clearTimeout(timeout);
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ Failed</div>' +
+                        '<div style="color: #ff6b6b;">❌ Connection error</div>' +
                         '<div style="font-size: 12px; margin-top: 10px;">' + e.message + '</div>';
                 }}
             }}
             
-            // Start immediately
-            attemptConnection();
+            // Start loading immediately
+            loadScript();
         </script>
     </body>
     </html>
