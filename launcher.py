@@ -116,17 +116,13 @@ st.markdown("---")
 is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
 
 if is_cloud:
-    # CLOUD MODE - Download only
-    st.error("🌐 **You're on Streamlit Cloud - Games Cannot Run Here!**")
-    st.warning("Pygame requires a display window which cloud servers don't have. You must download and run locally.")
-    
+    # CLOUD MODE - Browser play available!
+    st.success("🌐 **Welcome to PyCraft on Streamlit Cloud!**")
+    st.info("💡 Click the **PLAY IN BROWSER** button below to play online - All 27 versions available!")
     st.markdown("---")
-    st.markdown("### 📥 Download PyCraft to Play")
-    st.markdown("**Download the installer and run it on your computer:**")
 else:
-    # LOCAL MODE - Show download for new users
-    st.markdown("### 📥 First Time Here? Download PyCraft")
-    st.markdown("**If you haven't downloaded PyCraft yet**, click below for one-click installation:")
+    # LOCAL MODE - Normal launcher
+    pass
 
 # Create installer script for download
 installer_script = """'''
@@ -484,13 +480,25 @@ selected_version = st.selectbox(
 play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
 with play_col2:
     if is_cloud_env:
-        st.button(
-            "🚀 PLAY SINGLEPLAYER",
+        # On cloud - offer browser play
+        web_play_button = st.button(
+            "🌐 PLAY IN BROWSER",
             use_container_width=True,
             type="primary",
-            disabled=True,
-            help="⚠️ Download the game to your computer to play! (Use button at top)"
+            help="Open web version in new tab - Play all games online!"
         )
+        
+        if web_play_button:
+            web_url = "https://syed-ameer.github.io/akram-pygame-minecraft/"
+            st.markdown(f"""
+                <script>
+                    window.open('{web_url}', '_blank');
+                </script>
+            """, unsafe_allow_html=True)
+            st.success("🎮 Opening game in new tab...")
+            st.info("💡 If popup was blocked, click here:")
+            st.markdown(f"### [🌐 Open Game Launcher]({web_url})")
+        
         launch_button = False
     else:
         launch_button = st.button(
