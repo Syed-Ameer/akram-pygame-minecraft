@@ -68,63 +68,87 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 100% {{ transform: rotate(360deg); }}
             }}
         </style>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/noVNC/1.3.0/core/rfb.min.js"></script>
+        <script src="https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js"></script>
     </head>
     <body>
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div>Connecting to game display...</div>
-            <div style="font-size: 12px; margin-top: 10px; color: #888;">This may take 5-10 seconds</div>
+            <div>Loading VNC client...</div>
+            <div style="font-size: 12px; margin-top: 10px; color: #888;">Initializing display connection</div>
         </div>
         <div class="status" id="status" style="display: none;"></div>
         <div id="screen"></div>
         
         <script>
-            let connectionTimeout;
-            let connected = false;
-            
-            // Connection timeout (10 seconds)
-            connectionTimeout = setTimeout(() => {{
-                if (!connected) {{
+            // Wait for RFB to be available before trying to connect
+            function initVNC() {{
+                // Check if RFB is defined
+                if (typeof RFB === 'undefined') {{
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">⚠️ Connection timeout</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready yet</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px;">Try manual connection or browser version</div>';
+                        '<div style="color: #ff6b6b;">❌ VNC client failed to load</div>' +
+                        '<div style="font-size: 14px; margin-top: 10px;">noVNC library could not be loaded</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px;">Check your internet connection or use browser version</div>';
+                    return;
                 }}
-            }}, 10000);
-            
-            try {{
-                const rfb = new RFB(document.getElementById('screen'), 
-                    'ws://{host}:{port}/websockify',
-                    {{
-                        credentials: {{}}
-                    }}
-                );
                 
-                rfb.addEventListener("connect", () => {{
-                    connected = true;
-                    clearTimeout(connectionTimeout);
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('status').style.display = 'block';
-                    document.getElementById('status').textContent = '✅ Connected - Game Running!';
-                    setTimeout(() => {{
-                        document.getElementById('status').style.display = 'none';
-                    }}, 3000);
-                }});
-                
-                rfb.addEventListener("disconnect", () => {{
-                    document.getElementById('status').textContent = '❌ Disconnected';
-                    document.getElementById('status').style.display = 'block';
-                    document.getElementById('loading').style.display = 'none';
-                }});
-                
-                rfb.scaleViewport = true;
-                rfb.resizeSession = true;
-            }} catch (e) {{
                 document.getElementById('loading').innerHTML = 
-                    '<div style="color: #ff6b6b;">❌ Connection failed</div>' +
-                    '<div style="font-size: 14px; margin-top: 10px;">' + e.message + '</div>';
+                    '<div class="spinner"></div>' +
+                    '<div>Connecting to game display...</div>' +
+                    '<div style="font-size: 12px; margin-top: 10px; color: #888;">This may take 5-10 seconds</div>';
+                
+                let connectionTimeout;
+                let connected = false;
+                
+                // Connection timeout (10 seconds)
+                connectionTimeout = setTimeout(() => {{
+                    if (!connected) {{
+                        document.getElementById('loading').innerHTML = 
+                            '<div style="color: #ff6b6b;">⚠️ Connection timeout</div>' +
+                            '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready yet</div>' +
+                            '<div style="font-size: 12px; margin-top: 10px;">Game may still be starting up...</div>';
+                    }}
+                }}, 10000);
+                
+                try {{
+                    const rfb = new RFB(document.getElementById('screen'), 
+                        'ws://{host}:{port}/websockify',
+                        {{
+                            credentials: {{}}
+                        }}
+                    );
+                    
+                    rfb.addEventListener("connect", () => {{
+                        connected = true;
+                        clearTimeout(connectionTimeout);
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('status').style.display = 'block';
+                        document.getElementById('status').textContent = '✅ Connected - Game Running!';
+                        setTimeout(() => {{
+                            document.getElementById('status').style.display = 'none';
+                        }}, 3000);
+                    }});
+                    
+                    rfb.addEventListener("disconnect", () => {{
+                        document.getElementById('status').textContent = '❌ Disconnected';
+                        document.getElementById('status').style.display = 'block';
+                        document.getElementById('loading').style.display = 'none';
+                    }});
+                    
+                    rfb.scaleViewport = true;
+                    rfb.resizeSession = true;
+                }} catch (e) {{
+                    clearTimeout(connectionTimeout);
+                    document.getElementById('loading').innerHTML = 
+                        '<div style="color: #ff6b6b;">❌ Connection failed</div>' +
+                        '<div style="font-size: 14px; margin-top: 10px;">' + e.message + '</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px;">VNC server may not be running</div>';
+                }}
             }}
+            
+            // Wait for page to load, then wait a bit more for RFB to be available
+            window.onload = function() {{
+                setTimeout(initVNC, 100);
+            }};
         </script>
     </body>
     </html>
