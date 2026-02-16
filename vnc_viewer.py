@@ -92,10 +92,18 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
             function loadNextCdn() {{
                 if (currentCdnIndex >= cdnUrls.length) {{
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ VNC client unavailable</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">All CDN sources failed to load</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Cloud VNC is experimental - Use browser version instead</div>' +
-                        '<div style="margin-top: 20px;"><a href="https://syed-ameer.github.io/akram-pygame-minecraft/" style="color: #4CAF50; text-decoration: none; font-size: 16px;">🌐 Play in Browser →</a></div>';
+                        '<div style="color: #ff6b6b;">❌ Unable to load VNC client</div>' +
+                        '<div style="font-size: 14px; margin-top: 10px;">Check internet connection</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Retrying in 3 seconds...</div>';
+                    
+                    // Retry from first CDN after 3 seconds
+                    setTimeout(() => {{
+                        currentCdnIndex = 0;
+                        document.getElementById('loading').innerHTML = 
+                            '<div class="spinner"></div>' +
+                            '<div>Retrying VNC client load...</div>';
+                        loadNextCdn();
+                    }}, 3000);
                     return;
                 }}
                 
@@ -117,9 +125,13 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 // Check if RFB is defined
                 if (typeof RFB === 'undefined') {{
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">❌ VNC client failed to load</div>' +
-                        '<div style="font-size: 14px; margin-top: 10px;">noVNC library could not be loaded</div>' +
-                        '<div style="font-size: 12px; margin-top: 10px;">Check your internet connection or use browser version</div>';
+                        '<div style="color: #ff6b6b;">❌ VNC client not loaded</div>' +
+                        '<div style="font-size: 14px; margin-top: 10px;">Library initialization failed</div>' +
+                        '<div style="font-size: 12px; margin-top: 10px; color: #888;">Retrying...</div>';
+                    
+                    // Try next CDN
+                    currentCdnIndex++;
+                    setTimeout(loadNextCdn, 1000);
                     return;
                 }}
                 
@@ -127,15 +139,25 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     '<div class="spinner"></div>' +
                     '<div>Connecting to game display...</div>' +
                     '<div style="font-size: 12px; margin-top: 10px; color: #888;">This may take 5-10 seconds</div>';
-                
-                let connectionTimeout;
-                let connected = false;
-                
-                // Connection timeout (10 seconds)
+                5 seconds - increased)
                 connectionTimeout = setTimeout(() => {{
                     if (!connected) {{
                         document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff6b6b;">⚠️ Connection timeout</div>' +
+                            '<div style="color: #ff9800;">⏱️ Connection taking longer than expected...</div>' +
+                            '<div style="font-size: 14px; margin-top: 10px;">VNC server starting up</div>' +
+                            '<div style="font-size: 12px; margin-top: 10px;">Still trying to connect...</div>';
+                        
+                        // Extended timeout (30 seconds total)
+                        setTimeout(() => {{
+                            if (!connected) {{
+                                document.getElementById('loading').innerHTML = 
+                                    '<div style="color: #ff6b6b;">❌ Connection timeout</div>' +
+                                    '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready</div>' +
+                                    '<div style="font-size: 12px; margin-top: 10px;">Refresh page to retry</div>';
+                            }}
+                        }}, 15000);
+                    }}
+                }}, 15      '<div style="color: #ff6b6b;">⚠️ Connection timeout</div>' +
                             '<div style="font-size: 14px; margin-top: 10px;">VNC server may not be ready yet</div>' +
                             '<div style="font-size: 12px; margin-top: 10px;">Game may still be starting up...</div>';
                     }}
