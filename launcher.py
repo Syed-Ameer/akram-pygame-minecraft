@@ -420,17 +420,18 @@ if launch_button or auto_launch:
         st.balloons()
         
         st.markdown("---")
+        st.markdown("### 🎮 Game Display")
+        st.caption(f"Playing: {selected_version} | User: {st.session_state.username}")
         
-        # Display game embedded in Streamlit
-        if PYGAME_RUNNER_AVAILABLE:
-            display_pygame_game(
-                game_file=game_path,
-                username=st.session_state.username,
-                fps=30
-            )
-        else:
-            st.error("Pygame runner module not available")
-            st.info("Install required packages: pip install pygame pillow")
+        # Embed browser version (works perfectly on Streamlit Cloud!)
+        st.components.v1.iframe(
+            "https://syed-ameer.github.io/akram-pygame-minecraft/",
+            height=800,
+            scrolling=False
+        )
+        
+        st.markdown("---")
+        st.info("💡 **Tip:** Press F11 for fullscreen gameplay!")
 
 # Display version info
 if selected_version:
