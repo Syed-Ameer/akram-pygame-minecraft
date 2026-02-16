@@ -126,11 +126,6 @@ else:
 
 st.markdown("---")
 
-# Show download reminder for cloud users
-is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE') or 'streamlit.app' in os.environ.get('HOSTNAME', '')
-if is_cloud:
-    st.info("💡 **Browsing on Streamlit Cloud?** Download the installer above to play on your computer. You can still explore the launcher features below!")
-
 # Show launcher for everyone
 st.markdown("### 🎮 Game Launcher")
 
