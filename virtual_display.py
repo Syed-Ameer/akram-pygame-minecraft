@@ -35,8 +35,14 @@ class VirtualDisplay:
             # Wait for Xvfb to start
             time.sleep(2)
             
+            # Verify Xvfb is running
+            if self.xvfb_process.poll() is not None:
+                print("❌ Xvfb failed to start")
+                return False
+            
             # Set DISPLAY environment variable
             os.environ['DISPLAY'] = self.display
+            print(f"✅ Xvfb running on display {self.display}")
             
             # Start x11vnc server
             print(f"Starting VNC server on display {self.display}")
@@ -49,7 +55,14 @@ class VirtualDisplay:
                 '-rfbport', '5900'
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
-            time.sleep(1)
+            time.sleep(2)  # Give x11vnc more time
+            
+            # Verify x11vnc is running
+            if self.vnc_process.poll() is not None:
+                print("❌ x11vnc failed to start")
+                return False
+            
+            print("✅ x11vnc running on port 5900")
             
             # Start websockify to make VNC accessible via WebSocket for noVNC
             try:
@@ -60,8 +73,15 @@ class VirtualDisplay:
                     '6080',
                     'localhost:5900'
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                time.sleep(1)
-                print("✅ Websockify started on port 6080")
+                time.sleep(2)  # Give it more time to bind
+                
+                # Check if process is still running
+                if self.websockify_process.poll() is None:
+                    print("✅ Websockify started on port 6080")
+                else:
+                    stderr = self.websockify_process.stderr.read().decode()
+                    print(f"⚠️ Websockify failed: {stderr}")
+                    self.websockify_process = None
             except Exception as e:
                 print(f"⚠️ Websockify failed (optional): {e}")
                 self.websockify_process = None
@@ -102,9 +122,14 @@ def ensure_display():
     """Ensure virtual display is running (for cloud environments)"""
     is_cloud = os.path.exists('/mount/src') or os.environ.get('STREAMLIT_SHARING_MODE')
     
-    if is_cloud and 'DISPLAY' not in os.environ:
-        print("🖥️ Cloud environment detected - starting virtual display...")
-        display = get_display()
-        return display.is_running()
+    if is_cloud:
+        print("🖥️ Cloud environment - ensuring virtual display is running...")
+        display = get_display()  # This will create or reuse running display
+        if display.is_running():
+            print("✅ Virtual display confirmed running")
+            return True
+        else:
+            print("❌ Virtual display failed to start")
+            return False
     
-    return True
+    return True  # Not cloud, display not needed

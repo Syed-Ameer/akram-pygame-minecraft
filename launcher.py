@@ -434,8 +434,17 @@ with play_col2:
                         game_file = Path(game_path).name
                         python_exe = sys.executable
                         
-                        # Launch game on virtual display
-                        st.info(f"🖥️ Starting {selected_version} with virtual display...")
+                        # CRITICAL: Ensure virtual display is running with VNC/websockify
+                        st.info("🖥️ Starting virtual display infrastructure...")
+                        if not ensure_display():
+                            st.error("❌ Failed to start virtual display")
+                            st.stop()
+                        
+                        # Give VNC server time to fully initialize
+                        import time
+                        time.sleep(2)
+                        
+                        st.info(f"🎮 Launching {selected_version}...")
                         
                         game_process = subprocess.Popen(
                             [python_exe, game_file, "--username", st.session_state.username],
@@ -444,6 +453,9 @@ with play_col2:
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE
                         )
+                        
+                        # Give game time to start rendering
+                        time.sleep(1)
                         
                         # Update play count
                         accounts = load_accounts()

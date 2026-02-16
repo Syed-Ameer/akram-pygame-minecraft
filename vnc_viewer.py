@@ -125,15 +125,15 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     // Check if stuck
                     setTimeout(() => {{
                         if (!connected) {{
-                            showProgress(95, '⚠️ Server is slow to respond...');
+                            showProgress(95, '⚠️ Server starting up (can take 10-15s)...');
                             setTimeout(() => {{
                                 if (!connected) {{
                                     document.getElementById('loading').innerHTML = 
                                         '<div style="color: #ff6b6b;">❌ Connection timeout</div>' +
-                                        '<div style="font-size: 12px; margin-top: 10px;">Server may not be running</div>' +
-                                        '<div style="font-size: 12px;">Check if game launched successfully</div>';
+                                        '<div style="font-size: 12px; margin-top: 10px;">Virtual display may not be running</div>' +
+                                        '<div style="font-size: 12px;">Try launching the game again</div>';
                                 }}
-                            }}, 10000);
+                            }}, 12000);
                         }}
                     }}, 8000);
                 }}
