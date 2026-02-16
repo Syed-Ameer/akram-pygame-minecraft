@@ -52,7 +52,14 @@ try:
 except Exception as e:
     print(f"⚠️ Dependency check failed: {e}")
 
-# No VNC - Simple Popen approach
+# No VNC - Web-native Pygame approach
+try:
+    from streamlit_pygame_runner import display_pygame_game
+    PYGAME_RUNNER_AVAILABLE = True
+except ImportError:
+    PYGAME_RUNNER_AVAILABLE = False
+    def display_pygame_game(game_file, username, fps=30):
+        st.error("Pygame runner not available")
 
 # Set page config
 st.set_page_config(
@@ -400,36 +407,30 @@ if launch_button or auto_launch:
     if selected_version in version_map:
         game_path = version_map[selected_version]
         
-        with st.spinner(f"🎮 Launching {selected_version}..."):
-            try:
-                game_dir = str(Path(game_path).parent)
-                game_file = Path(game_path).name
-                python_exe = sys.executable
-                
-                # Simple Popen - game launches in new window
-                game_process = subprocess.Popen(
-                    [python_exe, game_file, "--username", st.session_state.username],
-                    cwd=game_dir,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-                
-                # Update play count
-                accounts = load_accounts()
-                if st.session_state.username in accounts:
-                    accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
-                    save_accounts(accounts)
-                
-                # Update last launched version
-                st.session_state.last_launched_version = selected_version
-                
-                st.success(f"✅ {selected_version} launched successfully!")
-                st.balloons()
-                st.info("🎮 Game is running in a separate window")
-                st.caption("Check your taskbar or desktop for the game window")
-                
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
+        # Update play count
+        accounts = load_accounts()
+        if st.session_state.username in accounts:
+            accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+            save_accounts(accounts)
+        
+        # Update last launched version
+        st.session_state.last_launched_version = selected_version
+        
+        st.success(f"✅ {selected_version} ready to play!")
+        st.balloons()
+        
+        st.markdown("---")
+        
+        # Display game embedded in Streamlit
+        if PYGAME_RUNNER_AVAILABLE:
+            display_pygame_game(
+                game_file=game_path,
+                username=st.session_state.username,
+                fps=30
+            )
+        else:
+            st.error("Pygame runner module not available")
+            st.info("Install required packages: pip install pygame pillow")
 
 # Display version info
 if selected_version:

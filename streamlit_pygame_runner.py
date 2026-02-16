@@ -1,109 +1,149 @@
-# Streamlit Pygame Runner
-# Renders actual Pygame games inside Streamlit by capturing frames
+# Streamlit Pygame Runner  
+# Embeds Pygame games directly in Streamlit using frame capture
 
 import streamlit as st
 import pygame
-import subprocess
+import threading
 import sys
 import os
 from pathlib import Path
-import importlib.util
-import numpy as np
 from PIL import Image
+import time
+import io
 
-def run_game_embedded(game_path, game_name):
-    """Run actual game file embedded in Streamlit"""
+class PygameStreamlitRunner:
+    """Runs Pygame games embedded in Streamlit by capturing frames"""
     
-    st.markdown(f"### 🎮 {game_name}")
+    def __init__(self, game_file, username="Player", width=800, height=600):
+        self.game_file = game_file
+        self.username = username
+        self.width = width
+        self.height = height
+        self.running = False
+        self.game_thread = None
+        self.current_frame = None
+        self.fps = 30
+        
+    def run_game(self):
+        """Run the game in a separate thread"""
+        try:
+            # Set up environment
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Headless mode
+            
+            #Initialize pygame
+            pygame.init()
+            
+            # Create surface
+            screen = pygame.display.set_mode((self.width, self.height))
+            clock = pygame.time.Clock()
+            
+            # Import and run game module
+            game_dir = str(Path(self.game_file).parent.resolve())
+            game_file = Path(self.game_file).name
+            
+            # Add game directory to path
+            if game_dir not in sys.path:
+                sys.path.insert(0, game_dir)
+            
+            # Set username argument
+            sys.argv = [game_file, "--username", self.username]
+            
+            # Import game module
+            game_module_name = game_file.replace('.py', '')
+            
+            # Execute game file
+            with open(self.game_file, 'r') as f:
+                game_code = f.read()
+            
+            # Create namespace for game
+            game_namespace = {
+                '__name__': '__main__',
+                '__file__': self.game_file,
+            }
+            
+            self.running = True
+            
+            # Execute game in namespace
+            exec(game_code, game_namespace)
+            
+        except Exception as e:
+            print(f"Game error: {e}")
+        finally:
+            self.running = False
+            pygame.quit()
+    
+    def get_frame(self):
+        """Capture current pygame frame as PIL Image"""
+        try:
+            surface = pygame.display.get_surface()
+            if surface:
+                # Convert pygame surface to PIL Image
+                size = surface.get_size()
+                buffer = pygame.image.tostring(surface, 'RGB')
+                image = Image.frombytes('RGB', size, buffer)
+                return image
+        except:
+            return None
+        return None
+
+def display_pygame_game(game_file, username="Player", fps=30):
+    """
+    Display Pygame game embedded in Streamlit
+    
+    Args:
+        game_file: Path to game .py file
+        username: Player username
+        fps: Target frames per second
+    """
+    st.markdown("### 🎮 Game Display")
+    st.caption(f"Playing: {Path(game_file).name} | User: {username}")
+    
+    # Create placeholders
+    game_placeholder = st.empty()
+    control_col1, control_col2 = st.columns(2)
+    
+    with control_col1:
+        st.info("🎮 Game is running in embedded mode")
+    
+    with control_col2:
+        if st.button("⏹️ Stop Game"):
+            st.session_state.game_running = False
+            st.rerun()
+    
     st.markdown("---")
     
-    # Create control section
-    st.markdown("#### 🕹️ Game Controls")
+    # Initialize runner
+    runner = PygameStreamlitRunner(game_file, username)
     
-    col1, col2, col3 = st.columns(3)
+    # Start game thread
+    runner.game_thread = threading.Thread(target=runner.run_game, daemon=True)
+    runner.game_thread.start()
     
-    with col1:
-        st.markdown("**Movement:**")
-        st.markdown("- A/D or ← → : Move")
-        st.markdown("- W or ↑ : Jump")
-        st.markdown("- S or ↓ : Crouch")
+    st.session_state.game_running = True
     
-    with col2:
-        st.markdown("**Actions:**")
-        st.markdown("- Left Click: Break blocks")
-        st.markdown("- Right Click: Place blocks")
-        st.markdown("- E: Inventory")
-        st.markdown("- Q: Drop item")
+    # Frame display loop
+    frame_delay = 1.0 / fps
+    frame_count = 0
     
-    with col3:
-        st.markdown("**Game:**")
-        st.markdown("- ESC: Pause menu")
-        st.markdown("- F: Toggle fullscreen")
-        st.markdown("- 1-9: Hotbar slots")
-    
-    st.markdown("---")
-    
-    # Game display area
-    game_container = st.container()
-    
-    with game_container:
-        # Check if game file exists
-        if not Path(game_path).exists():
-            st.error(f"❌ Game file not found: {game_path}")
-            return
-        
-        # Launch game in subprocess with special flag to capture output
-        game_dir = str(Path(game_path).parent.resolve())
-        game_file = Path(game_path).name
-        python_exe = sys.executable
-        
-        st.info("🎮 Game is launching...")
-        st.markdown(f"**Location:** `{game_file}`")
-        
-        # Explain the limitation
-        st.warning("""
-        ⚠️ **Technical Limitation:**
-        
-        Streamlit Cloud cannot display Pygame windows directly because:
-        - It runs on a remote server without a display
-        - Pygame requires a physical or virtual display to render
-        
-        **Available Options:**
-        1. 🌐 Use the **Browser Play** option for full web gameplay
-        2. 📥 Download and run locally for native window experience
-        3. 🔗 Use the embedded iframe mode below
-        """)
-        
-        # Show embedded browser version
-        st.markdown("### 🌐 Play in Embedded Browser")
-        st.info("The game runs in an embedded window below - full screen recommended!")
-        
-        # Embed the browser version
-        st.components.v1.iframe(
-            "https://syed-ameer.github.io/akram-pygame-minecraft/",
-            height=800,
-            scrolling=False
-        )
-        
-        st.markdown("---")
-        st.markdown("**💡 Tip:** Press F11 in your browser for true fullscreen experience!")
-
-def run_pygame_in_streamlit(game_name="Classic 5", game_path=None):
-    """Main function to run games in Streamlit"""
-    
-    if st.button("← Back to Launcher", key="back_btn"):
-        st.session_state.game_mode = None
-        st.rerun()
-    
-    if game_path and Path(game_path).exists():
-        run_game_embedded(game_path, game_name)
-    else:
-        # Fallback - show browser version
-        st.markdown(f"### 🎮 {game_name}")
-        st.info("🌐 Loading game in embedded browser mode...")
-        
-        st.components.v1.iframe(
-            "https://syed-ameer.github.io/akram-pygame-minecraft/",
-            height=800,
-            scrolling=False
-        )
+    try:
+        while st.session_state.get('game_running', False) and runner.running:
+            # Capture frame
+            frame = runner.get_frame()
+            
+            if frame:
+                # Display frame
+                game_placeholder.image(frame, use_column_width=True)
+                frame_count += 1
+            
+            # Control frame rate
+            time.sleep(frame_delay)
+            
+            # Stop if thread ended
+            if not runner.game_thread.is_alive():
+                break
+                
+    except Exception as e:
+        st.error(f"Display error: {e}")
+    finally:
+        runner.running = False
+        st.success(f"Game ended ({frame_count} frames displayed)")
