@@ -457,11 +457,8 @@ with play_col2:
                         st.success(f"✅ {selected_version} launched successfully!")
                         st.balloons()
                         
-                        # Auto-show game display
-                        st.info("🎮 Loading game display...")
-                        
+                        # Auto-show game display instantly
                         if VNC_VIEWER_AVAILABLE:
-                            # Auto-display with CDN fallback handling
                             show_game_display()
                         else:
                             st.error("VNC viewer module not available")

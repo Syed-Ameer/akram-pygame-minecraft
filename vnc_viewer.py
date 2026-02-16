@@ -80,7 +80,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
         <div id="screen"></div>
         
         <script>
-            // FASTEST & MOST ROBUST: Load all CDNs in parallel, use first success
+            // ULTRA-FAST: Parallel CDN + Instant connection + Progress feedback
             const cdnSources = [
                 'https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js',
                 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js',
@@ -90,6 +90,24 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
             let libraryLoaded = false;
             let connected = false;
             let failedCount = 0;
+            let startTime = Date.now();
+            
+            // Progress updates every 3 seconds
+            function updateProgress() {{
+                if (!connected) {{
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    if (elapsed <= 12) {{
+                        document.getElementById('loading').innerHTML = 
+                            '<div class="spinner"></div>' +
+                            `<div>Connecting... ${{elapsed}}s</div>`;
+                        setTimeout(updateProgress, 1000);
+                    }} else {{
+                        document.getElementById('loading').innerHTML = 
+                            '<div style="color: #ff9800;">\u231b Server starting up...</div>' +
+                            '<div style="font-size: 12px; margin-top: 10px;">This may take a moment</div>';
+                    }}
+                }}
+            }}
             
             // Try all CDNs simultaneously (FASTEST approach)
             cdnSources.forEach((url, index) => {{
@@ -100,7 +118,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 script.onload = function() {{
                     if (!libraryLoaded) {{
                         libraryLoaded = true;
-                        setTimeout(connectVNC, 50); // Immediate connection attempt
+                        connectVNC(); // INSTANT - no delay
                     }}
                 }};
                 
@@ -108,7 +126,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     failedCount++;
                     if (failedCount >= cdnSources.length) {{
                         document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff6b6b;">\u274c All CDNs failed</div>' +
+                            '<div style="color: #ff6b6b;">\u274c CDN failed</div>' +
                             '<div style="font-size: 12px; margin-top: 10px;">Check internet connection</div>';
                     }}
                 }};
@@ -118,36 +136,36 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
             
             function connectVNC() {{
                 if (typeof RFB === 'undefined') {{
-                    setTimeout(connectVNC, 100);
+                    setTimeout(connectVNC, 50);
                     return;
                 }}
                 
-                // Quick timeout for slow servers
-                const timeout = setTimeout(() => {{
-                    if (!connected) {{
-                        document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff9800;">\u231b Still connecting...</div>';
-                    }}
-                }}, 15000);
+                startTime = Date.now();
+                updateProgress(); // Start showing elapsed time
                 
                 try {{
                     const rfb = new RFB(document.getElementById('screen'), 
                         'ws://{host}:{port}/websockify',
-                        {{ credentials: {{}} }}
+                        {{ 
+                            credentials: {{}},
+                            wsProtocols: ['binary']
+                        }}
                     );
                     
                     rfb.addEventListener("connect", () => {{
                         connected = true;
-                        clearTimeout(timeout);
                         document.getElementById('loading').style.display = 'none';
                         document.getElementById('status').style.display = 'block';
-                        document.getElementById('status').textContent = '\u2705 Connected!';
+                        document.getElementById('status').style.color = '#0f0';
+                        document.getElementById('status').textContent = '\u2705 Connected in ' + 
+                            Math.floor((Date.now() - startTime) / 1000) + 's';
                         setTimeout(() => {{
                             document.getElementById('status').style.display = 'none';
-                        }}, 2000);
+                        }}, 3000);
                     }});
                     
                     rfb.addEventListener("disconnect", () => {{
+                        document.getElementById('status').style.color = '#f00';
                         document.getElementById('status').textContent = '\u274c Disconnected';
                         document.getElementById('status').style.display = 'block';
                     }});
@@ -155,9 +173,8 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     rfb.scaleViewport = true;
                     rfb.resizeSession = true;
                 }} catch (e) {{
-                    clearTimeout(timeout);
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">\u274c Connection error</div>';
+                        '<div style="color: #ff6b6b;">\u274c Error: ' + e.message + '</div>';
                 }}
             }}
         </script>
