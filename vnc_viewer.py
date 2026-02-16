@@ -80,36 +80,69 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
         <div id="screen"></div>
         
         <script>
-            // ULTRA-FAST: Parallel CDN + Instant connection + Progress feedback
+            // VISUAL PROGRESS: Show percentage and stage
             const cdnSources = [
                 'https://unpkg.com/@novnc/novnc@1.4.0/core/rfb.js',
                 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js',
                 'https://cdnjs.cloudflare.com/ajax/libs/noVNC/1.3.0/core/rfb.min.js'
             ];
             
+            let progress = 0;
             let libraryLoaded = false;
             let connected = false;
             let failedCount = 0;
-            let startTime = Date.now();
+            let stage = 'Loading library';
             
-            // Progress updates every 3 seconds
-            function updateProgress() {{
-                if (!connected) {{
-                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                    if (elapsed <= 12) {{
-                        document.getElementById('loading').innerHTML = 
-                            '<div class="spinner"></div>' +
-                            `<div>Connecting... ${{elapsed}}s</div>`;
-                        setTimeout(updateProgress, 1000);
-                    }} else {{
-                        document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff9800;">\u231b Server starting up...</div>' +
-                            '<div style="font-size: 12px; margin-top: 10px;">This may take a moment</div>';
-                    }}
+            // Animated progress display
+            function showProgress(percent, message) {{
+                document.getElementById('loading').innerHTML = 
+                    '<div class="spinner"></div>' +
+                    `<div style="font-size: 24px; font-weight: bold; color: #4CAF50;">${{percent}}%</div>` +
+                    `<div style="margin-top: 10px;">${{message}}</div>` +
+                    `<div style="width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 15px auto 0;">` +
+                    `<div style="width: ${{percent}}%; height: 100%; background: #4CAF50; border-radius: 2px; transition: width 0.3s;"></div></div>`;
+            }}
+            
+            // Smooth progress animation
+            function animateProgress() {{
+                if (connected) return;
+                
+                if (progress < 20 && !libraryLoaded) {{
+                    progress += 5;
+                    showProgress(progress, '📦 Loading VNC library...');
+                    setTimeout(animateProgress, 200);
+                }} else if (progress < 40 && libraryLoaded && stage === 'Loading library') {{
+                    stage = 'Initializing';
+                    progress = 40;
+                    showProgress(progress, '⚙️ Initializing connection...');
+                    setTimeout(animateProgress, 300);
+                }} else if (progress < 85 && stage === 'Initializing') {{
+                    progress += 5;
+                    showProgress(progress, '🔌 Connecting to server...');
+                    setTimeout(animateProgress, 500);
+                }} else if (progress >= 85 && !connected) {{
+                    showProgress(95, '⏳ Waiting for server response...');
+                    // Check if stuck
+                    setTimeout(() => {{
+                        if (!connected) {{
+                            showProgress(95, '⚠️ Server is slow to respond...');
+                            setTimeout(() => {{
+                                if (!connected) {{
+                                    document.getElementById('loading').innerHTML = 
+                                        '<div style="color: #ff6b6b;">❌ Connection timeout</div>' +
+                                        '<div style="font-size: 12px; margin-top: 10px;">Server may not be running</div>' +
+                                        '<div style="font-size: 12px;">Check if game launched successfully</div>';
+                                }}
+                            }}, 10000);
+                        }}
+                    }}, 8000);
                 }}
             }}
             
-            // Try all CDNs simultaneously (FASTEST approach)
+            // Start progress animation immediately
+            animateProgress();
+            
+            // Try all CDNs simultaneously
             cdnSources.forEach((url, index) => {{
                 const script = document.createElement('script');
                 script.src = url;
@@ -118,7 +151,9 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                 script.onload = function() {{
                     if (!libraryLoaded) {{
                         libraryLoaded = true;
-                        connectVNC(); // INSTANT - no delay
+                        progress = 30;
+                        showProgress(progress, '✅ Library loaded!');
+                        setTimeout(connectVNC, 100);
                     }}
                 }};
                 
@@ -126,7 +161,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     failedCount++;
                     if (failedCount >= cdnSources.length) {{
                         document.getElementById('loading').innerHTML = 
-                            '<div style="color: #ff6b6b;">\u274c CDN failed</div>' +
+                            '<div style="color: #ff6b6b;">❌ Library failed to load</div>' +
                             '<div style="font-size: 12px; margin-top: 10px;">Check internet connection</div>';
                     }}
                 }};
@@ -136,12 +171,12 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
             
             function connectVNC() {{
                 if (typeof RFB === 'undefined') {{
-                    setTimeout(connectVNC, 50);
+                    setTimeout(connectVNC, 100);
                     return;
                 }}
                 
-                startTime = Date.now();
-                updateProgress(); // Start showing elapsed time
+                stage = 'Initializing';
+                animateProgress();
                 
                 try {{
                     const rfb = new RFB(document.getElementById('screen'), 
@@ -154,19 +189,22 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     
                     rfb.addEventListener("connect", () => {{
                         connected = true;
-                        document.getElementById('loading').style.display = 'none';
-                        document.getElementById('status').style.display = 'block';
-                        document.getElementById('status').style.color = '#0f0';
-                        document.getElementById('status').textContent = '\u2705 Connected in ' + 
-                            Math.floor((Date.now() - startTime) / 1000) + 's';
+                        progress = 100;
+                        showProgress(100, '✅ Connected successfully!');
                         setTimeout(() => {{
-                            document.getElementById('status').style.display = 'none';
-                        }}, 3000);
+                            document.getElementById('loading').style.display = 'none';
+                            document.getElementById('status').style.display = 'block';
+                            document.getElementById('status').style.color = '#0f0';
+                            document.getElementById('status').textContent = '✅ Game Display Active';
+                            setTimeout(() => {{
+                                document.getElementById('status').style.display = 'none';
+                            }}, 3000);
+                        }}, 1000);
                     }});
                     
                     rfb.addEventListener("disconnect", () => {{
                         document.getElementById('status').style.color = '#f00';
-                        document.getElementById('status').textContent = '\u274c Disconnected';
+                        document.getElementById('status').textContent = '❌ Disconnected';
                         document.getElementById('status').style.display = 'block';
                     }});
                     
@@ -174,7 +212,7 @@ def vnc_viewer(host='localhost', port=6080, width=800, height=600):
                     rfb.resizeSession = true;
                 }} catch (e) {{
                     document.getElementById('loading').innerHTML = 
-                        '<div style="color: #ff6b6b;">\u274c Error: ' + e.message + '</div>';
+                        '<div style="color: #ff6b6b;">❌ Error: ' + e.message + '</div>';
                 }}
             }}
         </script>
