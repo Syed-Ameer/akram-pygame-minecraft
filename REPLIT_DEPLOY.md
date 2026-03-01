@@ -1,120 +1,192 @@
-# 🚀 Deploy PyCraft Launcher to Replit
+# Replit Deployment Guide
 
-## Quick Deploy Instructions
+## ✅ FIXED: Replit Configuration Updated
 
-### Step 1: Import to Replit
+Your Replit deployment has been configured with the correct settings to fix the "streamlit: command not found" error.
+
+## Changes Made
+
+### 1. **Updated `replit.nix`** (Python 3.14 + Virtual Display)
+```nix
+{ pkgs }: {
+  deps = [
+    pkgs.python314                  # Python 3.14
+    pkgs.python314Packages.pip      # Package manager
+    pkgs.libGL                      # OpenGL support
+    pkgs.xorg.libX11               # X11 display
+    pkgs.xorg.libXext              # X extensions
+    pkgs.xorg.libXrender           # Rendering
+    pkgs.SDL2                      # SDL2 for Pygame
+    pkgs.SDL2_image                # Image support
+    pkgs.SDL2_mixer                # Audio support
+    pkgs.SDL2_ttf                  # Font support
+    pkgs.xvfb-run                  # Virtual display
+    pkgs.xorg.xorgserver           # X server
+  ];
+}
+```
+
+### 2. **Updated `.replit`** (Proper Run Commands)
+```toml
+# Workspace run command
+run = "python3 -m streamlit run launcher.py --server.port=8501 --server.address=0.0.0.0"
+
+# Deployment run command (with virtual display)
+[deployment]
+run = ["sh", "-c", "xvfb-run -a python3 -m streamlit run launcher.py --server.port=8080 --server.address=0.0.0.0"]
+```
+
+### 3. **Updated `requirements.txt`** (Minimal Dependencies)
+```txt
+pygame>=2.5.0
+streamlit>=1.28.0
+pillow>=10.0.0
+numpy>=1.24.0
+```
+
+## How to Deploy
+
+### Step 1: Commit Changes to GitHub
+In your local terminal:
+```bash
+cd D:\Python\PyGame
+git add replit.nix .replit requirements.txt REPLIT_DEPLOY.md
+git commit -m "Fix Replit deployment configuration for Python 3.14"
+git push origin main
+```
+
+### Step 2: Import to Replit
 1. Go to [replit.com](https://replit.com)
 2. Click **"+ Create Repl"**
 3. Choose **"Import from GitHub"**
 4. Paste URL: `https://github.com/Syed-Ameer/akram-pygame-minecraft`
-5. Branch: `feature-texture-v1`
-6. Click **"Import from GitHub"**
+5. Click **"Import from GitHub"**
 
-### Step 2: Configure (Auto-detected)
-Replit will automatically detect:
-- ✅ Language: Python
-- ✅ Run command: `streamlit run launcher.py`
-- ✅ Files: `.replit` and `replit.nix` already configured
+### Step 3: Deploy
+1. Go to **Deployments** tab in Replit
+2. Click **Deploy** button
+3. Wait for build to complete (~2-3 minutes)
 
-### Step 3: Install Dependencies
-Replit will auto-install from `requirements.txt`:
-```bash
-# If needed, manually run in Shell:
-pip install -r requirements.txt
+### Step 4: Test
+- Development URL: `https://[your-repl].repl.co`
+- Production URL: Check Deployments tab
+
+## What This Fixes
+
+| Issue | Solution |
+|-------|----------|
+| `streamlit: command not found` | Use `python3 -m streamlit` instead of direct `streamlit` command |
+| Exit status 127 | Proper Python 3.14 environment in `replit.nix` |
+| Missing packages | Correct `requirements.txt` with minimal dependencies |
+| Headless Pygame | `xvfb-run` creates virtual display for games |
+
+## Important Notes
+
+### ⚠️ Replit Deployment Limitations
+Even with these fixes, **Replit published deployments are headless**:
+- Games launch via `subprocess.Popen`
+- Run in virtual display (xvfb)
+- **Users cannot see the game window remotely**
+- Only the Streamlit UI is visible
+
+### What Users Will See
+```
+✅ Launcher UI (accounts, memes, DLC)
+✅ Game selection buttons
+✅ "Playing..." status
+❌ Actual game window (runs in background, not visible)
 ```
 
-### Step 4: Run!
-1. Click the big green **"Run"** button
-2. Replit starts Streamlit launcher
-3. Opens in right panel or new tab
-4. **Your launcher is now live!**
+### Workspace vs Deployment
 
-### Step 5: Get Public URL
-- Click **"Open website"** icon (top right)
-- Copy the URL: `https://your-repl-name.yourusername.repl.co`
-- Share this URL globally!
+**Workspace Mode** (When YOU develop):
+- Click **Run** button in Replit editor
+- Built-in VNC viewer shows games
+- ✅ You can see and test games
 
-## How It Works on Replit
+**Published Deployment** (When users visit):
+- Users visit public URL
+- Headless environment
+- ❌ They cannot see game windows
 
-### When Users Click "🚀 PLAY GAME":
-1. Streamlit launcher runs `subprocess.Popen`
-2. Game launches on Replit's Linux container
-3. **Replit's VNC automatically captures the game window**
-4. Game displays in Replit's viewer panel
-5. User sees and plays the game!
+## Recommended Alternatives
 
-### What Replit Provides:
-- ✅ Virtual display (Xvfb) - built-in
-- ✅ VNC server - built-in
-- ✅ Web viewer - built-in
-- ✅ Public URL - automatic
-- ✅ GUI support - automatic
+Since Replit deployments can't show Pygame windows to users:
 
-**You don't need to configure VNC - Replit handles it!**
+### 1. **Streamlit Cloud** (Best for Web)
+Deploy with pygbag browser version:
+```bash
+# See STREAMLIT_CLOUD_DEPLOY.md for full instructions
+streamlit run launcher.py
+# Uses iframe to embed web game
+# Users actually see and play the game
+```
 
-## Features That Work on Replit
+### 2. **Local Installation** (Best Experience)
+Users download and run locally:
+```bash
+git clone https://github.com/Syed-Ameer/akram-pygame-minecraft.git
+cd akram-pygame-minecraft
+pip install -r requirements.txt
+streamlit run launcher.py
+```
 
-✅ All game versions launch
-✅ Meme of Month with reactions
-✅ Account system (saves to accounts.json)
-✅ Play count tracking
-✅ DLC toggle
-✅ Auto-launch feature
-✅ Game window display
+### 3. **Desktop App** (Professional)
+Package with PyInstaller:
+```bash
+pyinstaller --onefile --windowed launcher.py
+# Distribute .exe to users
+# No web deployment needed
+```
 
-## Limitations
+## Testing in Replit Workspace
 
-⚠️ **Free tier limits:**
-- Repl goes to sleep after inactivity
-- Wakes up when URL visited
-- Limited CPU/RAM (fine for 2D games)
+In workspace mode (not deployment), you CAN test games:
+1. Click **Run** button
+2. VNC viewer opens automatically in right panel
+3. Games display in VNC window
+4. ✅ Works perfectly for development
 
-⚠️ **Multiple users:**
-- Only ONE game can run at a time per Repl
-- If user A launches game, user B must wait
-- Consider forking for multiple instances
-
-## Tips
-
-### Keep Repl Awake (Optional):
-Use UptimeRobot or similar to ping your URL every 5 minutes
-
-### Performance:
-- 2D Minecraft clones run smoothly
-- 3D versions may be slower
-- Adjust game settings for cloud performance
-
-### Sharing:
-- Share Repl URL directly
-- Users don't need Replit accounts to play
-- Embed in website with iframe (optional)
+This ONLY works in workspace, not published deployments.
 
 ## Troubleshooting
 
-**Issue: Games don't display**
-- Check Replit's "Console" tab for errors
-- Verify Xvfb is running: `ps aux | grep Xvfb`
-- Replit should auto-start display
+**Build fails with Python errors:**
+- Check `replit.nix` has `python314` not `python311`
+- Wait for full package installation
 
-**Issue: Slow loading**
-- First run installs packages (slower)
-- Subsequent runs are faster
-- Free tier has CPU limits
+**"streamlit: command not found" still appears:**
+- Verify `.replit` uses `python3 -m streamlit`
+- Check deployment logs for errors
+- Rebuild from scratch
 
-**Issue: Account data lost**
-- Free tier may reset filesystem
-- Upgrade to Replit Hacker plan for persistence
-- Or use external database (Replit DB)
+**Games don't display:**
+- This is expected on headless deployments
+- Use Streamlit Cloud + pygbag for public web access
+- Or distribute as desktop app
 
-## Success!
+## Technical Architecture
 
-Your PyCraft Launcher is now globally accessible! 🎉
+### Workspace Mode (Development)
+```
+Replit Workspace → Built-in VNC → Pygame Display ✅
+```
 
-**URL Format:**
-`https://akram-pygame-minecraft.yourusername.repl.co`
+### Deployment Mode (Public URL)
+```
+Replit Deploy → xvfb-run → Virtual Display → Pygame (invisible) ⚠️
+```
 
-Share this URL and anyone can:
-1. Visit your launcher
-2. Select game version
-3. Click PLAY GAME
-4. Play Minecraft in their browser!
+### Streamlit Cloud Alternative (Recommended)
+```
+Streamlit Cloud → iframe → Pygbag Browser Version ✅
+```
+
+## Next Steps
+
+1. **Try deploying** with the new configuration
+2. Verify Streamlit UI loads at public URL
+3. For visible game playback, **deploy to Streamlit Cloud** instead
+4. See `STREAMLIT_CLOUD_DEPLOY.md` for web deployment guide
+
+The configuration is now correct for Replit infrastructure, but platform limitations (headless environment) mean users won't see Pygame windows. For public web access with visible games, use Streamlit Cloud + pygbag iframe.

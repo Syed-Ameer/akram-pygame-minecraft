@@ -18395,14 +18395,14 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 
                 # Consume one arrow
                 if arrow_slot_index < 9:  # Hotbar
-                    player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1)
+                    player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1, {})
                     if arrow_count - 1 <= 0:
                         player.hotbar_slots[arrow_slot_index] = (0, 0, {})
                 else:  # Inventory
                     inv_index = arrow_slot_index - 9
-                    player.inventory[inv_index] = (53, arrow_count - 1)
+                    player.inventory[inv_index] = (53, arrow_count - 1, {})
                     if arrow_count - 1 <= 0:
-                        player.inventory[inv_index] = (0, 0)
+                        player.inventory[inv_index] = (0, 0, {})
                 
                 print(f"🏹 Arrow shot! ({arrow_count - 1} arrows remaining)")
             else:
@@ -18451,14 +18451,14 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 
                 # Consume one arrow
                 if arrow_slot_index < 9:  # Hotbar
-                    player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1)
+                    player.hotbar_slots[arrow_slot_index] = (53, arrow_count - 1, {})
                     if arrow_count - 1 <= 0:
                         player.hotbar_slots[arrow_slot_index] = (0, 0, {})
                 else:  # Inventory
                     inv_index = arrow_slot_index - 9
-                    player.inventory[inv_index] = (53, arrow_count - 1)
+                    player.inventory[inv_index] = (53, arrow_count - 1, {})
                     if arrow_count - 1 <= 0:
-                        player.inventory[inv_index] = (0, 0)
+                        player.inventory[inv_index] = (0, 0, {})
                 
                 print(f"🏹 Crossbow bolt shot! ({arrow_count - 1} arrows remaining)")
             else:
@@ -18797,7 +18797,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 # Replace bucket with water bucket
                 for i in range(9):
                     if player.hotbar_slots[i][0] == 181:
-                        player.hotbar_slots[i] = (182, player.hotbar_slots[i][1])
+                        player.hotbar_slots[i] = (182, player.hotbar_slots[i][1], {})
                         if i == player.active_slot:
                             player.held_block = 182
                         break
@@ -18810,7 +18810,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 # Replace water bucket with empty bucket
                 for i in range(9):
                     if player.hotbar_slots[i][0] == 182:
-                        player.hotbar_slots[i] = (181, player.hotbar_slots[i][1])
+                        player.hotbar_slots[i] = (181, player.hotbar_slots[i][1], {})
                         if i == player.active_slot:
                             player.held_block = 181
                         break
@@ -18823,7 +18823,7 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 # Replace lava bucket with empty bucket
                 for i in range(9):
                     if player.hotbar_slots[i][0] == 183:
-                        player.hotbar_slots[i] = (181, player.hotbar_slots[i][1])
+                        player.hotbar_slots[i] = (181, player.hotbar_slots[i][1], {})
                         if i == player.active_slot:
                             player.held_block = 181
                         break
@@ -19265,7 +19265,10 @@ def draw_hud(player):
     pygame.draw.rect(screen, (150, 100, 50), offhand_rect, 3)
     
     # Draw offhand item
-    offhand_item_id, offhand_count, offhand_enchants = player.offhand_slot
+    _os = player.offhand_slot
+    offhand_item_id = _os[0]
+    offhand_count = _os[1]
+    offhand_enchants = _os[2] if len(_os) > 2 else {}
     if offhand_item_id != 0 and offhand_item_id in BLOCK_TYPES:
         inner_rect = pygame.Rect(offhand_x + 5, offhand_y + 5, SLOT_SIZE - 10, SLOT_SIZE - 10)
         sprite_size = int((SLOT_SIZE - 10) * 0.85)
@@ -20224,7 +20227,10 @@ def draw_inventory_menu(player):
     pygame.draw.rect(screen, (100, 150, 200), offhand_slot_rect, 2)
     
     # Draw offhand item if equipped
-    offhand_id, offhand_count, offhand_enchants = player.offhand_slot
+    _os = player.offhand_slot
+    offhand_id = _os[0]
+    offhand_count = _os[1]
+    offhand_enchants = _os[2] if len(_os) > 2 else {}
     if offhand_id != 0 and offhand_id in BLOCK_TYPES:
         item_size = int(SLOT_SIZE * 0.65)
         item_offset = (SLOT_SIZE - item_size) // 2
@@ -20377,7 +20383,7 @@ def handle_crafting_interaction(player, event):
     
     # Initialize held item if not exists
     if 'HELD_ITEM' not in globals():
-        HELD_ITEM = (0, 0)
+        HELD_ITEM = (0, 0, {})
     
     # 1. Check Input Slots (Indices 0-3)
     for i in range(4):
@@ -20386,7 +20392,7 @@ def handle_crafting_interaction(player, event):
             if event.button == 1: # LMB: Place/pickup item
                 if HELD_ITEM[0] == 0 and CRAFTING_GRID[i] != 0 and CRAFTING_AMOUNTS[i] > 0:
                     # Pick up entire stack from crafting slot
-                    HELD_ITEM = (CRAFTING_GRID[i], CRAFTING_AMOUNTS[i])
+                    HELD_ITEM = (CRAFTING_GRID[i], CRAFTING_AMOUNTS[i], {})
                     CRAFTING_GRID[i] = 0
                     CRAFTING_AMOUNTS[i] = 0
                 elif HELD_ITEM[0] != 0:
@@ -20394,22 +20400,22 @@ def handle_crafting_interaction(player, event):
                     if CRAFTING_GRID[i] == 0:
                         CRAFTING_GRID[i] = HELD_ITEM[0]
                         CRAFTING_AMOUNTS[i] = HELD_ITEM[1]
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif CRAFTING_GRID[i] == HELD_ITEM[0]:
                         # Same item - merge stacks
                         CRAFTING_AMOUNTS[i] += HELD_ITEM[1]
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     else:
                         # Different item - swap
                         old_id, old_amount = CRAFTING_GRID[i], CRAFTING_AMOUNTS[i]
                         CRAFTING_GRID[i] = HELD_ITEM[0]
                         CRAFTING_AMOUNTS[i] = HELD_ITEM[1]
-                        HELD_ITEM = (old_id, old_amount)
+                        HELD_ITEM = (old_id, old_amount, {})
 
             elif event.button == 3: # RMB: Place/remove one item
                 if HELD_ITEM[0] == 0 and CRAFTING_GRID[i] != 0 and CRAFTING_AMOUNTS[i] > 0:
                     # Pick up one item from crafting slot
-                    HELD_ITEM = (CRAFTING_GRID[i], 1)
+                    HELD_ITEM = (CRAFTING_GRID[i], 1, {})
                     CRAFTING_AMOUNTS[i] -= 1
                     if CRAFTING_AMOUNTS[i] <= 0:
                         CRAFTING_GRID[i] = 0
@@ -20419,7 +20425,7 @@ def handle_crafting_interaction(player, event):
                     if CRAFTING_GRID[i] == 0 or CRAFTING_GRID[i] == HELD_ITEM[0]:
                         CRAFTING_GRID[i] = HELD_ITEM[0]
                         CRAFTING_AMOUNTS[i] += 1
-                        HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1) if HELD_ITEM[1] > 1 else (0, 0)
+                        HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1, HELD_ITEM[2] if len(HELD_ITEM) > 2 else {}) if HELD_ITEM[1] > 1 else (0, 0, {})
             return
 
     # 2. Check Output Slot (Index 4)
@@ -20458,7 +20464,7 @@ def handle_inventory_interaction(player, event):
     
     # Initialize held item if not exists
     if 'HELD_ITEM' not in globals():
-        HELD_ITEM = (0, 0)  # (item_id, count)
+        HELD_ITEM = (0, 0, {})  # (item_id, count)
     
     for slot_type, slot_index, slot_rect in INVENTORY_SLOT_RECTS:
         if slot_rect.collidepoint(event.pos):
@@ -20468,7 +20474,7 @@ def handle_inventory_interaction(player, event):
                 if event.button == 1:  # LMB: Place/pickup entire stack
                     if HELD_ITEM[0] == 0 and CRAFTING_GRID[slot_index] != 0 and CRAFTING_AMOUNTS[slot_index] > 0:
                         # Pick up entire stack from crafting slot
-                        HELD_ITEM = (CRAFTING_GRID[slot_index], CRAFTING_AMOUNTS[slot_index])
+                        HELD_ITEM = (CRAFTING_GRID[slot_index], CRAFTING_AMOUNTS[slot_index], {})
                         CRAFTING_GRID[slot_index] = 0
                         CRAFTING_AMOUNTS[slot_index] = 0
                     elif HELD_ITEM[0] != 0:
@@ -20476,21 +20482,21 @@ def handle_inventory_interaction(player, event):
                         if CRAFTING_GRID[slot_index] == 0:
                             CRAFTING_GRID[slot_index] = HELD_ITEM[0]
                             CRAFTING_AMOUNTS[slot_index] = HELD_ITEM[1]
-                            HELD_ITEM = (0, 0)
+                            HELD_ITEM = (0, 0, {})
                         elif CRAFTING_GRID[slot_index] == HELD_ITEM[0]:
                             # Same item - merge stacks
                             CRAFTING_AMOUNTS[slot_index] += HELD_ITEM[1]
-                            HELD_ITEM = (0, 0)
+                            HELD_ITEM = (0, 0, {})
                         else:
                             # Different item - swap
                             old_id, old_amount = CRAFTING_GRID[slot_index], CRAFTING_AMOUNTS[slot_index]
                             CRAFTING_GRID[slot_index] = HELD_ITEM[0]
                             CRAFTING_AMOUNTS[slot_index] = HELD_ITEM[1]
-                            HELD_ITEM = (old_id, old_amount)
+                            HELD_ITEM = (old_id, old_amount, {})
                 elif event.button == 3:  # RMB: Place/remove one item
                     if HELD_ITEM[0] == 0 and CRAFTING_GRID[slot_index] != 0 and CRAFTING_AMOUNTS[slot_index] > 0:
                         # Pick up one item from crafting slot
-                        HELD_ITEM = (CRAFTING_GRID[slot_index], 1)
+                        HELD_ITEM = (CRAFTING_GRID[slot_index], 1, {})
                         CRAFTING_AMOUNTS[slot_index] -= 1
                         if CRAFTING_AMOUNTS[slot_index] <= 0:
                             CRAFTING_GRID[slot_index] = 0
@@ -20500,7 +20506,7 @@ def handle_inventory_interaction(player, event):
                         if CRAFTING_GRID[slot_index] == 0 or CRAFTING_GRID[slot_index] == HELD_ITEM[0]:
                             CRAFTING_GRID[slot_index] = HELD_ITEM[0]
                             CRAFTING_AMOUNTS[slot_index] += 1
-                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1) if HELD_ITEM[1] > 1 else (0, 0)
+                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1, HELD_ITEM[2] if len(HELD_ITEM) > 2 else {}) if HELD_ITEM[1] > 1 else (0, 0, {})
             
             # Handle craft output
             elif slot_type == 'craft_output':
@@ -20546,21 +20552,23 @@ def handle_inventory_interaction(player, event):
                     count = inv_data[1]
                     inv_enchants = inv_data[2] if len(inv_data) > 2 else {}
                     if HELD_ITEM[0] == 0:  # Not holding anything - pick up
-                        HELD_ITEM = (item_id, count)
-                        player.inventory[slot_index] = (0, 0)
+                        HELD_ITEM = (item_id, count, {})
+                        player.inventory[slot_index] = (0, 0, {})
                     elif item_id == 0:  # Empty slot - place held item
-                        player.inventory[slot_index] = HELD_ITEM
-                        HELD_ITEM = (0, 0)
+                        held_enchants = HELD_ITEM[2] if len(HELD_ITEM) > 2 else {}
+                        player.inventory[slot_index] = (HELD_ITEM[0], HELD_ITEM[1], held_enchants)
+                        HELD_ITEM = (0, 0, {})
                     elif item_id == HELD_ITEM[0]:  # Same item - try to merge
                         total = count + HELD_ITEM[1]
                         if total <= 64:
-                            player.inventory[slot_index] = (item_id, total)
-                            HELD_ITEM = (0, 0)
+                            player.inventory[slot_index] = (item_id, total, inv_enchants)
+                            HELD_ITEM = (0, 0, {})
                         else:
-                            player.inventory[slot_index] = (item_id, 64)
-                            HELD_ITEM = (item_id, total - 64)
+                            player.inventory[slot_index] = (item_id, 64, inv_enchants)
+                            HELD_ITEM = (item_id, total - 64, {})
                     else:  # Different item - swap
-                        HELD_ITEM, player.inventory[slot_index] = (item_id, count), HELD_ITEM
+                        held_enchants = HELD_ITEM[2] if len(HELD_ITEM) > 2 else {}
+                        HELD_ITEM, player.inventory[slot_index] = (item_id, count), (held_enchants and (HELD_ITEM[0], HELD_ITEM[1], held_enchants) or (HELD_ITEM[0], HELD_ITEM[1], {}))
             
             # Handle hotbar slots
             elif slot_type == 'hotbar':
@@ -20574,15 +20582,15 @@ def handle_inventory_interaction(player, event):
                         player.hotbar_slots[slot_index] = (0, 0, {})
                     elif item_id == 0:  # Empty slot - place held item
                         player.hotbar_slots[slot_index] = HELD_ITEM
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif item_id == HELD_ITEM[0]:  # Same item - try to merge
                         total = count + HELD_ITEM[1]
                         if total <= 64:
-                            player.hotbar_slots[slot_index] = (item_id, total)
-                            HELD_ITEM = (0, 0)
+                            player.hotbar_slots[slot_index] = (item_id, total, {})
+                            HELD_ITEM = (0, 0, {})
                         else:
-                            player.hotbar_slots[slot_index] = (item_id, 64)
-                            HELD_ITEM = (item_id, total - 64)
+                            player.hotbar_slots[slot_index] = (item_id, 64, {})
+                            HELD_ITEM = (item_id, total - 64, {})
                     else:  # Different item - swap
                         HELD_ITEM, player.hotbar_slots[slot_index] = (item_id, count), HELD_ITEM
                     
@@ -20614,13 +20622,13 @@ def handle_inventory_interaction(player, event):
                                 player.held_block = 0
                                 # If there was armor before, return it to hotbar
                                 if current_armor != 0:
-                                    player.hotbar_slots[player.active_slot] = (current_armor, 1)
+                                    player.hotbar_slots[player.active_slot] = (current_armor, 1, {})
                                     player.held_block = current_armor
                     elif current_armor != 0:
                         # No held item, but armor equipped - unequip it
                         player.armor_slots[slot_name] = 0
                         # Add to hotbar
-                        player.hotbar_slots[player.active_slot] = (current_armor, 1)
+                        player.hotbar_slots[player.active_slot] = (current_armor, 1, {})
                         player.held_block = current_armor
                 
                 elif event.button == 3:  # RMB: Unequip armor
@@ -20630,7 +20638,10 @@ def handle_inventory_interaction(player, event):
             # Handle offhand slot
             elif slot_type == 'offhand':
                 if event.button == 1:  # LMB: Swap with held item or place item
-                    offhand_id, offhand_count, offhand_enchants = player.offhand_slot
+                    _os = player.offhand_slot
+                    offhand_id = _os[0]
+                    offhand_count = _os[1]
+                    offhand_enchants = _os[2] if len(_os) > 2 else {}
                     
                     if HELD_ITEM[0] == 0:  # Not holding anything - pick up offhand item
                         HELD_ITEM = (offhand_id, offhand_count, offhand_enchants)
@@ -20647,7 +20658,7 @@ def handle_inventory_interaction(player, event):
                             HELD_ITEM = (0, 0, {})
                         else:
                             player.offhand_slot = (offhand_id, 64, offhand_enchants)
-                            HELD_ITEM = (offhand_id, total - 64, HELD_ITEM[2])
+                            HELD_ITEM = (offhand_id, total - 64, HELD_ITEM[2] if len(HELD_ITEM) > 2 else {})
                     else:  # Different item - swap
                         HELD_ITEM, player.offhand_slot = (offhand_id, offhand_count, offhand_enchants), HELD_ITEM
             
@@ -20660,7 +20671,7 @@ def handle_inventory_interaction(player, event):
             drop_x = player.rect.centerx
             drop_y = player.rect.centery
             DROPPED_ITEMS.add(DroppedItem(drop_x, drop_y, HELD_ITEM[0], HELD_ITEM[1]))
-            HELD_ITEM = (0, 0)
+            HELD_ITEM = (0, 0, {})
             print(f"📦 Dropped item from inventory!")
 
 def reset_crafting_grid(player):
@@ -21002,7 +21013,10 @@ def draw_chest_gui(screen, player):
         pygame.draw.rect(screen, (50, 50, 50), (slot_x, slot_y, slot_size, slot_size))
         pygame.draw.rect(screen, (150, 150, 150), (slot_x, slot_y, slot_size, slot_size), 2)
         
-        item_id, count, enchants = player.inventory[i]
+        inv_slot = player.inventory[i]
+        item_id = inv_slot[0]
+        count = inv_slot[1]
+        enchants = inv_slot[2] if len(inv_slot) > 2 else {}
         if item_id != 0 and item_id in BLOCK_TYPES:
             color = BLOCK_TYPES[item_id]["color"]
             pygame.draw.rect(screen, color, (slot_x + 3, slot_y + 3, slot_size - 6, slot_size - 6))
@@ -21092,7 +21106,7 @@ def handle_furnace_click(player, event):
             # Place in input
             if FURNACE_INPUT[0] == 0 or FURNACE_INPUT[0] == HELD_ITEM[0]:
                 FURNACE_INPUT = (HELD_ITEM[0], FURNACE_INPUT[1] + HELD_ITEM[1])
-                HELD_ITEM = (0, 0)
+                HELD_ITEM = (0, 0, {})
     
     # Fuel slot click
     elif fuel_rect.collidepoint(mouse_x, mouse_y):
@@ -21104,7 +21118,7 @@ def handle_furnace_click(player, event):
             # Place in fuel (only if it's a valid fuel)
             if FURNACE_FUEL[0] == 0 or FURNACE_FUEL[0] == HELD_ITEM[0]:
                 FURNACE_FUEL = (HELD_ITEM[0], FURNACE_FUEL[1] + HELD_ITEM[1])
-                HELD_ITEM = (0, 0)
+                HELD_ITEM = (0, 0, {})
     
     # Output slot click
     elif output_rect.collidepoint(mouse_x, mouse_y):
@@ -21182,12 +21196,12 @@ def handle_chest_click(player, event):
         
         if slot_x <= mouse_x <= slot_x + slot_size and slot_y <= mouse_y <= slot_y + slot_size:
             if HELD_ITEM[0] == 0:  # Pick up from player inventory
-                HELD_ITEM = (player.inventory[i][0], player.inventory[i][1])
+                HELD_ITEM = (player.inventory[i][0], player.inventory[i][1], {})
                 player.inventory[i] = (0, 0, {})
             else:  # Place in player inventory
                 old_item = player.inventory[i]
                 player.inventory[i] = (HELD_ITEM[0], HELD_ITEM[1], {})
-                HELD_ITEM = (old_item[0], old_item[1])
+                HELD_ITEM = (old_item[0], old_item[1], {})
             return
 
 def draw_enchantment_table_gui(screen, player):
@@ -21494,12 +21508,12 @@ def handle_crafting_table_click(player, event):
             elif HELD_ITEM[0] != 0:
                 # Place in hotbar
                 if item_id == 0 or item_id == HELD_ITEM[0]:
-                    player.hotbar_slots[i] = (HELD_ITEM[0], count + HELD_ITEM[1])
-                    HELD_ITEM = (0, 0)
+                    player.hotbar_slots[i] = (HELD_ITEM[0], count + HELD_ITEM[1], {})
+                    HELD_ITEM = (0, 0, {})
                 else:
                     # Swap items
                     player.hotbar_slots[i] = HELD_ITEM
-                    HELD_ITEM = (item_id, count)
+                    HELD_ITEM = (item_id, count, {})
                 player.held_block = player.hotbar_slots[player.active_slot][0]
             return
     
@@ -21523,16 +21537,16 @@ def handle_crafting_table_click(player, event):
                         # Empty slot - place one item
                         CRAFTING_TABLE_GRID[slot_index] = (HELD_ITEM[0], 1)
                         if HELD_ITEM[1] > 1:
-                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1)
+                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1, {})
                         else:
-                            HELD_ITEM = (0, 0)
+                            HELD_ITEM = (0, 0, {})
                     elif CRAFTING_TABLE_GRID[slot_index][0] == HELD_ITEM[0]:
                         # Same item - add one
                         CRAFTING_TABLE_GRID[slot_index] = (HELD_ITEM[0], CRAFTING_TABLE_GRID[slot_index][1] + 1)
                         if HELD_ITEM[1] > 1:
-                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1)
+                            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1] - 1, {})
                         else:
-                            HELD_ITEM = (0, 0)
+                            HELD_ITEM = (0, 0, {})
                 
                 # Check for recipe match
                 check_crafting_table_recipe()
@@ -22719,6 +22733,9 @@ if "--load" in sys.argv and os.path.exists("nether_save.pkl"):
         player.oxygen = save_data.get('player_oxygen', 100)
         player.hotbar_slots = save_data['player_hotbar']
         player.inventory = save_data['player_inventory']
+        # Migrate any 2-tuple inventory items to 3-tuple format
+        player.inventory = [(s[0], s[1], s[2] if len(s) > 2 else {}) for s in player.inventory]
+        player.hotbar_slots = [(s[0], s[1], s[2] if len(s) > 2 else {}) for s in player.hotbar_slots]
         player.armor_slots = save_data['player_armor']
         player.offhand_slot = save_data.get('player_offhand', (0, 0, {}))
         player.tool_durability = save_data['player_tool_durability']
@@ -23415,6 +23432,9 @@ while running:
                                 player.hunger = loaded_data['player_hunger']
                                 player.hotbar_slots = loaded_data['player_hotbar']
                                 player.inventory = loaded_data['player_inventory']
+                                # Migrate any 2-tuple inventory items to 3-tuple format
+                                player.inventory = [(s[0], s[1], s[2] if len(s) > 2 else {}) for s in player.inventory]
+                                player.hotbar_slots = [(s[0], s[1], s[2] if len(s) > 2 else {}) for s in player.hotbar_slots]
                                 player.armor_slots = loaded_data['player_armor']
                                 player.tool_durability = loaded_data['player_tool_durability']
                                 TIME_OF_DAY = loaded_data.get('time_of_day', 0)
@@ -23901,7 +23921,7 @@ while running:
                         CRAFTING_TABLE_OPEN = False
                         CRAFTING_TABLE_GRID = [(0, 0) for _ in range(9)]
                         CRAFTING_TABLE_OUTPUT = (0, 0)
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif ENCHANTMENT_TABLE_OPEN:
                         ENCHANTMENT_TABLE_OPEN = False
                     elif ANVIL_OPEN:
@@ -23921,7 +23941,7 @@ while running:
                         FURNACE_FUEL = (0, 0)
                         FURNACE_OUTPUT = (0, 0)
                         FURNACE_PROGRESS = 0
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif player.creative_inventory_open:
                         player.creative_inventory_open = False
                         player.creative_search_text = ""  # Clear search when closing
@@ -24070,7 +24090,7 @@ while running:
                         CRAFTING_TABLE_OPEN = False
                         CRAFTING_TABLE_GRID = [(0, 0) for _ in range(9)]
                         CRAFTING_TABLE_OUTPUT = (0, 0)
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif ENCHANTMENT_TABLE_OPEN:
                         ENCHANTMENT_TABLE_OPEN = False
                     elif ANVIL_OPEN:
@@ -24079,7 +24099,7 @@ while running:
                         # Return held item to player inventory when closing chest
                         if HELD_ITEM[0] != 0:
                             player.add_to_inventory(HELD_ITEM[0], HELD_ITEM[1])
-                            HELD_ITEM = (0, 0)
+                            HELD_ITEM = (0, 0, {})
                         CHEST_OPEN = False
                         CURRENT_CHEST_POS = None
                     elif FURNACE_OPEN:
@@ -24097,7 +24117,7 @@ while running:
                         FURNACE_FUEL = (0, 0)
                         FURNACE_OUTPUT = (0, 0)
                         FURNACE_PROGRESS = 0
-                        HELD_ITEM = (0, 0)
+                        HELD_ITEM = (0, 0, {})
                     elif not player.inventory_open and not player.is_crafting:
                         # In creative mode, open creative inventory instead of regular inventory
                         if player.creative_mode:
@@ -24163,7 +24183,10 @@ while running:
                     held_count = held_slot_data[1]
                     held_meta = held_slot_data[2] if len(held_slot_data) > 2 else {}
                     
-                    offhand_item_id, offhand_count, offhand_enchants = player.offhand_slot
+                    _os = player.offhand_slot
+                    offhand_item_id = _os[0]
+                    offhand_count = _os[1]
+                    offhand_enchants = _os[2] if len(_os) > 2 else {}
                     
                     # Swap them
                     player.hotbar_slots[player.active_slot] = (offhand_item_id, offhand_count, offhand_enchants)
@@ -24190,7 +24213,7 @@ while running:
                                 player.hotbar_slots[player.active_slot] = (0, 0, {})
                                 player.held_block = 0
                             else:
-                                player.hotbar_slots[player.active_slot] = (item_id, new_count)
+                                player.hotbar_slots[player.active_slot] = (item_id, new_count, {})
                             print(f"💧 Dropped {BLOCK_TYPES.get(item_id, {}).get('name', f'Item {item_id}')}")
                         else:
                             print("⚠️ No item in active slot to drop")
@@ -24327,7 +24350,7 @@ while running:
                                 if i == player.active_slot:
                                     player.held_block = 0
                             else:
-                                player.hotbar_slots[i] = (item_id, new_count)
+                                player.hotbar_slots[i] = (item_id, new_count, {})
                             
                             player.eating_timer = 0
                             break
@@ -24862,7 +24885,10 @@ while running:
                         if totem_slot == player.active_slot:
                             player.held_block = 0
                 else:  # Offhand slot
-                    item_id, count, enchants = player.offhand_slot
+                    _os = player.offhand_slot
+                    item_id = _os[0]
+                    count = _os[1]
+                    enchants = _os[2] if len(_os) > 2 else {}
                     if count > 1:
                         player.offhand_slot = (item_id, count - 1, enchants)
                     else:
@@ -24902,7 +24928,7 @@ while running:
                             offset_y = random.randint(-80, 80)
                             DROPPED_ITEMS.add(DroppedItem(death_x + offset_x, death_y + offset_y, item_id, drop_count))
                             count -= drop_count
-                        player.inventory[i] = (0, 0)
+                        player.inventory[i] = (0, 0, {})
                 
                 # Drop armor (if any equipped)
                 armor_slot_ids = [135, 136, 137, 138]  # Helmet, Chestplate, Leggings, Boots
@@ -25151,282 +25177,308 @@ while running:
         # Update weather particles
         update_weather_particles(camera_x, camera_y)
 
+        # Normalize inventory/hotbar tuples (fix 2-tuple -> 3-tuple globally)
+        for _i in range(len(player.inventory)):
+            _s = player.inventory[_i]
+            if len(_s) < 3:
+                player.inventory[_i] = (_s[0], _s[1], {})
+        for _i in range(len(player.hotbar_slots)):
+            _s = player.hotbar_slots[_i]
+            if len(_s) < 3:
+                player.hotbar_slots[_i] = (_s[0], _s[1], {})
+        if len(HELD_ITEM) < 3:
+            HELD_ITEM = (HELD_ITEM[0], HELD_ITEM[1], {})
+
         # 4. DRAWING
-        screen.fill(get_sky_color())
-        draw_world(camera_x, camera_y, player)
+        try:
+            screen.fill(get_sky_color())
+            draw_world(camera_x, camera_y, player)
 
-        # Draw block highlight 
-        if not player.is_crafting and not player.inventory_open:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            target_world_x = mouse_x + camera_x
-            target_world_y = mouse_y + camera_y
-            target_col = target_world_x // BLOCK_SIZE
-            target_row = target_world_y // BLOCK_SIZE
+            # Draw block highlight 
+            if not player.is_crafting and not player.inventory_open:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                target_world_x = mouse_x + camera_x
+                target_world_y = mouse_y + camera_y
+                target_col = target_world_x // BLOCK_SIZE
+                target_row = target_world_y // BLOCK_SIZE
 
-            if 0 <= target_row < GRID_HEIGHT and 0 <= target_col < GRID_WIDTH:
-                player_col = player.rect.centerx // BLOCK_SIZE
-                player_row = player.rect.centery // BLOCK_SIZE
+                if 0 <= target_row < GRID_HEIGHT and 0 <= target_col < GRID_WIDTH:
+                    player_col = player.rect.centerx // BLOCK_SIZE
+                    player_row = player.rect.centery // BLOCK_SIZE
             
-                if max(abs(target_col - player_col), abs(target_row - player_row)) <= 4:
-                    highlight_x = target_col * BLOCK_SIZE - camera_x
-                    highlight_y = target_row * BLOCK_SIZE - camera_y
-                    highlight_rect = pygame.Rect(highlight_x, highlight_y, BLOCK_SIZE, BLOCK_SIZE)
-                    pygame.draw.rect(screen, (0, 0, 0), highlight_rect, 3)
+                    if max(abs(target_col - player_col), abs(target_row - player_row)) <= 4:
+                        highlight_x = target_col * BLOCK_SIZE - camera_x
+                        highlight_y = target_row * BLOCK_SIZE - camera_y
+                        highlight_rect = pygame.Rect(highlight_x, highlight_y, BLOCK_SIZE, BLOCK_SIZE)
+                        pygame.draw.rect(screen, (0, 0, 0), highlight_rect, 3)
 
-        # Draw Mobs
-        for mob in MOBS:
-            # Apply visual offsets for parody animations (don't affect collision)
-            offset_x = getattr(mob, 'visual_offset_x', 0)
-            offset_y = getattr(mob, 'visual_offset_y', 0)
-            mob_screen_pos = (mob.rect.x - camera_x + offset_x, mob.rect.y - camera_y + offset_y)
-            screen.blit(mob.get_image(), mob_screen_pos)
+            # Draw Mobs
+            for mob in MOBS:
+                # Apply visual offsets for parody animations (don't affect collision)
+                offset_x = getattr(mob, 'visual_offset_x', 0)
+                offset_y = getattr(mob, 'visual_offset_y', 0)
+                mob_screen_pos = (mob.rect.x - camera_x + offset_x, mob.rect.y - camera_y + offset_y)
+                screen.blit(mob.get_image(), mob_screen_pos)
         
-            # Fire animation for burning mobs (sunlight or lava fire)
-            show_fire = False
-            if (hasattr(mob, 'sunlight_timer') and mob.sunlight_timer > 0 and 
-                not isinstance(mob, (Spider, Creeper, Drowned)) and 
-                not (isinstance(mob, Zombie) and hasattr(mob, 'is_husk') and mob.is_husk)):
-                show_fire = True
-            if hasattr(mob, 'on_fire') and mob.on_fire:
-                show_fire = True
+                # Fire animation for burning mobs (sunlight or lava fire)
+                show_fire = False
+                if (hasattr(mob, 'sunlight_timer') and mob.sunlight_timer > 0 and 
+                    not isinstance(mob, (Spider, Creeper, Drowned)) and 
+                    not (isinstance(mob, Zombie) and hasattr(mob, 'is_husk') and mob.is_husk)):
+                    show_fire = True
+                if hasattr(mob, 'on_fire') and mob.on_fire:
+                    show_fire = True
         
-            if show_fire:
-                # Draw flickering fire particles above the mob
-                for i in range(3):
-                    fire_x = mob_screen_pos[0] + random.randint(0, mob.rect.width)
-                    fire_y = mob_screen_pos[1] + random.randint(-10, mob.rect.height // 2)
-                    fire_color = random.choice([(255, 100, 0), (255, 150, 0), (255, 200, 0)])
-                    fire_size = random.randint(3, 6)
-                    pygame.draw.rect(screen, fire_color, (fire_x, fire_y, fire_size, fire_size))
+                if show_fire:
+                    # Draw flickering fire particles above the mob
+                    for i in range(3):
+                        fire_x = mob_screen_pos[0] + random.randint(0, mob.rect.width)
+                        fire_y = mob_screen_pos[1] + random.randint(-10, mob.rect.height // 2)
+                        fire_color = random.choice([(255, 100, 0), (255, 150, 0), (255, 200, 0)])
+                        fire_size = random.randint(3, 6)
+                        pygame.draw.rect(screen, fire_color, (fire_x, fire_y, fire_size, fire_size))
             
-            # Draw hearts for animals in love mode
-            if hasattr(mob, 'love_mode') and mob.love_mode:
-                for i in range(3):
-                    heart_x = mob_screen_pos[0] + mob.rect.width // 2 + random.randint(-15, 15)
-                    heart_y = mob_screen_pos[1] - 10 + random.randint(-10, 5)
-                    # Draw simple heart shape using circles
-                    pygame.draw.circle(screen, (255, 20, 147), (heart_x - 3, heart_y), 4)
-                    pygame.draw.circle(screen, (255, 20, 147), (heart_x + 3, heart_y), 4)
-                    pygame.draw.polygon(screen, (255, 20, 147), [
-                        (heart_x - 6, heart_y + 2),
-                        (heart_x, heart_y + 10),
-                        (heart_x + 6, heart_y + 2)
-                    ])
+                # Draw hearts for animals in love mode
+                if hasattr(mob, 'love_mode') and mob.love_mode:
+                    for i in range(3):
+                        heart_x = mob_screen_pos[0] + mob.rect.width // 2 + random.randint(-15, 15)
+                        heart_y = mob_screen_pos[1] - 10 + random.randint(-10, 5)
+                        # Draw simple heart shape using circles
+                        pygame.draw.circle(screen, (255, 20, 147), (heart_x - 3, heart_y), 4)
+                        pygame.draw.circle(screen, (255, 20, 147), (heart_x + 3, heart_y), 4)
+                        pygame.draw.polygon(screen, (255, 20, 147), [
+                            (heart_x - 6, heart_y + 2),
+                            (heart_x, heart_y + 10),
+                            (heart_x + 6, heart_y + 2)
+                        ])
         
-            # Health Bar
-            if mob.health < mob.max_health:
-                bar_width = mob.rect.width
-                bar_height = 5
-                health_ratio = mob.health / mob.max_health
-                pygame.draw.rect(screen, (50, 50, 50), (mob_screen_pos[0], mob_screen_pos[1] - 10, bar_width, bar_height))
-                pygame.draw.rect(screen, (255, 0, 0), (mob_screen_pos[0], mob_screen_pos[1] - 10, bar_width * health_ratio, bar_height))
+                # Health Bar
+                if mob.health < mob.max_health:
+                    bar_width = mob.rect.width
+                    bar_height = 5
+                    health_ratio = mob.health / mob.max_health
+                    pygame.draw.rect(screen, (50, 50, 50), (mob_screen_pos[0], mob_screen_pos[1] - 10, bar_width, bar_height))
+                    pygame.draw.rect(screen, (255, 0, 0), (mob_screen_pos[0], mob_screen_pos[1] - 10, bar_width * health_ratio, bar_height))
         
-        # Draw boats
-        for boat in BOATS:
-            boat_screen_pos = (boat.rect.x - camera_x, boat.rect.y - camera_y)
-            screen.blit(boat.image, boat_screen_pos)
+            # Draw boats
+            for boat in BOATS:
+                boat_screen_pos = (boat.rect.x - camera_x, boat.rect.y - camera_y)
+                screen.blit(boat.image, boat_screen_pos)
         
-        # Draw snowballs
-        for snowball in SNOWBALLS:
-            snowball_screen_pos = (snowball.rect.x - camera_x, snowball.rect.y - camera_y)
-            screen.blit(snowball.image, snowball_screen_pos)
+            # Draw snowballs
+            for snowball in SNOWBALLS:
+                snowball_screen_pos = (snowball.rect.x - camera_x, snowball.rect.y - camera_y)
+                screen.blit(snowball.image, snowball_screen_pos)
         
-        # Draw projectiles and items
-        for arrow in ARROWS:
-            screen.blit(arrow.image, (arrow.rect.x - camera_x, arrow.rect.y - camera_y))
-        for arrow in PLAYER_ARROWS:
-            screen.blit(arrow.image, (arrow.rect.x - camera_x, arrow.rect.y - camera_y))
-        for potion in SPLASH_POTIONS:
-            screen.blit(potion.image, (potion.rect.x - camera_x, potion.rect.y - camera_y))
-        for trident in TRIDENTS:
-            screen.blit(trident.image, (trident.rect.x - camera_x, trident.rect.y - camera_y))
-        for trident in PLAYER_TRIDENTS:
-            screen.blit(trident.image, (trident.rect.x - camera_x, trident.rect.y - camera_y))
-        for pearl in ENDER_PEARLS:
-            # Draw ender pearl with texture
-            screen.blit(pearl.image, (pearl.rect.x - camera_x, pearl.rect.y - camera_y))
-        for eye in EYE_OF_ENDER_PROJECTILES:
-            screen.blit(eye.image, (eye.rect.x - camera_x, eye.rect.y - camera_y))
-        for dropped_item in DROPPED_ITEMS:
-            screen.blit(dropped_item.image, (dropped_item.rect.x - camera_x, dropped_item.rect.y - camera_y))
+            # Draw projectiles and items
+            for arrow in ARROWS:
+                screen.blit(arrow.image, (arrow.rect.x - camera_x, arrow.rect.y - camera_y))
+            for arrow in PLAYER_ARROWS:
+                screen.blit(arrow.image, (arrow.rect.x - camera_x, arrow.rect.y - camera_y))
+            for potion in SPLASH_POTIONS:
+                screen.blit(potion.image, (potion.rect.x - camera_x, potion.rect.y - camera_y))
+            for trident in TRIDENTS:
+                screen.blit(trident.image, (trident.rect.x - camera_x, trident.rect.y - camera_y))
+            for trident in PLAYER_TRIDENTS:
+                screen.blit(trident.image, (trident.rect.x - camera_x, trident.rect.y - camera_y))
+            for pearl in ENDER_PEARLS:
+                # Draw ender pearl with texture
+                screen.blit(pearl.image, (pearl.rect.x - camera_x, pearl.rect.y - camera_y))
+            for eye in EYE_OF_ENDER_PROJECTILES:
+                screen.blit(eye.image, (eye.rect.x - camera_x, eye.rect.y - camera_y))
+            for dropped_item in DROPPED_ITEMS:
+                screen.blit(dropped_item.image, (dropped_item.rect.x - camera_x, dropped_item.rect.y - camera_y))
         
-        # Draw weather particles
-        draw_weather(screen, camera_x, camera_y)
+            # Draw weather particles
+            draw_weather(screen, camera_x, camera_y)
         
-        # Draw purple portal particles
-        for particle in PORTAL_PARTICLES[:]:
-            particle_screen_x = particle['x'] - camera_x
-            particle_screen_y = particle['y'] - camera_y
-            particle_size = max(2, particle['life'] // 5)
-            pygame.draw.circle(screen, particle['color'], 
-                             (int(particle_screen_x), int(particle_screen_y)), particle_size)
-            # Update particle
-            particle['y'] += particle['vel_y']
-            particle['life'] -= 1
-            if particle['life'] <= 0:
-                PORTAL_PARTICLES.remove(particle)
+            # Draw purple portal particles
+            for particle in PORTAL_PARTICLES[:]:
+                particle_screen_x = particle['x'] - camera_x
+                particle_screen_y = particle['y'] - camera_y
+                particle_size = max(2, particle['life'] // 5)
+                pygame.draw.circle(screen, particle['color'], 
+                                 (int(particle_screen_x), int(particle_screen_y)), particle_size)
+                # Update particle
+                particle['y'] += particle['vel_y']
+                particle['life'] -= 1
+                if particle['life'] <= 0:
+                    PORTAL_PARTICLES.remove(particle)
         
-        # Draw player (hide in first-person mode)
-        if PERSPECTIVE_MODE != 0:  # Only draw player in third-person modes
-            player_screen_x = player.rect.x - camera_x
-            player_screen_y = player.rect.y - camera_y
+            # Draw player (hide in first-person mode)
+            if PERSPECTIVE_MODE != 0:  # Only draw player in third-person modes
+                player_screen_x = player.rect.x - camera_x
+                player_screen_y = player.rect.y - camera_y
             
-            # Draw username above player
-            if hasattr(player, 'username') and player.username:
-                username_text = FONT_SMALL.render(player.username, True, (255, 255, 255))
-                username_shadow = FONT_SMALL.render(player.username, True, (0, 0, 0))
-                username_x = player_screen_x + player.rect.width // 2 - username_text.get_width() // 2
-                username_y = player_screen_y - 20
-                screen.blit(username_shadow, (username_x + 1, username_y + 1))
-                screen.blit(username_text, (username_x, username_y))
+                # Draw username above player
+                if hasattr(player, 'username') and player.username:
+                    username_text = FONT_SMALL.render(player.username, True, (255, 255, 255))
+                    username_shadow = FONT_SMALL.render(player.username, True, (0, 0, 0))
+                    username_x = player_screen_x + player.rect.width // 2 - username_text.get_width() // 2
+                    username_y = player_screen_y - 20
+                    screen.blit(username_shadow, (username_x + 1, username_y + 1))
+                    screen.blit(username_text, (username_x, username_y))
             
-            screen.blit(player.get_image(), (player_screen_x, player_screen_y))
+                screen.blit(player.get_image(), (player_screen_x, player_screen_y))
         
-        # --- Draw Multiplayer Players ---
-        if multiplayer_enabled and multiplayer_client.connected:
-            draw_other_players(screen, multiplayer_client, camera_x, camera_y)
+            # --- Draw Multiplayer Players ---
+            if multiplayer_enabled and multiplayer_client.connected:
+                draw_other_players(screen, multiplayer_client, camera_x, camera_y)
         
-        # --- Darkness Gradient Based on Depth ---
-        # Calculate player depth below surface
-        player_row = player.rect.centery // BLOCK_SIZE
-        surface_row = GRID_HEIGHT // 2  # Base surface level
+            # --- Darkness Gradient Based on Depth ---
+            # Calculate player depth below surface
+            player_row = player.rect.centery // BLOCK_SIZE
+            surface_row = GRID_HEIGHT // 2  # Base surface level
         
-        # Find actual surface above player
-        player_col = player.rect.centerx // BLOCK_SIZE
-        if 0 <= player_col < GRID_WIDTH:
-            for check_row in range(player_row, -1, -1):
-                if 0 <= check_row < GRID_HEIGHT and WORLD_MAP[check_row][player_col] != AIR_ID:
-                    surface_row = check_row
-                    break
+            # Find actual surface above player
+            player_col = player.rect.centerx // BLOCK_SIZE
+            if 0 <= player_col < GRID_WIDTH:
+                for check_row in range(player_row, -1, -1):
+                    if 0 <= check_row < GRID_HEIGHT and WORLD_MAP[check_row][player_col] != AIR_ID:
+                        surface_row = check_row
+                        break
         
-        depth_below_surface = player_row - surface_row
+            depth_below_surface = player_row - surface_row
         
-        # Apply darkness when underground (depth > 5)
-        if depth_below_surface > 5:
-            # Calculate darkness level (0 = light, 255 = very dark)
-            # Starts at depth 5, reaches max darkness at depth 40
-            darkness_alpha = min(200, int((depth_below_surface - 5) * 5.7))  # Max 200 alpha (not pitch black)
+            # Apply darkness when underground (depth > 5)
+            if depth_below_surface > 5:
+                # Calculate darkness level (0 = light, 255 = very dark)
+                # Starts at depth 5, reaches max darkness at depth 40
+                darkness_alpha = min(200, int((depth_below_surface - 5) * 5.7))  # Max 200 alpha (not pitch black)
             
-            # Create darkness overlay
-            darkness_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-            darkness_surface.fill((0, 0, 0))
-            darkness_surface.set_alpha(darkness_alpha)
-            screen.blit(darkness_surface, (0, 0))
+                # Create darkness overlay
+                darkness_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                darkness_surface.fill((0, 0, 0))
+                darkness_surface.set_alpha(darkness_alpha)
+                screen.blit(darkness_surface, (0, 0))
         
-        # Draw HUD
-        draw_hud(player)
+            # Draw HUD
+            draw_hud(player)
         
-        # Draw chat system
-        draw_chat(screen)
+            # Draw chat system
+            draw_chat(screen)
         
-        # Draw GUI overlays
-        if player.inventory_open and not player.is_crafting:
-            draw_inventory_menu(player)
-        if player.creative_inventory_open:
-            draw_creative_inventory(player)
-        if player.is_crafting:
-            draw_crafting_menu(player)
-        if player.trading_open:
-            draw_trading_menu(player)
-        if ENCHANTMENT_TABLE_OPEN:
-            draw_enchantment_table_gui(screen, player)
-        if ANVIL_OPEN:
-            draw_anvil_gui(screen, player)
-        if CRAFTING_TABLE_OPEN:
-            draw_crafting_table_gui(screen, player)
-        if FURNACE_OPEN:
-            draw_furnace_gui(screen, player)
-        if CHEST_OPEN:
-            draw_chest_gui(screen, player)
+            # Draw GUI overlays
+            if player.inventory_open and not player.is_crafting:
+                draw_inventory_menu(player)
+            if player.creative_inventory_open:
+                draw_creative_inventory(player)
+            if player.is_crafting:
+                draw_crafting_menu(player)
+            if player.trading_open:
+                draw_trading_menu(player)
+            if ENCHANTMENT_TABLE_OPEN:
+                draw_enchantment_table_gui(screen, player)
+            if ANVIL_OPEN:
+                draw_anvil_gui(screen, player)
+            if CRAFTING_TABLE_OPEN:
+                draw_crafting_table_gui(screen, player)
+            if FURNACE_OPEN:
+                draw_furnace_gui(screen, player)
+            if CHEST_OPEN:
+                draw_chest_gui(screen, player)
         
-        # Draw achievement popup
-        draw_achievement_popup()
+            # Draw achievement popup
+            draw_achievement_popup()
         
-        # Draw totem animation
-        draw_totem_animation()
+            # Draw totem animation
+            draw_totem_animation()
         
-        # Draw perspective mode indicator (top-right corner)
-        perspective_icons = ["👁️ First-Person", "📹 Third-Person", "🤳 Selfie Mode"]
-        perspective_text = FONT_SMALL.render(perspective_icons[PERSPECTIVE_MODE], True, (255, 255, 255))
-        perspective_bg = pygame.Surface((perspective_text.get_width() + 20, 30))
-        perspective_bg.set_alpha(150)
-        perspective_bg.fill((0, 0, 0))
-        screen.blit(perspective_bg, (SCREEN_WIDTH - perspective_text.get_width() - 30, 10))
-        screen.blit(perspective_text, (SCREEN_WIDTH - perspective_text.get_width() - 20, 15))
+            # Draw perspective mode indicator (top-right corner)
+            perspective_icons = ["👁️ First-Person", "📹 Third-Person", "🤳 Selfie Mode"]
+            perspective_text = FONT_SMALL.render(perspective_icons[PERSPECTIVE_MODE], True, (255, 255, 255))
+            perspective_bg = pygame.Surface((perspective_text.get_width() + 20, 30))
+            perspective_bg.set_alpha(150)
+            perspective_bg.fill((0, 0, 0))
+            screen.blit(perspective_bg, (SCREEN_WIDTH - perspective_text.get_width() - 30, 10))
+            screen.blit(perspective_text, (SCREEN_WIDTH - perspective_text.get_width() - 20, 15))
         
-        # Draw raid bar if active
-        if ACTIVE_RAID is not None and ACTIVE_RAID != 'rewarded':
-            ACTIVE_RAID.draw_raid_bar(screen)
+            # Draw raid bar if active
+            if ACTIVE_RAID is not None and ACTIVE_RAID != 'rewarded':
+                ACTIVE_RAID.draw_raid_bar(screen)
         
-        # Draw update news overlay if enabled
-        if SHOW_UPDATE_NEWS:
-            # Semi-transparent dark overlay
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-            overlay.set_alpha(200)
-            overlay.fill((0, 0, 0))
-            screen.blit(overlay, (0, 0))
+            # Draw update news overlay if enabled
+            if SHOW_UPDATE_NEWS:
+                # Semi-transparent dark overlay
+                overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                overlay.set_alpha(200)
+                overlay.fill((0, 0, 0))
+                screen.blit(overlay, (0, 0))
             
-            # Draw news box
-            box_width = 600
-            box_height = 500
-            box_x = (SCREEN_WIDTH - box_width) // 2
-            box_y = (SCREEN_HEIGHT - box_height) // 2
+                # Draw news box
+                box_width = 600
+                box_height = 500
+                box_x = (SCREEN_WIDTH - box_width) // 2
+                box_y = (SCREEN_HEIGHT - box_height) // 2
             
-            pygame.draw.rect(screen, (40, 40, 60), (box_x, box_y, box_width, box_height))
-            pygame.draw.rect(screen, (100, 200, 255), (box_x, box_y, box_width, box_height), 3)
+                pygame.draw.rect(screen, (40, 40, 60), (box_x, box_y, box_width, box_height))
+                pygame.draw.rect(screen, (100, 200, 255), (box_x, box_y, box_width, box_height), 3)
             
-            # Draw title
-            title_font = pygame.font.Font(None, 32)
-            title_text = title_font.render("🎮 PyCraft Update News 🎮", True, (100, 200, 255))
-            screen.blit(title_text, (box_x + (box_width - title_text.get_width()) // 2, box_y + 15))
+                # Draw title
+                title_font = pygame.font.Font(None, 32)
+                title_text = title_font.render("🎮 PyCraft Update News 🎮", True, (100, 200, 255))
+                screen.blit(title_text, (box_x + (box_width - title_text.get_width()) // 2, box_y + 15))
             
-            # Draw version info
-            version_font = pygame.font.Font(None, 24)
-            version_info = version_font.render(f"{GAME_VERSION} - {LAST_UPDATE}", True, (150, 150, 150))
-            screen.blit(version_info, (box_x + (box_width - version_info.get_width()) // 2, box_y + 50))
+                # Draw version info
+                version_font = pygame.font.Font(None, 24)
+                version_info = version_font.render(f"{GAME_VERSION} - {LAST_UPDATE}", True, (150, 150, 150))
+                screen.blit(version_info, (box_x + (box_width - version_info.get_width()) // 2, box_y + 50))
             
-            # Draw update news lines
-            news_font = pygame.font.Font(None, 20)
-            y_offset = box_y + 85
-            for line in UPDATE_NEWS:
-                if y_offset < box_y + box_height - 30:
-                    if "===" in line:
-                        color = (100, 200, 255)
-                    elif line.startswith("🎮") or line.startswith("⚡") or line.startswith("🌍") or line.startswith("🔧"):
-                        color = (255, 200, 100)
-                    elif line.startswith("  •"):
-                        color = (200, 200, 200)
-                    else:
-                        color = (180, 180, 180)
+                # Draw update news lines
+                news_font = pygame.font.Font(None, 20)
+                y_offset = box_y + 85
+                for line in UPDATE_NEWS:
+                    if y_offset < box_y + box_height - 30:
+                        if "===" in line:
+                            color = (100, 200, 255)
+                        elif line.startswith("🎮") or line.startswith("⚡") or line.startswith("🌍") or line.startswith("🔧"):
+                            color = (255, 200, 100)
+                        elif line.startswith("  •"):
+                            color = (200, 200, 200)
+                        else:
+                            color = (180, 180, 180)
                     
-                    news_line = news_font.render(line, True, color)
-                    screen.blit(news_line, (box_x + 20, y_offset))
-                    y_offset += 22
+                        news_line = news_font.render(line, True, color)
+                        screen.blit(news_line, (box_x + 20, y_offset))
+                        y_offset += 22
 
-        # --- Multiplayer Chat ---
-        if multiplayer_enabled and multiplayer_client.connected:
-            chat_font = pygame.font.SysFont('Arial', 16)
-            draw_multiplayer_chat(screen, multiplayer_client, chat_font)
+            # --- Multiplayer Chat ---
+            if multiplayer_enabled and multiplayer_client.connected:
+                chat_font = pygame.font.SysFont('Arial', 16)
+                draw_multiplayer_chat(screen, multiplayer_client, chat_font)
             
-            # Draw chat input box if active
-            if multiplayer_chat_active:
-                input_bg = pygame.Surface((SCREEN_WIDTH - 20, 30))
-                input_bg.set_alpha(180)
-                input_bg.fill((0, 0, 0))
-                screen.blit(input_bg, (10, SCREEN_HEIGHT - 40))
-                input_text = chat_font.render(f"> {multiplayer_chat_input}_", True, (255, 255, 255))
-                screen.blit(input_text, (15, SCREEN_HEIGHT - 35))
+                # Draw chat input box if active
+                if multiplayer_chat_active:
+                    input_bg = pygame.Surface((SCREEN_WIDTH - 20, 30))
+                    input_bg.set_alpha(180)
+                    input_bg.fill((0, 0, 0))
+                    screen.blit(input_bg, (10, SCREEN_HEIGHT - 40))
+                    input_text = chat_font.render(f"> {multiplayer_chat_input}_", True, (255, 255, 255))
+                    screen.blit(input_text, (15, SCREEN_HEIGHT - 35))
             
-            # Draw connection indicator
-            indicator_color = (0, 200, 0) if multiplayer_client.connected else (200, 0, 0)
-            pygame.draw.circle(screen, indicator_color, (SCREEN_WIDTH - 15, 15), 6)
-            players_online = len(multiplayer_client.get_other_players()) + 1
-            online_text = chat_font.render(f"{players_online} online", True, (255, 255, 255))
-            screen.blit(online_text, (SCREEN_WIDTH - 25 - online_text.get_width(), 8))
+                # Draw connection indicator
+                indicator_color = (0, 200, 0) if multiplayer_client.connected else (200, 0, 0)
+                pygame.draw.circle(screen, indicator_color, (SCREEN_WIDTH - 15, 15), 6)
+                players_online = len(multiplayer_client.get_other_players()) + 1
+                online_text = chat_font.render(f"{players_online} online", True, (255, 255, 255))
+                screen.blit(online_text, (SCREEN_WIDTH - 25 - online_text.get_width(), 8))
         
-        # Draw help overlay if active
-        if SHOW_HELP_OVERLAY:
-            draw_help_overlay(screen)
+            # Draw help overlay if active
+            if SHOW_HELP_OVERLAY:
+                draw_help_overlay(screen)
+
+        except Exception as _draw_err:
+            # If drawing fails, show error on screen instead of going gray
+            try:
+                screen.fill((40, 0, 0))
+                err_font = pygame.font.Font(None, 28)
+                err_text = err_font.render(f"Render Error: {_draw_err}", True, (255, 100, 100))
+                screen.blit(err_text, (20, SCREEN_HEIGHT // 2 - 30))
+                fix_text = err_font.render("Press ESC to pause or wait for auto-recovery...", True, (200, 200, 200))
+                screen.blit(fix_text, (20, SCREEN_HEIGHT // 2 + 10))
+                print(f"⚠️ Drawing error (recovering): {_draw_err}")
+            except:
+                pass
 
         # 5. UPDATE DISPLAY & CLOCK
         pygame.display.flip()

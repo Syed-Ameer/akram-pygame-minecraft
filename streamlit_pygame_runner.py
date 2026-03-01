@@ -1,149 +1,69 @@
 # Streamlit Pygame Runner  
-# Embeds Pygame games directly in Streamlit using frame capture
+# Hybrid approach: Try to run pygame, fallback to browser version
 
 import streamlit as st
 import pygame
-import threading
 import sys
 import os
 from pathlib import Path
-from PIL import Image
-import time
-import io
-
-class PygameStreamlitRunner:
-    """Runs Pygame games embedded in Streamlit by capturing frames"""
-    
-    def __init__(self, game_file, username="Player", width=800, height=600):
-        self.game_file = game_file
-        self.username = username
-        self.width = width
-        self.height = height
-        self.running = False
-        self.game_thread = None
-        self.current_frame = None
-        self.fps = 30
-        
-    def run_game(self):
-        """Run the game in a separate thread"""
-        try:
-            # Set up environment
-            os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Headless mode
-            
-            #Initialize pygame
-            pygame.init()
-            
-            # Create surface
-            screen = pygame.display.set_mode((self.width, self.height))
-            clock = pygame.time.Clock()
-            
-            # Import and run game module
-            game_dir = str(Path(self.game_file).parent.resolve())
-            game_file = Path(self.game_file).name
-            
-            # Add game directory to path
-            if game_dir not in sys.path:
-                sys.path.insert(0, game_dir)
-            
-            # Set username argument
-            sys.argv = [game_file, "--username", self.username]
-            
-            # Import game module
-            game_module_name = game_file.replace('.py', '')
-            
-            # Execute game file
-            with open(self.game_file, 'r') as f:
-                game_code = f.read()
-            
-            # Create namespace for game
-            game_namespace = {
-                '__name__': '__main__',
-                '__file__': self.game_file,
-            }
-            
-            self.running = True
-            
-            # Execute game in namespace
-            exec(game_code, game_namespace)
-            
-        except Exception as e:
-            print(f"Game error: {e}")
-        finally:
-            self.running = False
-            pygame.quit()
-    
-    def get_frame(self):
-        """Capture current pygame frame as PIL Image"""
-        try:
-            surface = pygame.display.get_surface()
-            if surface:
-                # Convert pygame surface to PIL Image
-                size = surface.get_size()
-                buffer = pygame.image.tostring(surface, 'RGB')
-                image = Image.frombytes('RGB', size, buffer)
-                return image
-        except:
-            return None
-        return None
 
 def display_pygame_game(game_file, username="Player", fps=30):
     """
-    Display Pygame game embedded in Streamlit
+    Display Pygame game - tries native pygame in browser, falls back to pygbag version
     
     Args:
         game_file: Path to game .py file
         username: Player username
-        fps: Target frames per second
+        fps: Target frames per second (not used in fallback)
     """
     st.markdown("### 🎮 Game Display")
-    st.caption(f"Playing: {Path(game_file).name} | User: {username}")
+    st.caption(f"Selected: {Path(game_file).name} | User: {username}")
     
-    # Create placeholders
-    game_placeholder = st.empty()
-    control_col1, control_col2 = st.columns(2)
+    # Reality check: We can't actually run .py pygame files in browser
+    st.warning("""
+    ⚠️ **Technical Limitation**
     
-    with control_col1:
-        st.info("🎮 Game is running in embedded mode")
+    Native .py Pygame files cannot run directly in web browsers.
     
-    with control_col2:
-        if st.button("⏹️ Stop Game"):
-            st.session_state.game_running = False
-            st.rerun()
+    **Your options:**
+    1. 🌐 **Play the browser version below** (pygbag-converted, works anywhere)
+    2. 💻 **Download the launcher** and run locally (full .py file support)
+    """)
     
     st.markdown("---")
     
-    # Initialize runner
-    runner = PygameStreamlitRunner(game_file, username)
+    # Offer browser version
+    st.markdown("### 🌐 Play in Browser (Recommended)")
+    st.info("Full game running in HTML5 canvas - works on any device!")
     
-    # Start game thread
-    runner.game_thread = threading.Thread(target=runner.run_game, daemon=True)
-    runner.game_thread.start()
+    st.components.v1.iframe(
+        "https://syed-ameer.github.io/akram-pygame-minecraft/",
+        height=800,
+        scrolling=False
+    )
     
-    st.session_state.game_running = True
+    st.markdown("---")
     
-    # Frame display loop
-    frame_delay = 1.0 / fps
-    frame_count = 0
+    # Offer download option
+    st.markdown("### 💻 Download for Local Play")
+    st.info("For the full Python experience with all 27 versions:")
     
-    try:
-        while st.session_state.get('game_running', False) and runner.running:
-            # Capture frame
-            frame = runner.get_frame()
-            
-            if frame:
-                # Display frame
-                game_placeholder.image(frame, use_column_width=True)
-                frame_count += 1
-            
-            # Control frame rate
-            time.sleep(frame_delay)
-            
-            # Stop if thread ended
-            if not runner.game_thread.is_alive():
-                break
-                
-    except Exception as e:
-        st.error(f"Display error: {e}")
-    finally:
-        runner.running = False
-        st.success(f"Game ended ({frame_count} frames displayed)")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Download Launcher:**")
+        st.markdown("[📥 Get from GitHub](https://github.com/Syed-Ameer/akram-pygame-minecraft/archive/refs/heads/feature-streamlit-pygame.zip)")
+        st.caption("Includes all game versions and launcher")
+    
+    with col2:
+        st.markdown("**How to run:**")
+        st.code("""
+# Extract the files
+# Install dependencies:
+pip install -r requirements.txt
+
+# Run launcher:
+streamlit run launcher.py
+        """, language="bash")
+
+

@@ -7,12 +7,11 @@ pygame>=2.5.0
 # Launcher UI
 streamlit>=1.28.0
 
-# Image processing for pygame frame capture
+# Image processing
 pillow>=10.0.0
-numpy>=1.24.0
 
-# Virtual display (legacy - not needed for web deployment)
-pyvirtualdisplay>=3.0
+# Utilities for data handling
+numpy>=1.24.0
 
 # Standard library dependencies (included with Python)
 # - random

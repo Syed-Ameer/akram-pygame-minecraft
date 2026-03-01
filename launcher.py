@@ -2,9 +2,11 @@ import streamlit as st
 import subprocess
 import sys
 import os
+import platform
 from pathlib import Path
 import base64
 import json
+import hashlib
 from datetime import datetime
 
 # ===== AUTO-INSTALL DEPENDENCIES =====
@@ -52,14 +54,33 @@ try:
 except Exception as e:
     print(f"⚠️ Dependency check failed: {e}")
 
-# No VNC - Web-native Pygame approach
+# Detect operating system
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+IS_MAC = platform.system() == 'Darwin'
+
+# Import Game Display (works on all platforms - Windows Popen, Linux VNC, fallback browser)
 try:
-    from streamlit_pygame_runner import display_pygame_game
-    PYGAME_RUNNER_AVAILABLE = True
+    from game_display import GameDisplay, show_game_display
+    GAME_DISPLAY_AVAILABLE = True
 except ImportError:
-    PYGAME_RUNNER_AVAILABLE = False
-    def display_pygame_game(game_file, username, fps=30):
-        st.error("Pygame runner not available")
+    GAME_DISPLAY_AVAILABLE = False
+
+# Legacy VNC imports (for backward compatibility)
+VNC_AVAILABLE = False
+VIRTUAL_DISPLAY_AVAILABLE = False
+try:
+    from universal_vnc import UniversalVNC, show_vnc_viewer
+    VNC_AVAILABLE = True
+except ImportError:
+    pass
+
+if IS_LINUX:
+    try:
+        from virtual_display import VirtualDisplay
+        VIRTUAL_DISPLAY_AVAILABLE = True
+    except ImportError:
+        pass
 
 # Set page config
 st.set_page_config(
@@ -73,6 +94,14 @@ base_dir = Path(__file__).parent
 
 # Initialize accounts system
 ACCOUNTS_FILE = base_dir / "accounts.json"
+
+def hash_password(password):
+    """Hash password using SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(stored_hash, password):
+    """Verify password against stored hash"""
+    return stored_hash == hash_password(password)
 
 def load_accounts():
     """Load saved accounts"""
@@ -89,15 +118,53 @@ def save_accounts(accounts):
     with open(ACCOUNTS_FILE, 'w') as f:
         json.dump(accounts, f, indent=2)
 
-def add_account(username):
-    """Add or update account"""
+def add_account(username, password):
+    """Add or update account with password"""
     accounts = load_accounts()
     accounts[username] = {
+        "password_hash": hash_password(password),
         "created": datetime.now().isoformat(),
         "last_login": datetime.now().isoformat(),
-        "play_count": accounts.get(username, {}).get("play_count", 0)
+        "play_count": 0,
+        "achievements": [],
+        "favorite_version": None
     }
     save_accounts(accounts)
+    return True
+
+def authenticate_user(username, password):
+    """Authenticate user with password"""
+    accounts = load_accounts()
+    if username not in accounts:
+        return False
+    
+    if "password_hash" not in accounts[username]:
+        # Legacy account without password - allow login and prompt to set password
+        return "legacy"
+    
+    return verify_password(accounts[username]["password_hash"], password)
+
+# ===== SMART GAME LAUNCHER - OS DETECTION =====
+def launch_game(game_path, game_name):
+    """
+    Launch game using appropriate method based on OS and environment.
+    Uses GameDisplay for unified cross-platform + cloud experience.
+    Respects the user's launch mode choice (VNC or Local Computer).
+    """
+    launch_mode = st.session_state.get('launch_mode', '💻 Local Computer')
+    use_vnc = '📡' in launch_mode  # VNC mode selected
+    
+    if GAME_DISPLAY_AVAILABLE:
+        display = GameDisplay()
+        return display.launch_and_show(game_path, game_name, force_vnc=use_vnc)
+    
+    # Minimal fallback if game_display module somehow not available
+    st.warning("⚠️ Game display module not loaded, using basic fallback")
+    st.components.v1.iframe(
+        "https://syed-ameer.github.io/akram-pygame-minecraft/",
+        height=800,
+        scrolling=False
+    )
     return True
 
 # Initialize session state
@@ -107,6 +174,8 @@ if 'username' not in st.session_state:
     st.session_state.username = None
 if 'show_realm_selector' not in st.session_state:
     st.session_state.show_realm_selector = False
+if 'launch_mode' not in st.session_state:
+    st.session_state.launch_mode = '💻 Local Computer'
 
 # Function to load background image
 @st.cache_data(show_spinner=False)
@@ -185,57 +254,91 @@ st.markdown("### 🎮 Game Launcher")
 
 # Login System
 if not st.session_state.logged_in:
-    st.markdown('<p class="subtitle">Login or Create Account</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">🔐 Secure Login System</p>', unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["🔑 Login", "➕ Create Account"])
     
     with tab1:
-        st.markdown("### Login to Existing Account")
+        st.markdown("### Login to Your Account")
         accounts = load_accounts()
         
         if accounts:
             account_names = list(accounts.keys())
-            selected_account = st.selectbox("Select Account:", account_names)
+            selected_account = st.selectbox("Select Account:", [""] + account_names, label_visibility="collapsed", placeholder="Choose your account...")
             
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("🎮 Login", type="primary", use_container_width=True):
-                    st.session_state.logged_in = True
-                    st.session_state.username = selected_account
-                    # Update last login
-                    accounts[selected_account]["last_login"] = datetime.now().isoformat()
-                    save_accounts(accounts)
-                    st.rerun()
-            
-            with col2:
-                if st.button("🗑️ Delete Account", use_container_width=True):
-                    del accounts[selected_account]
-                    save_accounts(accounts)
-                    st.success(f"Account '{selected_account}' deleted!")
-                    st.rerun()
+            if selected_account:
+                login_password = st.text_input("🔒 Password:", type="password", key="login_password")
+                
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    if st.button("🎮 Login", type="primary", use_container_width=True):
+                        if not login_password:
+                            st.error("Please enter your password!")
+                        else:
+                            auth_result = authenticate_user(selected_account, login_password)
+                            
+                            if auth_result == True:
+                                st.session_state.logged_in = True
+                                st.session_state.username = selected_account
+                                # Update last login
+                                accounts[selected_account]["last_login"] = datetime.now().isoformat()
+                                save_accounts(accounts)
+                                st.success(f"✅ Welcome back, {selected_account}!")
+                                st.balloons()
+                                st.rerun()
+                            elif auth_result == "legacy":
+                                # Legacy account - prompt to set password
+                                st.warning("⚠️ This is a legacy account. Please set a password:")
+                                new_pass = st.text_input("New Password:", type="password", key="legacy_pass")
+                                confirm_pass = st.text_input("Confirm Password:", type="password", key="legacy_confirm")
+                                if st.button("Set Password"):
+                                    if new_pass == confirm_pass and len(new_pass) >= 4:
+                                        accounts[selected_account]["password_hash"] = hash_password(new_pass)
+                                        save_accounts(accounts)
+                                        st.success("Password set! Please login again.")
+                                        st.rerun()
+                                    else:
+                                        st.error("Passwords don't match or are too short (min 4 chars)")
+                            else:
+                                st.error("❌ Incorrect password!")
+                
+                with col2:
+                    if st.button("🗑️ Delete", use_container_width=True):
+                        del accounts[selected_account]
+                        save_accounts(accounts)
+                        st.success(f"Account '{selected_account}' deleted!")
+                        st.rerun()
         else:
-            st.info("No accounts found. Create a new account in the 'Create Account' tab!")
+            st.info("📝 No accounts found. Create your first account in the 'Create Account' tab!")
     
     with tab2:
         st.markdown("### Create New Account")
-        new_username = st.text_input("Username:", placeholder="Enter your username")
+        new_username = st.text_input("👤 Username:", placeholder="Choose a username (min 3 characters)")
+        new_password = st.text_input("🔒 Password:", type="password", placeholder="Enter password (min 4 characters)")
+        confirm_password = st.text_input("🔒 Confirm Password:", type="password", placeholder="Re-enter password")
+        
         if st.button("✅ Create Account", type="primary", use_container_width=True):
-            if new_username:
-                if len(new_username) < 3:
-                    st.error("Username must be at least 3 characters!")
-                elif new_username in accounts:
-                    st.error("Username already exists!")
-                elif new_username.lower() in ["player", "example", "testuser", ""]:
-                    st.error("Please choose a unique username!")
-                else:
-                    add_account(new_username)
-                    st.session_state.logged_in = True
-                    st.session_state.username = new_username
-                    st.success(f"Welcome, {new_username}! 🎉")
-                    st.balloons()
-                    st.rerun()
+            accounts = load_accounts()
+            
+            if not new_username or not new_password:
+                st.error("Please fill in all fields!")
+            elif len(new_username) < 3:
+                st.error("Username must be at least 3 characters!")
+            elif len(new_password) < 4:
+                st.error("Password must be at least 4 characters!")
+            elif new_password != confirm_password:
+                st.error("Passwords don't match!")
+            elif new_username in accounts:
+                st.error("Username already exists!")
+            elif new_username.lower() in ["player", "example", "testuser", "admin", "guest"]:
+                st.error("Please choose a unique username!")
             else:
-                st.error("Please enter a username!")
+                add_account(new_username, new_password)
+                st.session_state.logged_in = True
+                st.session_state.username = new_username
+                st.success(f"🎉 Welcome, {new_username}! Account created successfully!")
+                st.balloons()
+                st.rerun()
     
     # Show existing accounts preview
     if accounts:
@@ -370,72 +473,86 @@ for i, option in enumerate(dropdown_options):
     elif "Alpha 3 Overworld" in option and default_index == 0:
         default_index = i
 
-# ===== QUICK PLAY SECTION - MOST PROMINENT =====
-st.markdown("### 🎮 Quick Play")
+# ===== MAIN LAUNCHER TABS =====
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🎮 Quick Play", 
+    "📥 Downloads", 
+    "🌐 Multiplayer", 
+    "🖥️ VNC Viewer",
+    "🔥 Akram DLC"
+])
 
-# Initialize auto-launch tracking
-if 'last_launched_version' not in st.session_state:
-    st.session_state.last_launched_version = None
-if 'auto_launch_enabled' not in st.session_state:
-    st.session_state.auto_launch_enabled = True
-
-# Version selector with prominent play button
-selected_version = st.selectbox(
-    "🎮 Select Game Version:",
-    options=dropdown_options,
-    index=default_index
-)
-
-# AUTO-LAUNCH: Launch automatically when version changes
-auto_launch = st.session_state.auto_launch_enabled and (selected_version != st.session_state.last_launched_version)
-
-# BIG PLAY BUTTON (or auto-launch indicator)
-play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
-with play_col2:
-    if not auto_launch:
-        launch_button = st.button(
-            "🚀 PLAY GAME",
-            use_container_width=True,
-            type="primary",
-            help=f"Launch {selected_version} - Opens in new window"
-        )
-    else:
-        launch_button = True
-        st.info("🎮 Auto-launching game...")
-
-if launch_button or auto_launch:
-    if selected_version in version_map:
-        game_path = version_map[selected_version]
-        
-        # Update play count
-        accounts = load_accounts()
-        if st.session_state.username in accounts:
-            accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
-            save_accounts(accounts)
-        
-        # Update last launched version
-        st.session_state.last_launched_version = selected_version
-        
-        st.success(f"✅ {selected_version} ready to play!")
-        st.balloons()
-        
-        st.markdown("---")
-        st.markdown("### 🎮 Game Display")
-        st.caption(f"Playing: {selected_version} | User: {st.session_state.username}")
-        
-        # Embed browser version (works perfectly on Streamlit Cloud!)
-        st.components.v1.iframe(
-            "https://syed-ameer.github.io/akram-pygame-minecraft/",
-            height=800,
-            scrolling=False
-        )
-        
-        st.markdown("---")
-        st.info("💡 **Tip:** Press F11 for fullscreen gameplay!")
-
-# Display version info
-if selected_version:
-    st.caption(f"📦 {selected_version} | 👤 {st.session_state.username}")
+# ===== TAB 1: QUICK PLAY =====
+with tab1:
+    st.markdown("### 🎮 Quick Play")
+    
+    # Initialize auto-launch tracking
+    if 'last_launched_version' not in st.session_state:
+        st.session_state.last_launched_version = None
+    if 'auto_launch_enabled' not in st.session_state:
+        st.session_state.auto_launch_enabled = True
+    
+    # Version selector with prominent play button
+    selected_version = st.selectbox(
+        "🎮 Select Game Version:",
+        options=dropdown_options,
+        index=default_index
+    )
+    
+    # Launch mode selector: VNC or Local Computer
+    st.session_state.launch_mode = st.radio(
+        "🖥️ Launch Mode:",
+        options=["💻 Local Computer", "📡 VNC (Remote/Browser)"],
+        index=0 if st.session_state.launch_mode == '💻 Local Computer' else 1,
+        horizontal=True,
+        help="Local: opens game in a native window on your PC. VNC: streams the game to your browser (for remote or cloud use)."
+    )
+    
+    # AUTO-LAUNCH: Launch automatically when version changes
+    auto_launch = st.session_state.auto_launch_enabled and (selected_version != st.session_state.last_launched_version)
+    
+    # BIG PLAY BUTTON (or auto-launch indicator)
+    play_col1, play_col2, play_col3 = st.columns([1, 3, 1])
+    with play_col2:
+        if not auto_launch:
+            launch_button = st.button(
+                "🚀 PLAY GAME",
+                use_container_width=True,
+                type="primary",
+                help=f"Launch {selected_version} - Opens in new window"
+            )
+        else:
+            launch_button = True
+            st.info("🎮 Auto-launching game...")
+    
+    if launch_button or auto_launch:
+        if selected_version in version_map:
+            game_path = version_map[selected_version]
+            
+            # Update play count
+            accounts = load_accounts()  
+            if st.session_state.username in accounts:
+                accounts[st.session_state.username]["play_count"] = accounts[st.session_state.username].get("play_count", 0) + 1
+                save_accounts(accounts)
+            
+            # Update last launched version
+            st.session_state.last_launched_version = selected_version
+            
+            # Show platform info
+            platform_emoji = "🪟" if IS_WINDOWS else ("🐧" if IS_LINUX else "💻")
+            st.info(f"{platform_emoji} Platform: {platform.system()} | Mode: {'Native Windows' if IS_WINDOWS else ('VNC Display' if IS_LINUX else 'Browser')}")
+            
+            st.markdown("---")
+            
+            # Launch game using smart launcher
+            launch_game(game_path, selected_version)
+            
+            st.markdown("---")
+            st.info("💡 **Tip:** Press F11 for fullscreen gameplay!")
+    
+    # Display version info
+    if selected_version:
+        st.caption(f"📦 {selected_version} | 👤 {st.session_state.username}")
 
 # ===== AKRAM DLC TOGGLE =====
 st.markdown("---")

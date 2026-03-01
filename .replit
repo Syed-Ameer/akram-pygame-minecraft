@@ -1,7 +1,7 @@
-run = "streamlit run launcher.py --server.port=8501 --server.address=0.0.0.0"
+run = "python3 -m streamlit run launcher.py --server.port=8501 --server.address=0.0.0.0"
 
 [nix]
 channel = "stable-23_11"
 
 [deployment]
-run = ["sh", "-c", "streamlit run launcher.py --server.port=8501 --server.address=0.0.0.0"]
+run = ["sh", "-c", "xvfb-run -a python3 -m streamlit run launcher.py --server.port=8080 --server.address=0.0.0.0"]
