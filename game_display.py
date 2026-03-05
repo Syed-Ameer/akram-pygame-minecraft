@@ -77,15 +77,22 @@ class GameDisplay:
         game_path = str(game_path)
         
         if force_vnc:
-            # User explicitly chose VNC mode
-            st.info("📡 **VNC Mode**: Streaming game to your browser...")
-            return self._launch_deployed(game_path, game_name, version_key)
+            if IS_LINUX or self.deployed:
+                # VNC is possible on Linux / cloud-deployed environments
+                st.info("📡 **VNC Mode**: Streaming game to your browser...")
+                return self._launch_deployed(game_path, game_name, version_key)
+            else:
+                # VNC requires a Linux virtual display (xvfb + websockify).
+                # On Windows/Mac we launch the game natively instead.
+                st.warning(
+                    "📡 **VNC streaming** requires a Linux server with xvfb.\n\n"
+                    "Launching the game in a **native window** instead — "
+                    "check your taskbar!"
+                )
+                return self._launch_local_popen(game_path, game_name)
         
-        if self.local and IS_WINDOWS:
-            # LOCAL WINDOWS: Native window
-            return self._launch_local_popen(game_path, game_name)
-        elif self.local and not IS_LINUX:
-            # LOCAL MAC/OTHER: Native window
+        if self.local:
+            # LOCAL (any OS): Native window
             return self._launch_local_popen(game_path, game_name)
         elif IS_LINUX or self.deployed:
             # DEPLOYED or LINUX: Try VNC, then browser embed
@@ -138,7 +145,28 @@ class GameDisplay:
         if vnc_success:
             return True
         
-        # 2) Fall back to browser embed (works for everyone globally)
+        # 2) VNC failed — try launching headless + show status
+        st.warning("⚠️ VNC display not available — the game needs a graphical display.")
+        
+        # Attempt to run the game headless anyway (it may still work via SDL_VIDEODRIVER=dummy)
+        try:
+            game_dir = str(Path(game_path).parent.resolve())
+            game_file = Path(game_path).name
+            env = {**os.environ, 'SDL_VIDEODRIVER': 'dummy', 'SDL_AUDIODRIVER': 'dummy'}
+            self.process = subprocess.Popen(
+                [sys.executable, game_file],
+                cwd=game_dir,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            time.sleep(1)
+            if self.process.poll() is None:
+                st.info("🖥️ Game process started (headless). VNC viewer would connect here on a full Linux server.")
+        except Exception:
+            pass
+        
+        # 3) Show browser embed as last resort
         st.info("🌐 **Cloud Mode**: Loading browser-playable version...")
         return self._launch_browser(game_name, version_key)
     
