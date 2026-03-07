@@ -538,9 +538,22 @@ with tab1:
             # Update last launched version
             st.session_state.last_launched_version = selected_version
             
-            # Show platform info
-            platform_emoji = "🪟" if IS_WINDOWS else ("🐧" if IS_LINUX else "💻")
-            st.info(f"{platform_emoji} Platform: {platform.system()} | Mode: {'Native Windows' if IS_WINDOWS else ('VNC Display' if IS_LINUX else 'Browser')}")
+            # Show platform info based on actual launch mode choice
+            _mode = st.session_state.get('launch_mode', '💻 Local Computer')
+            _is_vnc = '📡' in _mode
+            if IS_WINDOWS:
+                platform_emoji = "🪟"
+                mode_label = "Screen Stream (VNC)" if _is_vnc else "Native Window"
+            elif IS_MAC:
+                platform_emoji = "🍎"
+                mode_label = "Screen Stream (VNC)" if _is_vnc else "Native Window"
+            elif IS_LINUX:
+                platform_emoji = "🐧"
+                mode_label = "VNC Display" if _is_vnc else "Native Window"
+            else:
+                platform_emoji = "💻"
+                mode_label = "Browser" if _is_vnc else "Native"
+            st.info(f"{platform_emoji} Platform: {platform.system()} | Mode: {mode_label}")
             
             st.markdown("---")
             
