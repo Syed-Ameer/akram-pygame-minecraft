@@ -153,9 +153,14 @@ def launch_game(game_path, game_name):
     """
     launch_mode = st.session_state.get('launch_mode', '💻 Local Computer')
     use_vnc = '📡' in launch_mode  # VNC mode selected
+
+    # Map UI platform choice → override string
+    _plat_map = {'🪟 Windows': 'windows', '🍎 Mac': 'mac', '🐧 Linux': 'linux'}
+    _plat_pick = st.session_state.get('platform_choice', '')
+    platform_override = _plat_map.get(_plat_pick, None)
     
     if GAME_DISPLAY_AVAILABLE:
-        display = GameDisplay()
+        display = GameDisplay(platform_override=platform_override)
         return display.launch_and_show(game_path, game_name, force_vnc=use_vnc)
     
     # Minimal fallback if game_display module somehow not available
@@ -176,6 +181,10 @@ if 'show_realm_selector' not in st.session_state:
     st.session_state.show_realm_selector = False
 if 'launch_mode' not in st.session_state:
     st.session_state.launch_mode = '💻 Local Computer'
+if 'platform_choice' not in st.session_state:
+    # Auto-detect default
+    _auto = '🪟 Windows' if IS_WINDOWS else ('🍎 Mac' if IS_MAC else '🐧 Linux')
+    st.session_state.platform_choice = _auto
 
 # Function to load background image
 @st.cache_data(show_spinner=False)
@@ -499,9 +508,20 @@ with tab1:
         index=default_index
     )
     
+    # Platform picker (so user can override auto-detection)
+    _plat_opts = ['🪟 Windows', '🍎 Mac', '🐧 Linux']
+    _plat_default = st.session_state.platform_choice if st.session_state.platform_choice in _plat_opts else _plat_opts[0]
+    st.session_state.platform_choice = st.radio(
+        "🖥️ Your Platform:",
+        options=_plat_opts,
+        index=_plat_opts.index(_plat_default),
+        horizontal=True,
+        help="Select your OS. Auto-detected but you can override it."
+    )
+
     # Launch mode selector: VNC or Local Computer
     st.session_state.launch_mode = st.radio(
-        "🖥️ Launch Mode:",
+        "🚀 Launch Mode:",
         options=["💻 Local Computer", "📡 VNC (Remote/Browser)"],
         index=0 if st.session_state.launch_mode == '💻 Local Computer' else 1,
         horizontal=True,
@@ -538,22 +558,23 @@ with tab1:
             # Update last launched version
             st.session_state.last_launched_version = selected_version
             
-            # Show platform info based on actual launch mode choice
+            # Show platform info based on user's chosen platform + launch mode
             _mode = st.session_state.get('launch_mode', '💻 Local Computer')
             _is_vnc = '📡' in _mode
-            if IS_WINDOWS:
+            _plat_choice = st.session_state.get('platform_choice', '')
+            if '🪟' in _plat_choice:
                 platform_emoji = "🪟"
                 mode_label = "Screen Stream (VNC)" if _is_vnc else "Native Window"
-            elif IS_MAC:
+            elif '🍎' in _plat_choice:
                 platform_emoji = "🍎"
                 mode_label = "Screen Stream (VNC)" if _is_vnc else "Native Window"
-            elif IS_LINUX:
+            elif '🐧' in _plat_choice:
                 platform_emoji = "🐧"
                 mode_label = "VNC Display" if _is_vnc else "Native Window"
             else:
                 platform_emoji = "💻"
                 mode_label = "Browser" if _is_vnc else "Native"
-            st.info(f"{platform_emoji} Platform: {platform.system()} | Mode: {mode_label}")
+            st.info(f"{platform_emoji} Platform: {_plat_choice} | Mode: {mode_label}")
             
             st.markdown("---")
             

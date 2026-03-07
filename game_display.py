@@ -59,11 +59,25 @@ def is_local():
 class GameDisplay:
     """Universal game display that works on any platform, locally or deployed"""
     
-    def __init__(self):
+    def __init__(self, platform_override=None):
         self.process = None
         self.display = None
         self.deployed = is_deployed()
         self.local = is_local()
+
+        # Allow the UI to override auto-detected platform
+        # platform_override: 'windows', 'mac', 'linux', or None (auto)
+        _plat = (platform_override or '').lower()
+        if _plat == 'windows':
+            self._win, self._linux, self._mac = True, False, False
+        elif _plat in ('mac', 'darwin'):
+            self._win, self._linux, self._mac = False, False, True
+        elif _plat == 'linux':
+            self._win, self._linux, self._mac = False, True, False
+        else:
+            self._win  = IS_WINDOWS
+            self._linux = IS_LINUX
+            self._mac  = IS_MAC
     
     def launch_and_show(self, game_path, game_name="Game", version_key=None, force_vnc=False):
         """
@@ -78,7 +92,7 @@ class GameDisplay:
         game_path = str(game_path)
         
         if force_vnc:
-            if IS_LINUX or self.deployed:
+            if self._linux or self.deployed:
                 # VNC is possible on Linux / cloud-deployed environments
                 st.info("📡 **VNC Mode**: Streaming game to your browser...")
                 return self._launch_deployed(game_path, game_name, version_key)
@@ -90,7 +104,7 @@ class GameDisplay:
         if self.local:
             # LOCAL (any OS): Native window
             return self._launch_local_popen(game_path, game_name)
-        elif IS_LINUX or self.deployed:
+        elif self._linux or self.deployed:
             # DEPLOYED or LINUX: Try VNC, then browser embed
             return self._launch_deployed(game_path, game_name, version_key)
         else:
@@ -105,7 +119,7 @@ class GameDisplay:
             game_file = Path(game_path).name
             python_exe = sys.executable
             
-            if IS_WINDOWS:
+            if self._win:
                 # Windows: os.startfile() on a .bat fully detaches from Streamlit's process.
                 # Popen (even with CREATE_NEW_CONSOLE) stays attached and may be blocked.
                 import tempfile, textwrap
@@ -235,7 +249,7 @@ class GameDisplay:
 
     def _try_vnc(self, game_path, game_name):
         """Try to launch with VNC virtual display (Linux only)"""
-        if not IS_LINUX:
+        if not self._linux:
             return False
         
         try:
