@@ -106,12 +106,12 @@ class GameDisplay:
             python_exe = sys.executable
             
             if IS_WINDOWS:
-                # Windows: new CMD window
-                cmd = f'cd /d "{game_dir}" && "{python_exe}" "{game_file}"'
+                # Windows: open a new console window using CREATE_NEW_CONSOLE flag
+                # (shell=True + "start" is broken — Windows treats first quoted arg as title)
                 self.process = subprocess.Popen(
-                    f'start cmd /k "{cmd}"',
-                    shell=True,
-                    cwd=game_dir
+                    [python_exe, game_file],
+                    cwd=game_dir,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
                 )
             else:
                 # Mac/Linux local
