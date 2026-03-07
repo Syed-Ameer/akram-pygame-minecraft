@@ -10,6 +10,9 @@ streamlit>=1.28.0
 # Image processing
 pillow>=10.0.0
 
+# Screen capture for VNC streaming (Windows/Mac)
+mss>=9.0.0
+
 # Utilities for data handling
 numpy>=1.24.0
 

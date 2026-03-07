@@ -25,6 +25,7 @@ from pathlib import Path
 
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX = platform.system() == 'Linux'
+IS_MAC = platform.system() == 'Darwin'
 
 # Pygbag browser URLs for each game version
 BROWSER_GAME_URLS = {
@@ -82,14 +83,9 @@ class GameDisplay:
                 st.info("📡 **VNC Mode**: Streaming game to your browser...")
                 return self._launch_deployed(game_path, game_name, version_key)
             else:
-                # VNC requires a Linux virtual display (xvfb + websockify).
-                # On Windows/Mac we launch the game natively instead.
-                st.warning(
-                    "📡 **VNC streaming** requires a Linux server with xvfb.\n\n"
-                    "Launching the game in a **native window** instead — "
-                    "check your taskbar!"
-                )
-                return self._launch_local_popen(game_path, game_name)
+                # Windows / Mac — use screen-capture streaming
+                st.info("📡 **Stream Mode**: Capturing game window to your browser...")
+                return self._try_screen_stream(game_path, game_name)
         
         if self.local:
             # LOCAL (any OS): Native window
@@ -170,6 +166,65 @@ class GameDisplay:
         st.info("🌐 **Cloud Mode**: Loading browser-playable version...")
         return self._launch_browser(game_name, version_key)
     
+    def _try_screen_stream(self, game_path, game_name):
+        """Windows/Mac: Launch game natively + capture window via MJPEG stream."""
+        try:
+            from windows_vnc import WindowsScreenStream, find_pygame_window
+        except ImportError as e:
+            st.warning(f"Screen streaming not available: {e}")
+            st.info("Falling back to native window...")
+            return self._launch_local_popen(game_path, game_name)
+
+        if not WindowsScreenStream.is_available():
+            st.warning("Screen capture dependencies (mss, Pillow) not available.")
+            st.info("Falling back to native window...")
+            return self._launch_local_popen(game_path, game_name)
+
+        # 1) Launch game natively
+        game_dir = str(Path(game_path).parent.resolve())
+        game_file = Path(game_path).name
+        try:
+            self.process = subprocess.Popen(
+                [sys.executable, game_file],
+                cwd=game_dir,
+            )
+        except Exception as e:
+            st.error(f"Failed to launch game: {e}")
+            return False
+
+        # 2) Wait for the game window to appear
+        with st.spinner("Waiting for game window to appear..."):
+            region = None
+            for _ in range(20):  # up to ~4 seconds
+                time.sleep(0.2)
+                if self.process.poll() is not None:
+                    st.error("Game exited before window appeared.")
+                    return False
+                region = find_pygame_window("pycraft", "pygame", "minecraft")
+                if region:
+                    break
+
+        # 3) Start MJPEG capture server
+        stream = WindowsScreenStream(fps=15, quality=60)
+        port = stream.start(capture_region=region)
+        if port is None:
+            st.warning("Could not start capture server.")
+            st.info("Game is running in a native window — check your taskbar.")
+            self._show_game_card(game_name, "local")
+            return True
+
+        # Store so we can stop later
+        if 'screen_stream' not in st.session_state:
+            st.session_state['screen_stream'] = stream
+
+        st.success(f"✅ {game_name} is streaming to your browser!")
+        st.balloons()
+
+        # 4) Show the MJPEG viewer
+        self._show_stream_viewer(game_name, port)
+        self._show_game_card(game_name, "vnc")
+        return True
+
     def _try_vnc(self, game_path, game_name):
         """Try to launch with VNC virtual display (Linux only)"""
         if not IS_LINUX:
@@ -556,6 +611,104 @@ class GameDisplay:
         """
         
         components.html(vnc_html, height=height + 50)
+
+    def _show_stream_viewer(self, game_name, port, height=620):
+        """Embed MJPEG stream from WindowsScreenStream in Streamlit."""
+        stream_url = f"http://localhost:{port}/stream"
+        snapshot_url = f"http://localhost:{port}/snapshot"
+
+        viewer_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+                body {{ background: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+                .header {{
+                    background: linear-gradient(90deg, #0f3460, #16213e);
+                    padding: 10px 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    border-bottom: 2px solid #e94560;
+                }}
+                .header h3 {{ color: #fff; font-size: 15px; }}
+                .badge {{
+                    background: #28a74522; color: #28a745;
+                    padding: 3px 10px; border-radius: 12px;
+                    font-size: 11px; font-weight: 600;
+                }}
+                .badge.error {{ background: #dc354522; color: #dc3545; }}
+                #game-frame {{
+                    width: 100%; height: calc(100vh - 90px);
+                    display: block; object-fit: contain;
+                    background: #111;
+                }}
+                .controls {{
+                    background: #16213e; padding: 8px 20px;
+                    border-top: 1px solid #e9456033;
+                }}
+                .controls p {{ margin: 0; color: #888; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h3>🎮 {game_name} — Live Stream</h3>
+                <span class="badge" id="statusBadge">● CONNECTING</span>
+            </div>
+            <img id="game-frame" />
+            <div class="controls">
+                <p><strong style="color:#aaa">Controls:</strong>
+                   WASD = Move | Mouse = Look | LMB = Break | RMB = Place | 1-9 = Hotbar | ESC = Pause</p>
+            </div>
+            <script>
+                const img = document.getElementById('game-frame');
+                const badge = document.getElementById('statusBadge');
+                let connected = false;
+
+                // Use the MJPEG stream — most browsers render this natively
+                img.src = "{stream_url}";
+
+                img.onload = function() {{
+                    if (!connected) {{
+                        connected = true;
+                        badge.textContent = '● LIVE';
+                        badge.className = 'badge';
+                    }}
+                }};
+
+                img.onerror = function() {{
+                    if (!connected) {{
+                        badge.textContent = '● OFFLINE';
+                        badge.className = 'badge error';
+                        // Retry after 2s
+                        setTimeout(() => {{ img.src = "{stream_url}?t=" + Date.now(); }}, 2000);
+                    }}
+                }};
+
+                // Heartbeat — if stream breaks, try reconnecting
+                setInterval(() => {{
+                    fetch("{snapshot_url}").then(r => {{
+                        if (!r.ok && connected) {{
+                            connected = false;
+                            badge.textContent = '● RECONNECTING';
+                            badge.className = 'badge error';
+                            img.src = "{stream_url}?t=" + Date.now();
+                        }}
+                    }}).catch(() => {{
+                        if (connected) {{
+                            connected = false;
+                            badge.textContent = '● RECONNECTING';
+                            badge.className = 'badge error';
+                            img.src = "{stream_url}?t=" + Date.now();
+                        }}
+                    }});
+                }}, 5000);
+            </script>
+        </body>
+        </html>
+        """
+        components.html(viewer_html, height=height)
 
 
 def show_game_display(game_path, game_name="Game"):
