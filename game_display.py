@@ -106,13 +106,21 @@ class GameDisplay:
             python_exe = sys.executable
             
             if IS_WINDOWS:
-                # Windows: open a new console window using CREATE_NEW_CONSOLE flag
-                # (shell=True + "start" is broken — Windows treats first quoted arg as title)
-                self.process = subprocess.Popen(
-                    [python_exe, game_file],
-                    cwd=game_dir,
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                # Windows: os.startfile() on a .bat fully detaches from Streamlit's process.
+                # Popen (even with CREATE_NEW_CONSOLE) stays attached and may be blocked.
+                import tempfile, textwrap
+                bat_content = textwrap.dedent(f"""\
+                    @echo off
+                    cd /d "{game_dir}"
+                    "{python_exe}" "{game_file}"
+                    pause
+                """)
+                bat = tempfile.NamedTemporaryFile(
+                    mode='w', suffix='.bat', delete=False, dir=game_dir
                 )
+                bat.write(bat_content)
+                bat.close()
+                os.startfile(bat.name)
             else:
                 # Mac/Linux local
                 self.process = subprocess.Popen(
