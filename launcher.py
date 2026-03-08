@@ -471,13 +471,15 @@ for category, versions in all_versions.items():
         dropdown_options.append(display_name)
         version_map[display_name] = version_path
 
-# Find default selection (Alpha v1.0 Overworld is prioritized)
+# Find default selection (Alpha 1.1 snapshot 1 is the latest, then fall back)
 default_index = 0
 for i, option in enumerate(dropdown_options):
-    if "Alpha v1.0 Overworld" in option:
+    if "Alpha 1.1 snapshot 1" in option:
         default_index = i
         break
-    elif "Alpha 4 Overworld" in option:
+    elif "Alpha v1.0 Overworld" in option:
+        default_index = i
+    elif "Alpha 4 Overworld" in option and default_index == 0:
         default_index = i
     elif "Alpha 3 Overworld" in option and default_index == 0:
         default_index = i
@@ -850,7 +852,7 @@ with bug_tab2:
     with bug_form_col2:
         bug_version = st.selectbox(
             "Affected Version:",
-            ["Alpha v1.0 Overworld", "Alpha v1.0 End", "Alpha v1.0 Nether", 
+            ["Alpha 1.1 snapshot 1", "Alpha v1.0 Overworld", "Alpha v1.0 End", "Alpha v1.0 Nether", 
              "Alpha 4 Overworld", "Alpha 4 End", "Alpha 4 Nether", 
              "Alpha 3", "Classic", "Indev", "Bedrock Mobile", "Other"]
         )
