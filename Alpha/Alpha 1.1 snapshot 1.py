@@ -485,6 +485,20 @@ MUSHROOM_STEW_ID = 605     # Mushroom stew (food, restores 6 hunger)
 MILK_BUCKET_ID = 606       # Milk bucket (from mooshroom, clears effects)
 MOOSHROOM_EGG_ID = 421     # Spawn egg for Mooshroom
 
+# --- Farming & Sniffer Constants ---
+FARMLAND_ID = 607
+SNIFFER_EGG_BLOCK_ID = 608
+WOODEN_HOE_ID = 609
+STONE_HOE_ID = 610
+IRON_HOE_ID = 611
+GOLDEN_HOE_ID = 612
+DIAMOND_HOE_ID = 613
+OCEAN_RUIN_BRICK_ID = 614
+CAT_EGG_ID = 422
+SNIFFER_EGG_ITEM_ID = 423
+INFECTED_SNIFFER_EGG_ID = 424
+HOE_IDS = {WOODEN_HOE_ID, STONE_HOE_ID, IRON_HOE_ID, GOLDEN_HOE_ID, DIAMOND_HOE_ID}
+
 # Spawn Egg IDs (300-342)
 ZOMBIE_EGG_ID = 300
 CREEPER_EGG_ID = 301
@@ -1049,6 +1063,9 @@ BLOCK_TYPES = {
     419: {"name": "Vex Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Vex"},
     420: {"name": "Ominous Banner", "color": (60, 60, 60), "mineable": False, "solid": False},  # Dropped by patrol captains
     421: {"name": "Mooshroom Egg", "color": (180, 30, 30), "mineable": False, "solid": False, "spawn_egg": "Mooshroom"},  # Red mooshroom spawn egg
+    422: {"name": "Cat Egg", "color": (255, 165, 80), "mineable": False, "solid": False, "spawn_egg": "Cat"},
+    423: {"name": "Sniffer Egg (item)", "color": (0, 200, 180), "mineable": False, "solid": False, "spawn_egg": "Sniffer"},
+    424: {"name": "Infected Sniffer Egg", "color": (120, 60, 150), "mineable": False, "solid": False, "spawn_egg": "InfectedSniffer"},
     
     # Nether Blocks (450-500)
     450: {"name": "Netherrack", "color": (120, 40, 40), "mineable": True, "min_tool_level": 0, "solid": True},
@@ -1164,6 +1181,18 @@ BLOCK_TYPES = {
     604: {"name": "Bowl", "color": (100, 60, 20), "mineable": False, "solid": False},
     605: {"name": "Mushroom Stew", "color": (120, 70, 30), "mineable": False, "solid": False, "food_value": 6, "is_food": True},
     606: {"name": "Milk Bucket", "color": (255, 255, 255), "mineable": False, "solid": False},
+
+    # --- Farming, Sniffer & Ocean Ruins ---
+    607: {"name": "Farmland", "color": (100, 60, 20), "mineable": True, "min_tool_level": 0, "solid": True},
+    608: {"name": "Sniffer Egg", "color": (0, 180, 160), "mineable": True, "min_tool_level": 0, "solid": True, "drops": (608, 1)},
+    # Hoe tools
+    609: {"name": "Wooden Hoe", "color": (139, 90, 43), "mineable": False, "solid": False, "tool_level": 1, "durability": 59, "is_hoe": True},
+    610: {"name": "Stone Hoe", "color": (130, 130, 130), "mineable": False, "solid": False, "tool_level": 2, "durability": 131, "is_hoe": True},
+    611: {"name": "Iron Hoe", "color": (220, 220, 220), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "is_hoe": True},
+    612: {"name": "Golden Hoe", "color": (255, 215, 0), "mineable": False, "solid": False, "tool_level": 2, "durability": 32, "is_hoe": True},
+    613: {"name": "Diamond Hoe", "color": (100, 220, 220), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "is_hoe": True},
+    # Ocean Ruins extra
+    614: {"name": "Ocean Ruin Bricks", "color": (70, 90, 80), "mineable": True, "min_tool_level": 1, "solid": True},
 }
 
 
@@ -1234,6 +1263,13 @@ CRAFTING_RECIPES = {
     frozenset([(105, 3)]): (BOWL_ID, 4),         # 3 birch planks -> 4 bowls
     frozenset([(106, 3)]): (BOWL_ID, 4),         # 3 spruce planks -> 4 bowls
     frozenset([(BOWL_ID, 1), (62, 1), (63, 1)]): (MUSHROOM_STEW_ID, 1),  # Bowl + red mushroom + brown mushroom -> stew
+
+    # --- Hoes ---
+    frozenset([(8, 2), (10, 2)]): (WOODEN_HOE_ID, 1),   # 2 oak planks + 2 sticks -> Wooden Hoe
+    frozenset([(42, 2), (10, 2)]): (STONE_HOE_ID, 1),   # 2 cobblestone + 2 sticks -> Stone Hoe
+    frozenset([(108, 2), (10, 2)]): (IRON_HOE_ID, 1),   # 2 iron ingots + 2 sticks -> Iron Hoe
+    frozenset([(184, 2), (10, 2)]): (GOLDEN_HOE_ID, 1), # 2 gold ingots + 2 sticks -> Golden Hoe
+    frozenset([(112, 2), (10, 2)]): (DIAMOND_HOE_ID, 1),# 2 diamonds + 2 sticks -> Diamond Hoe
     
     # --- Bed (2x2 grid) ---
     frozenset([(8, 3), (7, 3)]): (226, 1),  # 3 planks + 3 wool -> Bed
@@ -3179,7 +3215,15 @@ def generate_plains_village(world, height_map, col_start):
     # Store villagers and iron golems for later addition
     if not hasattr(generate_plains_village, 'spawned_mobs'):
         generate_plains_village.spawned_mobs = []
-    generate_plains_village.spawned_mobs.extend(villagers_to_spawn + iron_golems_to_spawn)
+    # Spawn 1-2 cats per village
+    cats_to_spawn = []
+    cat_count = random.randint(1, 2)
+    for _ in range(cat_count):
+        cat_col = random.randint(col_start + 3, min(col_start + village_width - 3, GRID_WIDTH - 1))
+        cat_x = cat_col * BLOCK_SIZE
+        cat_y = (height_map[cat_col] - 2) * BLOCK_SIZE
+        cats_to_spawn.append(Cat(cat_x, cat_y))
+    generate_plains_village.spawned_mobs.extend(villagers_to_spawn + iron_golems_to_spawn + cats_to_spawn)
     
     return current_col - col_start + 3  # Return only block count
 
@@ -3422,6 +3466,8 @@ def check_and_spawn_structures(player_x):
             elif biome == OCEAN_BIOME:
                 if rand < 0.40:  # 40% chance for a shipwreck
                     generate_shipwreck_chunk(WORLD_MAP, center_col, center_row)
+                elif rand < 0.65:  # 25% chance for ocean ruins
+                    generate_ocean_ruins(WORLD_MAP, center_col, center_row)
             elif biome == MOOSHROOM_ISLAND_BIOME:
                 pass  # Mooshroom Island has no structures
     
@@ -3442,6 +3488,54 @@ def generate_shipwreck_chunk(world, center_col, center_row):
                 break
     col_start = max(0, center_col - ship_w // 2)
     generate_shipwreck(world, local_height, col_start)
+
+
+def generate_ocean_ruins(world, center_col, center_row):
+    """Generates a submerged stone ruin in the ocean biome, possibly containing a Sniffer Egg."""
+    try:
+        # Find ocean floor
+        floor_row = center_row
+        for r in range(GRID_HEIGHT - 1, center_row - 1, -1):
+            if world[r][center_col] not in (AIR_ID, 0, 5):
+                floor_row = r
+                break
+
+        ruin_w = random.randint(7, 14)
+        ruin_h = random.randint(4, 7)
+        col_start = center_col - ruin_w // 2
+
+        # Wall/floor materials (mossy/cracked stone look)
+        materials = [COBBLESTONE_ID, 545, 546, OCEAN_RUIN_BRICK_ID]  # 545=mossy stonebrk, 546=cracked
+
+        for c_off in range(ruin_w):
+            c = col_start + c_off
+            if c < 0 or c >= GRID_WIDTH:
+                continue
+            for r_off in range(ruin_h):
+                r = floor_row - r_off
+                if r < 0 or r >= GRID_HEIGHT:
+                    continue
+                # Outer walls and floor only; hollow inside
+                is_wall = (c_off == 0 or c_off == ruin_w - 1 or r_off == 0)
+                if is_wall:
+                    if random.random() < 0.75:  # 25% chance of missing blocks (ruined)
+                        if world[r][c] in (AIR_ID, 0, 5):
+                            world[r][c] = random.choice(materials)
+                else:
+                    # Clear interior water
+                    if world[r][c] == 5:
+                        world[r][c] = AIR_ID
+
+        # Place Sniffer Egg block inside the ruin
+        egg_col = center_col + random.randint(-2, 2)
+        egg_row = floor_row - 1
+        if 0 <= egg_row < GRID_HEIGHT and 0 <= egg_col < GRID_WIDTH:
+            if world[egg_row][egg_col] == AIR_ID:
+                world[egg_row][egg_col] = SNIFFER_EGG_BLOCK_ID
+
+        print(f"🏛️ Ocean Ruins generated at column {center_col}")
+    except Exception as e:
+        print(f"⚠️ Ocean Ruins error: {e}")
 
 
 def generate_desert_temple(world, height_map, col_start):
@@ -9682,6 +9776,247 @@ class Bird(Mob):
         self.kill()
 
 
+class Cat(Mob):
+    """A passive tameable mob that spawns in villages. Tamed with salmon. Scares creepers."""
+    def __init__(self, x, y):
+        super().__init__(x, y, BLOCK_SIZE * 0.9, BLOCK_SIZE * 0.75, (255, 165, 80))
+        self.health = 10
+        self.max_health = 10
+        self.speed = 2.0
+        self.drop_id = 0
+        self.is_tamed = False
+        self.owner = None
+        self.sit_mode = False
+        self.move_timer = 0
+        self.move_duration = FPS * random.uniform(2, 5)
+        self.stop_duration = FPS * random.uniform(1, 3)
+        self.is_moving = random.choice([True, False])
+        self.direction = random.choice([-1, 1])
+        self.tame_cooldown = 0
+        self.purr_timer = 0
+        # Draw cat
+        w, h = int(BLOCK_SIZE * 0.9), int(BLOCK_SIZE * 0.75)
+        self.image.fill((0, 0, 0, 0))
+        self.image.set_colorkey((0, 0, 0))
+        orange = (230, 140, 60)
+        dark = (180, 100, 30)
+        # Body
+        pygame.draw.rect(self.image, orange, (4, h // 3, w - 8, h * 2 // 3))
+        # Head
+        pygame.draw.rect(self.image, orange, (w // 2, 2, w // 2 - 2, h // 3 + 2))
+        # Ears (triangles approximated)
+        pygame.draw.polygon(self.image, dark, [(w - 2, 2), (w - 8, 2), (w - 6, h // 6)])
+        pygame.draw.polygon(self.image, dark, [(w // 2 + 2, 2), (w // 2 + 8, 2), (w // 2 + 4, h // 6)])
+        # Eyes
+        pygame.draw.rect(self.image, (0, 200, 100), (w - 12, h // 6, 4, 4))
+        pygame.draw.rect(self.image, (0, 200, 100), (w - 5, h // 6, 4, 4))
+        # Tail
+        pygame.draw.rect(self.image, dark, (0, h // 2, 6, 4))
+        # Legs
+        for lx in [6, w - 12]:
+            pygame.draw.rect(self.image, dark, (lx, h - 10, 5, 10))
+        # Taming collar overlay (drawn when tamed - done in draw or just color change)
+        if USE_EXPERIMENTAL_TEXTURES:
+            try:
+                tex = pygame.image.load(r"..\Textures\catSit.png").convert_alpha()
+                self.image = pygame.transform.scale(tex, (w, h))
+            except Exception:
+                pass
+
+    def ai_move(self):
+        if self.sit_mode:
+            self.vel_x = 0
+            return
+        self.move_timer += 1
+        if self.is_moving:
+            self.vel_x = self.direction * self.speed
+            if self.move_timer >= self.move_duration:
+                self.is_moving = False
+                self.move_timer = 0
+                self.stop_duration = FPS * random.uniform(1, 3)
+                self.vel_x = 0
+            if self.is_on_ground:
+                check_x = self.rect.centerx + self.direction * BLOCK_SIZE
+                check_y = self.rect.bottom + 1
+                cc = check_x // BLOCK_SIZE
+                cr = check_y // BLOCK_SIZE
+                if 0 <= cr < GRID_HEIGHT and 0 <= cc < len(WORLD_MAP[0]) and WORLD_MAP[cr][cc] == 0:
+                    self.direction *= -1
+                    self.is_moving = False
+                    self.move_timer = 0
+                    self.vel_x = 0
+        else:
+            if self.move_timer >= self.stop_duration:
+                self.is_moving = True
+                self.move_timer = 0
+                self.move_duration = FPS * random.uniform(2, 5)
+                self.direction = random.choice([-1, 1])
+
+    def update(self, WORLD_MAP, player, MOBS):
+        if self.tame_cooldown > 0:
+            self.tame_cooldown -= 1
+        self.ai_move()
+        super().update(WORLD_MAP, player, MOBS)
+
+    def try_tame(self, player):
+        """Attempt to tame with salmon. Returns True on success."""
+        if self.is_tamed or self.tame_cooldown > 0:
+            return False
+        if random.random() < 0.33:  # 1/3 chance like Minecraft
+            self.is_tamed = True
+            self.owner = player
+            print("🐱 Cat tamed! It will now scare Creepers.")
+            return True
+        self.tame_cooldown = FPS * 2
+        return False
+
+    def die(self, all_mobs=None):
+        self.kill()
+
+
+class Sniffer(Mob):
+    """Ancient passive mob. Sniffs the ground and digs up flowers periodically."""
+    def __init__(self, x, y):
+        super().__init__(x, y, BLOCK_SIZE * 2.2, BLOCK_SIZE * 1.4, (0, 160, 140))
+        self.health = 14
+        self.max_health = 14
+        self.speed = 1.0
+        self.drop_id = 0
+        self.sniff_timer = 0
+        self.sniff_interval = FPS * 12  # Dig every 12 seconds
+        self.move_timer = 0
+        self.move_duration = FPS * random.uniform(2, 6)
+        self.stop_duration = FPS * random.uniform(1, 4)
+        self.is_moving = True
+        self.direction = random.choice([-1, 1])
+        # Draw sniffer
+        w, h = int(BLOCK_SIZE * 2.2), int(BLOCK_SIZE * 1.4)
+        self.image.fill((0, 0, 0, 0))
+        self.image.set_colorkey((0, 0, 0))
+        teal = (0, 160, 140)
+        dark = (0, 100, 90)
+        red = (200, 40, 40)
+        # Body
+        pygame.draw.rect(self.image, teal, (8, h // 3, w - 16, h * 2 // 3 - 4))
+        # Legs
+        for lx in [10, 20, w - 30, w - 20]:
+            pygame.draw.rect(self.image, dark, (lx, h - 20, 8, 20))
+        # Head (large, at right)
+        pygame.draw.rect(self.image, teal, (w - 28, 4, 26, h // 2))
+        # Big nose
+        pygame.draw.rect(self.image, red, (w - 14, h // 4, 14, 10))
+        # Eyes
+        pygame.draw.rect(self.image, (255, 200, 0), (w - 26, 8, 5, 5))
+        # Frills on head
+        pygame.draw.rect(self.image, dark, (w - 28, 2, 6, 6))
+        pygame.draw.rect(self.image, dark, (w - 20, 0, 6, 6))
+        if USE_EXPERIMENTAL_TEXTURES:
+            try:
+                tex = pygame.image.load(r"..\Textures\snifferIdle.png").convert_alpha()
+                self.image = pygame.transform.scale(tex, (w, h))
+            except Exception:
+                pass
+
+    def ai_move(self):
+        self.move_timer += 1
+        if self.is_moving:
+            self.vel_x = self.direction * self.speed
+            if self.move_timer >= self.move_duration:
+                self.is_moving = False; self.move_timer = 0
+                self.vel_x = 0
+            if self.is_on_ground:
+                cc = (self.rect.centerx + self.direction * BLOCK_SIZE) // BLOCK_SIZE
+                cr = (self.rect.bottom + 1) // BLOCK_SIZE
+                if 0 <= cr < GRID_HEIGHT and 0 <= cc < len(WORLD_MAP[0]) and WORLD_MAP[cr][cc] == 0:
+                    self.direction *= -1; self.vel_x = 0; self.is_moving = False
+        else:
+            if self.move_timer >= self.stop_duration:
+                self.is_moving = True; self.move_timer = 0
+                self.move_duration = FPS * random.uniform(2, 6)
+                self.direction = random.choice([-1, 1])
+
+    def dig_flower(self):
+        """Place a random flower on the ground block in front of the sniffer."""
+        flower_ids = [61, 62, 63, 550, 551, 552, 553, 554, 555, 556, 557, 558]
+        dig_col = (self.rect.centerx + self.direction * int(BLOCK_SIZE * 1.5)) // BLOCK_SIZE
+        dig_row = self.rect.bottom // BLOCK_SIZE
+        if 0 <= dig_row - 1 < GRID_HEIGHT and 0 <= dig_col < GRID_WIDTH:
+            if WORLD_MAP[dig_row][dig_col] in (GRASS_ID, DIRT_ID, FARMLAND_ID, MYCELIUM_ID):
+                if WORLD_MAP[dig_row - 1][dig_col] == AIR_ID:
+                    WORLD_MAP[dig_row - 1][dig_col] = random.choice(flower_ids)
+                    print("🌸 Sniffer dug up a flower!")
+
+    def update(self, WORLD_MAP, player, MOBS):
+        self.sniff_timer += 1
+        if self.sniff_timer >= self.sniff_interval:
+            self.sniff_timer = 0
+            self.dig_flower()
+        self.ai_move()
+        super().update(WORLD_MAP, player, MOBS)
+
+    def die(self, all_mobs=None):
+        if 'DROPPED_ITEMS' in globals():
+            DROPPED_ITEMS.add(DroppedItem(self.rect.centerx, self.rect.bottom - 10, SNIFFER_EGG_ITEM_ID, 1))
+        self.kill()
+
+
+class InfectedSniffer(Sniffer):
+    """Rare 1% variant sniffer. Slow, purple, one-shots unarmored players."""
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.health = 30
+        self.max_health = 30
+        self.speed = 0.4  # Very slow
+        self.attack_damage = 25  # One-shots unarmored player (20 HP)
+        self.attack_cooldown_max = FPS * 3  # Slow attack rate
+        self.attack_timer = 0
+        self.aggro_range = BLOCK_SIZE * 12
+        # Recolor to purple/infected
+        w, h = int(BLOCK_SIZE * 2.2), int(BLOCK_SIZE * 1.4)
+        self.image.fill((0, 0, 0, 0))
+        self.image.set_colorkey((0, 0, 0))
+        purple = (120, 30, 180)
+        dark_p = (70, 10, 120)
+        pygame.draw.rect(self.image, purple, (8, h // 3, w - 16, h * 2 // 3 - 4))
+        for lx in [10, 20, w - 30, w - 20]:
+            pygame.draw.rect(self.image, dark_p, (lx, h - 20, 8, 20))
+        pygame.draw.rect(self.image, purple, (w - 28, 4, 26, h // 2))
+        pygame.draw.rect(self.image, (80, 0, 0), (w - 14, h // 4, 14, 10))  # dark infected nose
+        pygame.draw.rect(self.image, (255, 0, 0), (w - 26, 8, 5, 5))   # red eye
+        pygame.draw.rect(self.image, dark_p, (w - 28, 2, 6, 6))
+        pygame.draw.rect(self.image, dark_p, (w - 20, 0, 6, 6))
+        # Dripping purple particles look
+        for i in range(0, w, 12):
+            pygame.draw.rect(self.image, dark_p, (i, h // 2 + 4, 3, 6))
+
+    def update(self, WORLD_MAP, player, MOBS):
+        # Attack player if in range
+        distance = math.sqrt((self.rect.centerx - player.rect.centerx)**2 +
+                              (self.rect.centery - player.rect.centery)**2)
+        if distance < self.aggro_range:
+            # Move toward player slowly
+            if self.rect.centerx < player.rect.centerx:
+                self.vel_x = self.speed
+            else:
+                self.vel_x = -self.speed
+            # Attack
+            if self.attack_timer <= 0 and distance < BLOCK_SIZE * 2:
+                player.take_damage(self.attack_damage)
+                self.attack_timer = self.attack_cooldown_max
+                print("💀 Infected Sniffer struck you!")
+        else:
+            self.vel_x = 0
+        if self.attack_timer > 0:
+            self.attack_timer -= 1
+        # Call grandparent update (skip sniffer dig logic)
+        Mob.update(self, WORLD_MAP, player, MOBS)
+
+    def die(self, all_mobs=None):
+        if 'DROPPED_ITEMS' in globals():
+            DROPPED_ITEMS.add(DroppedItem(self.rect.centerx, self.rect.bottom - 10, INFECTED_SNIFFER_EGG_ID, 1))
+        self.kill()
+
+
 class Pig(Mob):
     """A small passive mob about the size of a sheep that drops pork."""
     def __init__(self, x, y, is_baby=False):
@@ -13302,7 +13637,20 @@ class Creeper(Mob):
             self.fuse_timer = -1  # Reset fuse
             super().update(WORLD_MAP, player, MOBS)
             return
-        
+
+        # Flee from nearby tamed Cats
+        for mob in MOBS:
+            if isinstance(mob, Cat) and getattr(mob, 'is_tamed', False):
+                cat_dist = math.sqrt((self.rect.centerx - mob.rect.centerx)**2 +
+                                     (self.rect.centery - mob.rect.centery)**2)
+                if cat_dist < BLOCK_SIZE * 8:
+                    # Run away from cat
+                    flee_dir = 1 if self.rect.centerx > mob.rect.centerx else -1
+                    self.vel_x = self.speed * 1.5 * flee_dir
+                    self.fuse_timer = -1  # Cancel fuse
+                    super().update(WORLD_MAP, player, MOBS)
+                    return
+
         # Creepers are ALWAYS hostile (day and night)
         distance_sq = (self.rect.centerx - player.rect.centerx)**2 + (self.rect.centery - player.rect.centery)**2
         distance = math.sqrt(distance_sq)
@@ -18265,6 +18613,12 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 mob = Cow(spawn_x, spawn_y, is_baby=spawn_baby)
             elif mob_type == "Mooshroom":
                 mob = Mooshroom(spawn_x, spawn_y, is_baby=spawn_baby)
+            elif mob_type == "Cat":
+                mob = Cat(spawn_x, spawn_y)
+            elif mob_type == "Sniffer":
+                mob = Sniffer(spawn_x, spawn_y)
+            elif mob_type == "InfectedSniffer":
+                mob = InfectedSniffer(spawn_x, spawn_y)
             elif mob_type == "Camel":
                 mob = Camel(spawn_x, spawn_y)
             elif mob_type == "Chicken":
@@ -19005,6 +19359,37 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                     break
             print("🥛 Drank milk! Hunger restored and effects cleared.")
             return
+
+        # --- Hoe: till grass/dirt into farmland ---
+        if held_id in HOE_IDS:
+            target_block = WORLD_MAP[target_row][target_col]
+            if target_block in (GRASS_ID, DIRT_ID):
+                WORLD_MAP[target_row][target_col] = FARMLAND_ID
+                print("🌱 Tilled soil into Farmland!")
+                return
+
+        # --- Cat taming: right-click untamed cat with raw salmon ---
+        if held_id == 158:  # Raw salmon
+            for mob in MOBS:
+                if isinstance(mob, Cat) and not mob.is_tamed:
+                    if mob.rect.collidepoint(target_world_x, target_world_y):
+                        if mob.try_tame(player):
+                            player.consume_item(158, 1)
+                        return
+
+        # --- Sniffer Egg block: right-click to attempt hatching ---
+        if 0 <= target_row < GRID_HEIGHT and 0 <= target_col < GRID_WIDTH:
+            if WORLD_MAP[target_row][target_col] == SNIFFER_EGG_BLOCK_ID:
+                spawn_x = target_col * BLOCK_SIZE
+                spawn_y = max(0, target_row - 3) * BLOCK_SIZE
+                if random.random() < 0.01:
+                    MOBS.add(InfectedSniffer(spawn_x, spawn_y))
+                    print("☠️ An Infected Sniffer hatched from the egg!")
+                else:
+                    MOBS.add(Sniffer(spawn_x, spawn_y))
+                    print("🦤 A Sniffer hatched!")
+                WORLD_MAP[target_row][target_col] = AIR_ID
+                return
 
         # Check if holding a boat to place it
         if held_id in BLOCK_TYPES and BLOCK_TYPES[held_id].get("is_boat", False):
@@ -25228,6 +25613,25 @@ while running:
             update_water_flow()
             update_falling_blocks()
             water_flow_timer = 0
+
+        # --- Farmland crop growth (every 5 s in player vicinity) ---
+        if not hasattr(player, 'crop_grow_timer'):
+            player.crop_grow_timer = 0
+        player.crop_grow_timer += 1
+        if player.crop_grow_timer >= FPS * 5:
+            player.crop_grow_timer = 0
+            p_col = player.rect.centerx // BLOCK_SIZE
+            p_row = player.rect.centery // BLOCK_SIZE
+            for fc in range(max(0, p_col - 30), min(GRID_WIDTH, p_col + 31)):
+                for fr in range(max(0, p_row - 20), min(GRID_HEIGHT, p_row + 21)):
+                    if WORLD_MAP[fr][fc] == FARMLAND_ID:
+                        # Check for water within 4 blocks horizontally
+                        is_hydrated = any(
+                            WORLD_MAP[fr][wc] in (5, WATER_ID)
+                            for wc in range(max(0, fc - 4), min(GRID_WIDTH, fc + 5))
+                        )
+                        if is_hydrated and fr - 1 >= 0 and WORLD_MAP[fr - 1][fc] == AIR_ID:
+                            WORLD_MAP[fr - 1][fc] = random.choice([95, 96])  # Wheat or carrot
     
         # --- OPTIMIZED LAVA FIRE MECHANICS ---
         # Initialize fire update timer if needed
