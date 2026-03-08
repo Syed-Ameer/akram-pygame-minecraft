@@ -388,7 +388,8 @@ CREATIVE_CATEGORIES = {
         268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
         286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303,
         304, 305, 306, 307, 308, 309, 350, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510,
-        525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542  # Tools, food, weapons, new items, netherite gear
+        525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542,  # Tools, food, weapons, new items, netherite gear
+        615, 616, 617, 618, 619  # Mace variants
     ],
     "Redstone": [
         186, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524  # Redstone dust, torch, lamp, dispenser, dropper, crossbow, repeater, comparator, piston, minecarts
@@ -499,6 +500,7 @@ CAT_EGG_ID = 422
 SNIFFER_EGG_ITEM_ID = 423
 INFECTED_SNIFFER_EGG_ID = 424
 HOE_IDS = {WOODEN_HOE_ID, STONE_HOE_ID, IRON_HOE_ID, GOLDEN_HOE_ID, DIAMOND_HOE_ID}
+MACE_IDS = {615, 616, 617, 618, 619}  # Mace weapons: fall bonus damage
 
 # Spawn Egg IDs (300-342)
 ZOMBIE_EGG_ID = 300
@@ -787,7 +789,7 @@ BLOCK_TYPES = {
     98: {"name": "Bookshelf", "color": (101, 67, 33), "mineable": True, "min_tool_level": 0, "solid": True},
     99: {"name": "Wooden Sword", "color": (160, 100, 60), "mineable": False, "solid": False, "tool_level": 1, "durability": 60, "damage_bonus": 2, "attack_cooldown": 10},
     100: {"name": "Wooden Shovel", "color": (150, 95, 55), "mineable": False, "solid": False, "tool_level": 1, "durability": 60},
-    101: {"name": "Wooden Spear", "color": (140, 90, 50), "mineable": False, "solid": False, "tool_level": 1, "durability": 60, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
+    101: {"name": "Wooden Spear", "color": (140, 90, 50), "mineable": False, "solid": False, "tool_level": 1, "durability": 60, "damage_bonus": 3, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
     102: {"name": "Wooden Axe", "color": (130, 85, 45), "mineable": False, "solid": False, "tool_level": 1, "durability": 60, "damage_bonus": 5, "attack_cooldown": 120},
     103: {"name": "Bread", "color": (210, 180, 140), "mineable": False, "solid": False},
     104: {"name": "Hay Bale", "color": (230, 220, 130), "mineable": True, "min_tool_level": 0, "solid": True},
@@ -798,12 +800,12 @@ BLOCK_TYPES = {
     109: {"name": "Stone Pickaxe", "color": (128, 128, 128), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 0, "attack_cooldown": 10},
     110: {"name": "Stone Sword", "color": (120, 120, 120), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 5, "attack_cooldown": 10},
     111: {"name": "Stone Shovel", "color": (115, 115, 115), "mineable": False, "solid": False, "tool_level": 2, "durability": 132},
-    112: {"name": "Stone Spear", "color": (110, 110, 110), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
+    112: {"name": "Stone Spear", "color": (110, 110, 110), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 6, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
     113: {"name": "Stone Axe", "color": (125, 125, 125), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 8, "attack_cooldown": 48},
     114: {"name": "Iron Pickaxe", "color": (200, 200, 200), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 0, "attack_cooldown": 4},
     115: {"name": "Iron Sword", "color": (210, 210, 210), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 8, "attack_cooldown": 4},
     116: {"name": "Iron Shovel", "color": (205, 205, 205), "mineable": False, "solid": False, "tool_level": 3, "durability": 250},
-    117: {"name": "Iron Spear", "color": (195, 195, 195), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
+    117: {"name": "Iron Spear", "color": (195, 195, 195), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 9, "attack_range": 3, "attack_cooldown": 72, "can_charge": True},
     118: {"name": "Iron Axe", "color": (215, 215, 215), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 11, "attack_cooldown": 48},
     119: {"name": "Iron Helmet", "color": (220, 220, 220), "mineable": False, "solid": False, "armor_type": "helmet", "armor_points": 2},
     120: {"name": "Iron Chestplate", "color": (215, 215, 215), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 6},
@@ -815,14 +817,14 @@ BLOCK_TYPES = {
     201: {"name": "Gold Sword", "color": (255, 215, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32, "damage_bonus": 10, "attack_cooldown": 8},
     202: {"name": "Gold Shovel", "color": (255, 220, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32},
     203: {"name": "Gold Axe", "color": (255, 210, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32, "damage_bonus": 14, "attack_cooldown": 120},
-    204: {"name": "Gold Spear", "color": (255, 205, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32, "attack_range": 3, "attack_cooldown": 160, "can_charge": True},
+    204: {"name": "Gold Spear", "color": (255, 205, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32, "damage_bonus": 10, "attack_range": 3, "attack_cooldown": 160, "can_charge": True},
     
     # --- DIAMOND TOOLS (Best tools) ---
     210: {"name": "Diamond Pickaxe", "color": (0, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "damage_bonus": 0, "attack_cooldown": 10},
     211: {"name": "Diamond Sword", "color": (100, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "damage_bonus": 14, "attack_cooldown": 10},
     212: {"name": "Diamond Shovel", "color": (50, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561},
     213: {"name": "Diamond Axe", "color": (150, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "damage_bonus": 18, "attack_cooldown": 120},
-    214: {"name": "Diamond Spear", "color": (200, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
+    214: {"name": "Diamond Spear", "color": (200, 255, 255), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "damage_bonus": 13, "attack_range": 3, "attack_cooldown": 180, "can_charge": True},
     215: {"name": "Diamond Helmet", "color": (100, 240, 255), "mineable": False, "solid": False, "armor_type": "helmet", "armor_points": 3},
     216: {"name": "Diamond Chestplate", "color": (100, 235, 255), "mineable": False, "solid": False, "armor_type": "chestplate", "armor_points": 8},
     217: {"name": "Diamond Leggings", "color": (100, 230, 255), "mineable": False, "solid": False, "armor_type": "leggings", "armor_points": 6},
@@ -1194,6 +1196,12 @@ BLOCK_TYPES = {
     613: {"name": "Diamond Hoe", "color": (100, 220, 220), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "is_hoe": True},
     # Ocean Ruins extra
     614: {"name": "Ocean Ruin Bricks", "color": (70, 90, 80), "mineable": True, "min_tool_level": 1, "solid": True},
+    # --- MACE (fall bonus weapon: higher you fall, more damage on next hit) ---
+    615: {"name": "Wooden Mace", "color": (139, 90, 43), "mineable": False, "solid": False, "tool_level": 1, "durability": 60, "damage_bonus": 3, "attack_cooldown": 30, "is_mace": True},
+    616: {"name": "Stone Mace", "color": (128, 128, 128), "mineable": False, "solid": False, "tool_level": 2, "durability": 132, "damage_bonus": 6, "attack_cooldown": 30, "is_mace": True},
+    617: {"name": "Iron Mace", "color": (210, 210, 210), "mineable": False, "solid": False, "tool_level": 3, "durability": 250, "damage_bonus": 9, "attack_cooldown": 30, "is_mace": True},
+    618: {"name": "Gold Mace", "color": (255, 215, 0), "mineable": False, "solid": False, "tool_level": 4, "durability": 32, "damage_bonus": 11, "attack_cooldown": 30, "is_mace": True},
+    619: {"name": "Diamond Mace", "color": (100, 220, 220), "mineable": False, "solid": False, "tool_level": 5, "durability": 1561, "damage_bonus": 16, "attack_cooldown": 30, "is_mace": True},
 }
 
 
@@ -1382,6 +1390,14 @@ CRAFTING_TABLE_RECIPES = {
     frozenset([(189, 8)]): (216, 1),  # Diamond Chestplate
     frozenset([(189, 7)]): (217, 1),  # Diamond Leggings
     frozenset([(189, 4)]): (218, 1),  # Diamond Boots
+
+    # --- MACE (2 material + 2 sticks) ---
+    frozenset([(8, 2), (10, 2)]): (615, 1),   # 2 Planks + 2 Sticks -> Wooden Mace
+    frozenset([(3, 2), (10, 2)]): (616, 1),   # 2 Stone + 2 Sticks -> Stone Mace
+    frozenset([(42, 2), (10, 2)]): (616, 1),  # 2 Cobblestone + 2 Sticks -> Stone Mace
+    frozenset([(108, 2), (10, 2)]): (617, 1), # 2 Iron Ingot + 2 Sticks -> Iron Mace
+    frozenset([(184, 2), (10, 2)]): (618, 1), # 2 Gold Ingot + 2 Sticks -> Gold Mace
+    frozenset([(189, 2), (10, 2)]): (619, 1), # 2 Diamond + 2 Sticks -> Diamond Mace
     
     # --- FOOD ---
     frozenset([(93, 3)]): (103, 1),  # 3 wheat -> 1 bread
@@ -1641,6 +1657,59 @@ FUEL_ITEMS = {
     127: 60,  # Bamboo: 1 second
     223: 1200,  # Blaze Rod: 20 seconds (very powerful)
 }
+
+# =============================================================================
+# MOD LOADER
+# =============================================================================
+class _ModAPI:
+    """Simple API object passed to each mod's register() function."""
+    def __init__(self):
+        self.BLOCK_TYPES = BLOCK_TYPES
+        self.CRAFTING_RECIPES = CRAFTING_RECIPES
+        self.CREATIVE_CATEGORIES = CREATIVE_CATEGORIES
+
+    def add_block(self, block_id, data):
+        if block_id in BLOCK_TYPES:
+            print(f"[MOD] Warning: block ID {block_id} already exists, overwriting.")
+        BLOCK_TYPES[block_id] = data
+
+    def add_recipe(self, ingredients, result):
+        key = frozenset(ingredients.items())
+        CRAFTING_RECIPES[key] = result
+
+    def add_to_creative(self, category, id_list):
+        if category in CREATIVE_CATEGORIES:
+            for item_id in id_list:
+                if item_id not in CREATIVE_CATEGORIES[category]:
+                    CREATIVE_CATEGORIES[category].append(item_id)
+        else:
+            print(f"[MOD] Warning: creative category '{category}' not found.")
+
+def load_mods():
+    """Load all mod .py files from the Alpha/mods/ directory."""
+    import importlib.util
+    mods_dir = Path(__file__).parent / "mods"
+    if not mods_dir.exists():
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        return
+    api = _ModAPI()
+    mod_files = sorted(mods_dir.glob("*.py"))
+    for mod_path in mod_files:
+        try:
+            spec = importlib.util.spec_from_file_location(mod_path.stem, mod_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            if hasattr(module, "register"):
+                module.register(api)
+                name = getattr(module, "MOD_NAME", mod_path.stem)
+                ver  = getattr(module, "MOD_VERSION", "?")
+                print(f"[MOD] Loaded: {name} v{ver}")
+            else:
+                print(f"[MOD] Skipped {mod_path.name}: no register() function.")
+        except Exception as e:
+            print(f"[MOD] Error loading {mod_path.name}: {e}")
+
+load_mods()  # Load mods after all vanilla content is defined
 
 # --- World Save/Load Functions ---
 def get_world_list():
@@ -6817,6 +6886,8 @@ class Player(pygame.sprite.Sprite):
         self.charge_timer = 0  # Time remaining in charge
         self.max_charge_time = FPS * 2  # 2 seconds max charge
         self.charge_hit_mobs = set()  # Track which mobs were hit during this charge
+        # --- Mace Fall Bonus ---
+        self.mace_fall_bonus = 0  # Fall blocks stored; next mace attack deals +1.5x bonus per block
         # -----------------------------------------------------------
 
     def switch_active_slot(self, slot_index):
@@ -7868,6 +7939,9 @@ class Player(pygame.sprite.Sprite):
                             # Only apply fall damage if not in water
                             if not in_water:
                                 fall_distance = (self.rect.y - self.fall_start_y) / BLOCK_SIZE
+                                # Mace: store fall height for bonus on next attack
+                                if self.held_block in MACE_IDS and fall_distance > 0:
+                                    self.mace_fall_bonus = max(self.mace_fall_bonus, fall_distance)
                                 safe_fall_blocks = 3  # Only 3 blocks safe before damage
                                 if fall_distance > safe_fall_blocks:
                                     # 2 damage (1 heart) per block after 3 blocks
@@ -17878,6 +17952,13 @@ def draw_tool_icon(screen, rect, item_id):
         elif item_id == 118:  # Iron Axe
             pygame.draw.rect(screen, (101, 67, 33), (x + w//2 - 2, y + h//2, 4, h//2 - 5))
             pygame.draw.polygon(screen, iron_color, [(x + w//2 - 3, y + h//2), (x + w//2 + 3, y + h//2), (x + w - 5, y + h//3), (x + w - 5, y + h//2 + 5)])
+    elif item_id in [615, 616, 617, 618, 619]:  # Mace variants
+        mace_colors = {615: (139, 90, 43), 616: (128, 128, 128), 617: (210, 210, 210), 618: (255, 215, 0), 619: (100, 220, 220)}
+        mc = mace_colors.get(item_id, (180, 180, 180))
+        pygame.draw.rect(screen, (101, 67, 33), (x + w//2 - 2, y + h//2, 4, h//2 - 5))  # Handle
+        pygame.draw.rect(screen, mc, (x + w//4, y + h//5, w//2, h//3))  # Mace head (wide block)
+        pygame.draw.rect(screen, (max(0,mc[0]-30), max(0,mc[1]-30), max(0,mc[2]-30)),
+                         (x + w//4, y + h//5, w//2, 3))  # Top highlight
     else:
         # Default: draw as 10x10 pixel sprite
         if item_id in BLOCK_TYPES:
@@ -18433,6 +18514,13 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 # Check attack range for spear
                 if "attack_range" in block_data:
                     attack_range_bonus = block_data["attack_range"] * BLOCK_SIZE
+
+                # Apply mace fall bonus (higher fall = more damage on next hit)
+                if block_data.get("is_mace", False) and player.mace_fall_bonus > 0:
+                    fall_bonus = int(player.mace_fall_bonus * 1.5)
+                    damage += fall_bonus
+                    print(f"💥 Mace smash! +{fall_bonus} fall bonus damage! ({player.mace_fall_bonus:.1f} blocks)")
+                    player.mace_fall_bonus = 0
                 
                 # Apply tool durability damage
                 if "durability" in block_data:
@@ -19137,8 +19225,8 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
         if held_id in BLOCK_TYPES and BLOCK_TYPES[held_id].get("can_charge", False):
             # Start charging with spear
             player.is_charging = True
-            # Charge velocity based on player's current speed direction
-            charge_direction = 1 if player.vel_x >= 0 else -1
+            # Charge in the direction the player is facing
+            charge_direction = player.direction
             player.charge_velocity = charge_direction * 15  # Fast charge speed
             player.charge_timer = player.max_charge_time  # Reset timer
             player.charge_hit_mobs = set()  # Reset hit tracking
@@ -25191,7 +25279,7 @@ while running:
                     
                     # Create extended hitbox in front of player for spear reach
                     spear_hitbox = pygame.Rect(
-                        player.rect.centerx + (attack_range if charge_dir > 0 else -attack_range),
+                        player.rect.right if charge_dir > 0 else player.rect.left - attack_range,
                         player.rect.top,
                         attack_range,
                         player.rect.height
