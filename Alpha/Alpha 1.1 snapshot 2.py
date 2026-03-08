@@ -18462,13 +18462,15 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                         if "tool_level" in tool_data:
                             tool_level = tool_data["tool_level"]
                     
-                    # Check if player has max tool level cheat, creative mode, or sufficient tool level
-                    if player.max_tool_level or player.creative_mode or tool_level >= required_level:
+                    # Instant break only in creative mode or max_tool_level cheat.
+                    # Survival mining is handled by the mining_progress hold-to-mine system
+                    # in the main game loop. Running both causes duplicate drops.
+                    if player.creative_mode or player.max_tool_level:
                         # Remove from light sources if it emits light
                         if BLOCK_TYPES.get(block_id, {}).get("emits_light", False):
                             LIGHT_SOURCES.discard((target_col, target_row))
                         
-                        # Normal mining (instant for now, will add hold-to-mine later)
+                        # Instant break (creative / cheat only)
                         WORLD_MAP[target_row][target_col] = 0
                         
                         # Multiplayer: notify server of block break
@@ -18498,15 +18500,15 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                             check_row = target_row - 1
                             while check_row >= 0 and WORLD_MAP[check_row][target_col] == 127:
                                 WORLD_MAP[check_row][target_col] = 0
-                                # Drop item for each bamboo broken
-                                if 'DROPPED_ITEMS' in globals():
+                                # Drop item for each bamboo broken (not in creative mode)
+                                if 'DROPPED_ITEMS' in globals() and not player.creative_mode:
                                     drop_x = target_col * BLOCK_SIZE + BLOCK_SIZE // 4
                                     drop_y = check_row * BLOCK_SIZE + BLOCK_SIZE // 4
                                     DROPPED_ITEMS.add(DroppedItem(drop_x, drop_y, 127, 1))
                                 check_row -= 1
                         
-                        # Drop item
-                        if 'DROPPED_ITEMS' in globals():
+                        # Drop item (not in creative mode — matches Minecraft behaviour)
+                        if 'DROPPED_ITEMS' in globals() and not player.creative_mode:
                             drop_x = target_col * BLOCK_SIZE + BLOCK_SIZE // 4
                             drop_y = target_row * BLOCK_SIZE + BLOCK_SIZE // 4
                             
