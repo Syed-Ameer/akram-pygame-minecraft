@@ -9228,7 +9228,7 @@ class Mooshroom(Cow):
         # Try to load mooshroom texture if available
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                moo_tex = pygame.image.load(r"..\Textures\mooshroomLook.png").convert_alpha()
+                moo_tex = pygame.image.load(r"..\Textures\Mooshroom.png").convert_alpha()
                 moo_tex = pygame.transform.scale(moo_tex, (int(BLOCK_SIZE * 2.5), int(BLOCK_SIZE * 1.5)))
                 self.image = moo_tex
             except Exception:
@@ -9920,7 +9920,7 @@ class Sniffer(Mob):
         pygame.draw.rect(self.image, dark, (w - 20, 0, 6, 6))
         if USE_EXPERIMENTAL_TEXTURES:
             try:
-                tex = pygame.image.load(r"..\Textures\snifferIdle.png").convert_alpha()
+                tex = pygame.image.load(r"..\Textures\sniffer.png").convert_alpha()
                 self.image = pygame.transform.scale(tex, (w, h))
             except Exception:
                 pass
