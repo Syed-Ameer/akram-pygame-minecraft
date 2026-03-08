@@ -135,11 +135,27 @@ class GameDisplay:
                 bat.write(bat_content)
                 bat.close()
                 os.startfile(bat.name)
+            elif self._mac:
+                # Mac: detach from Streamlit via open command (opens in Terminal.app)
+                script = f'tell application "Terminal" to do script "cd {repr(game_dir)} && {repr(python_exe)} {repr(game_file)}"'
+                try:
+                    subprocess.Popen(
+                        ['osascript', '-e', script],
+                        start_new_session=True,
+                    )
+                except Exception:
+                    # Fallback: plain Popen detached
+                    self.process = subprocess.Popen(
+                        [python_exe, game_file],
+                        cwd=game_dir,
+                        start_new_session=True,
+                    )
             else:
-                # Mac/Linux local
+                # Linux local
                 self.process = subprocess.Popen(
                     [python_exe, game_file],
-                    cwd=game_dir
+                    cwd=game_dir,
+                    start_new_session=True,
                 )
             
             st.success(f"✅ {game_name} launched successfully!")
@@ -202,14 +218,44 @@ class GameDisplay:
             st.info("Falling back to native window...")
             return self._launch_local_popen(game_path, game_name)
 
-        # 1) Launch game natively
+        # 1) Launch game natively (detached from Streamlit)
         game_dir = str(Path(game_path).parent.resolve())
         game_file = Path(game_path).name
+        python_exe = sys.executable
+        launched_ok = False
         try:
-            self.process = subprocess.Popen(
-                [sys.executable, game_file],
-                cwd=game_dir,
-            )
+            if self._win:
+                # Windows: bat + os.startfile() to fully detach from Streamlit
+                import tempfile, textwrap
+                bat_content = textwrap.dedent(f"""\
+                    @echo off
+                    cd /d "{game_dir}"
+                    "{python_exe}" "{game_file}"
+                    pause
+                """)
+                bat = tempfile.NamedTemporaryFile(
+                    mode='w', suffix='.bat', delete=False, dir=game_dir
+                )
+                bat.write(bat_content)
+                bat.close()
+                os.startfile(bat.name)
+                launched_ok = True
+                self.process = None  # no handle when using startfile
+            elif self._mac:
+                # Mac: detach via start_new_session
+                self.process = subprocess.Popen(
+                    [python_exe, game_file],
+                    cwd=game_dir,
+                    start_new_session=True,
+                )
+                launched_ok = True
+            else:
+                self.process = subprocess.Popen(
+                    [python_exe, game_file],
+                    cwd=game_dir,
+                    start_new_session=True,
+                )
+                launched_ok = True
         except Exception as e:
             st.error(f"Failed to launch game: {e}")
             return False
@@ -217,9 +263,10 @@ class GameDisplay:
         # 2) Wait for the game window to appear
         with st.spinner("Waiting for game window to appear..."):
             region = None
-            for _ in range(20):  # up to ~4 seconds
+            for _ in range(25):  # up to ~5 seconds
                 time.sleep(0.2)
-                if self.process.poll() is not None:
+                # Only poll if we have a process handle
+                if self.process is not None and self.process.poll() is not None:
                     st.error("Game exited before window appeared.")
                     return False
                 region = find_pygame_window("pycraft", "pygame", "minecraft")
