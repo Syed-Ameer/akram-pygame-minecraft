@@ -483,6 +483,7 @@ MUSHROOM_STEM_ID = 603     # Giant mushroom stem/trunk
 BOWL_ID = 604              # Wooden bowl (craft: 3 planks)
 MUSHROOM_STEW_ID = 605     # Mushroom stew (food, restores 6 hunger)
 MILK_BUCKET_ID = 606       # Milk bucket (from mooshroom, clears effects)
+MOOSHROOM_EGG_ID = 421     # Spawn egg for Mooshroom
 
 # Spawn Egg IDs (300-342)
 ZOMBIE_EGG_ID = 300
@@ -1047,6 +1048,7 @@ BLOCK_TYPES = {
     418: {"name": "Ravager Egg", "color": (80, 80, 80), "mineable": False, "solid": False, "spawn_egg": "Ravager"},
     419: {"name": "Vex Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Vex"},
     420: {"name": "Ominous Banner", "color": (60, 60, 60), "mineable": False, "solid": False},  # Dropped by patrol captains
+    421: {"name": "Mooshroom Egg", "color": (180, 30, 30), "mineable": False, "solid": False, "spawn_egg": "Mooshroom"},  # Red mooshroom spawn egg
     
     # Nether Blocks (450-500)
     450: {"name": "Netherrack", "color": (120, 40, 40), "mineable": True, "min_tool_level": 0, "solid": True},
@@ -18261,6 +18263,8 @@ def handle_interaction(player, mobs, event, camera_x, camera_y, MOBS):
                 mob = Goat(spawn_x, spawn_y, is_baby=spawn_baby)
             elif mob_type == "Cow":
                 mob = Cow(spawn_x, spawn_y, is_baby=spawn_baby)
+            elif mob_type == "Mooshroom":
+                mob = Mooshroom(spawn_x, spawn_y, is_baby=spawn_baby)
             elif mob_type == "Camel":
                 mob = Camel(spawn_x, spawn_y)
             elif mob_type == "Chicken":
