@@ -8184,6 +8184,11 @@ class Mob(pygame.sprite.Sprite):
         self.eye_offset_x = 0  # Eye movement offset
         self.eye_offset_y = 0  # Eye movement offset
         
+        # Fire system
+        self.on_fire = False       # Whether this mob is currently burning
+        self.fire_timer = 0        # Frames remaining while on fire
+        self.fire_damage_timer = 0 # Ticks between fire damage pulses
+
         # Jockey/Mount system
         self.rider = None  # Mob riding this mob
         self.mount = None  # Mob this mob is riding
@@ -8467,11 +8472,38 @@ class Mob(pygame.sprite.Sprite):
                 self.die(all_mobs)
                 return
 
+        # --- FIRE SYSTEM ---
         # Apply gravity (reduced in water for non-aquatic mobs)
         in_water = False
         if 0 <= center_y < len(world_map) and 0 <= center_x < len(world_map[0]):
             if world_map[center_y][center_x] in FLUID_BLOCKS:
                 in_water = True
+
+        # Check if mob's feet are touching a fire block
+        feet_row = int(self.rect.bottom // BLOCK_SIZE)
+        for check_col in range(int(self.rect.left // BLOCK_SIZE), int(self.rect.right // BLOCK_SIZE) + 1):
+            if 0 <= feet_row < len(world_map) and 0 <= check_col < len(world_map[0]):
+                if world_map[feet_row][check_col] == FIRE_ID:
+                    self.on_fire = True
+                    self.fire_timer = max(self.fire_timer, FPS * 5)  # 5 seconds burn
+                    break
+
+        # Water extinguishes fire
+        if in_water:
+            self.on_fire = False
+            self.fire_timer = 0
+            self.fire_damage_timer = 0
+
+        # Process active fire burn
+        if self.on_fire and self.fire_timer > 0:
+            self.fire_timer -= 1
+            self.fire_damage_timer += 1
+            if self.fire_damage_timer >= FPS // 2:  # 1 damage every 0.5 seconds
+                self.fire_damage_timer = 0
+                self.take_damage(1, all_mobs)
+            if self.fire_timer <= 0:
+                self.on_fire = False
+                self.fire_damage_timer = 0
         
         if in_water and not self.is_aquatic:
             # Non-aquatic mobs sink slowly in water
@@ -12493,7 +12525,24 @@ class Zombie(Mob):
     def update(self, WORLD_MAP, player, MOBS): # <-- CORRECTED SIGNATURE
         if self.attack_timer > 0:
             self.attack_timer -= 1
-        
+
+        # --- DAYLIGHT BURNING ---
+        # Zombies (not husks) burn in daylight when exposed to sky
+        if not self.is_husk and (TIME_PHASE == DAY_PHASE or TIME_PHASE == DAWN_PHASE):
+            center_x = int(self.rect.centerx // BLOCK_SIZE)
+            head_y = int(self.rect.top // BLOCK_SIZE)
+            # Check sky exposure: no solid block above head
+            exposed_to_sky = True
+            for check_row in range(0, head_y):
+                if 0 <= check_row < GRID_HEIGHT and 0 <= center_x < GRID_WIDTH:
+                    blk = WORLD_MAP[check_row][center_x]
+                    if blk != 0 and BLOCK_TYPES.get(blk, {}).get('solid', False):
+                        exposed_to_sky = False
+                        break
+            if exposed_to_sky:
+                self.on_fire = True
+                self.fire_timer = max(self.fire_timer, FPS * 3)
+
         # Check if zombie is underwater (for drowned conversion)
         center_x = int(self.rect.centerx // BLOCK_SIZE)
         head_y = int((self.rect.top + 5) // BLOCK_SIZE)  # Check head position
@@ -14529,12 +14578,28 @@ class Skeleton(Mob):
     def update(self, WORLD_MAP, player, MOBS, arrows_group): # <--- ADDED arrows_group
         # Update animations (AKRAM DLC)
         self.update_animations()
-        
+
+        # --- DAYLIGHT BURNING ---
+        # Skeletons (not strays) burn in daylight when exposed to sky
+        if not self.is_stray and (TIME_PHASE == DAY_PHASE or TIME_PHASE == DAWN_PHASE):
+            center_x = int(self.rect.centerx // BLOCK_SIZE)
+            head_y = int(self.rect.top // BLOCK_SIZE)
+            exposed_to_sky = True
+            for check_row in range(0, head_y):
+                if 0 <= check_row < GRID_HEIGHT and 0 <= center_x < GRID_WIDTH:
+                    blk = WORLD_MAP[check_row][center_x]
+                    if blk != 0 and BLOCK_TYPES.get(blk, {}).get('solid', False):
+                        exposed_to_sky = False
+                        break
+            if exposed_to_sky:
+                self.on_fire = True
+                self.fire_timer = max(self.fire_timer, FPS * 3)
+
         if self.attack_timer > 0:
             self.attack_timer -= 1
-            
+
         self.ai_move(player, arrows_group)
-        
+
         super().update(WORLD_MAP, player, MOBS)
 
     def die(self, all_mobs=None):
