@@ -1002,71 +1002,71 @@ BLOCK_TYPES = {
     350: {"name": "Enchanted Golden Apple", "color": (255, 100, 255), "mineable": False, "solid": False, "food": True, "heal_amount": 20},
     
     # Spawn Eggs (360-404) - Fixed numbering to avoid conflicts
-    360: {"name": "Zombie Egg", "color": (60, 120, 60), "mineable": False, "solid": False, "spawn_egg": "Zombie"},
-    361: {"name": "Creeper Egg", "color": (50, 200, 50), "mineable": False, "solid": False, "spawn_egg": "Creeper"},
-    362: {"name": "Skeleton Egg", "color": (200, 200, 200), "mineable": False, "solid": False, "spawn_egg": "Skeleton"},
-    363: {"name": "Spider Egg", "color": (80, 40, 40), "mineable": False, "solid": False, "spawn_egg": "Spider"},
-    364: {"name": "Cave Spider Egg", "color": (40, 80, 120), "mineable": False, "solid": False, "spawn_egg": "CaveSpider"},
-    365: {"name": "Drowned Egg", "color": (60, 140, 140), "mineable": False, "solid": False, "spawn_egg": "Drowned"},
-    366: {"name": "Zombie Camel Egg", "color": (160, 120, 70), "mineable": False, "solid": False, "spawn_egg": "ZombieCamel"},
-    367: {"name": "Husk Egg", "color": (140, 110, 80), "mineable": False, "solid": False, "spawn_egg": "Husk"},
-    368: {"name": "Stray Egg", "color": (180, 220, 255), "mineable": False, "solid": False, "spawn_egg": "Stray"},
-    369: {"name": "Parched Egg", "color": (200, 180, 140), "mineable": False, "solid": False, "spawn_egg": "Parched"},
-    370: {"name": "Slime Egg", "color": (100, 200, 100), "mineable": False, "solid": False, "spawn_egg": "Slime"},
-    371: {"name": "Witch Egg", "color": (80, 40, 120), "mineable": False, "solid": False, "spawn_egg": "Witch"},
-    372: {"name": "Sheep Egg", "color": (240, 240, 240), "mineable": False, "solid": False, "spawn_egg": "Sheep"},
-    373: {"name": "Goat Egg", "color": (220, 220, 220), "mineable": False, "solid": False, "spawn_egg": "Goat"},
-    374: {"name": "Cow Egg", "color": (100, 70, 50), "mineable": False, "solid": False, "spawn_egg": "Cow"},
-    375: {"name": "Camel Egg", "color": (200, 160, 100), "mineable": False, "solid": False, "spawn_egg": "Camel"},
-    376: {"name": "Chicken Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Chicken"},
-    377: {"name": "Villager Egg", "color": (100, 80, 60), "mineable": False, "solid": False, "spawn_egg": "Villager"},
-    378: {"name": "Bird Egg", "color": (100, 150, 200), "mineable": False, "solid": False, "spawn_egg": "Bird"},
-    379: {"name": "Pig Egg", "color": (255, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Pig"},
-    380: {"name": "Cod Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Cod"},
-    381: {"name": "Salmon Egg", "color": (255, 120, 100), "mineable": False, "solid": False, "spawn_egg": "Salmon"},
-    382: {"name": "Tropical Fish Egg", "color": (255, 200, 50), "mineable": False, "solid": False, "spawn_egg": "TropicalFish"},
-    383: {"name": "Dolphin Egg", "color": (100, 150, 200), "mineable": False, "solid": False, "spawn_egg": "Dolphin"},
-    384: {"name": "Shark Egg", "color": (80, 100, 120), "mineable": False, "solid": False, "spawn_egg": "Shark"},
-    385: {"name": "Whale Egg", "color": (50, 80, 100), "mineable": False, "solid": False, "spawn_egg": "Whale"},
-    386: {"name": "Nautilus Egg", "color": (200, 180, 255), "mineable": False, "solid": False, "spawn_egg": "Nautilus"},
-    387: {"name": "Zombie Nautilus Egg", "color": (120, 140, 160), "mineable": False, "solid": False, "spawn_egg": "ZombieNautilus"},
-    388: {"name": "Rabbit Egg", "color": (180, 150, 120), "mineable": False, "solid": False, "spawn_egg": "Rabbit"},
-    389: {"name": "Horse Egg", "color": (140, 100, 70), "mineable": False, "solid": False, "spawn_egg": "Horse"},
-    390: {"name": "Zombie Horse Egg", "color": (80, 120, 80), "mineable": False, "solid": False, "spawn_egg": "ZombieHorse"},
-    391: {"name": "Fox Egg", "color": (255, 140, 50), "mineable": False, "solid": False, "spawn_egg": "Fox"},
-    392: {"name": "Wolf Egg", "color": (150, 150, 150), "mineable": False, "solid": False, "spawn_egg": "Wolf"},
-    393: {"name": "Frog Egg", "color": (100, 200, 100), "mineable": False, "solid": False, "spawn_egg": "Frog"},
-    394: {"name": "Turtle Egg", "color": (100, 150, 100), "mineable": False, "solid": False, "spawn_egg": "Turtle"},
-    395: {"name": "Monkey Egg", "color": (160, 120, 80), "mineable": False, "solid": False, "spawn_egg": "Monkey"},
-    396: {"name": "Narwhal Egg", "color": (180, 200, 220), "mineable": False, "solid": False, "spawn_egg": "Narwhal"},
-    397: {"name": "Deer Egg", "color": (140, 100, 70), "mineable": False, "solid": False, "spawn_egg": "Deer"},
-    398: {"name": "Panda Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Panda"},
-    399: {"name": "Bear Egg", "color": (100, 70, 50), "mineable": False, "solid": False, "spawn_egg": "Bear"},
-    400: {"name": "Lion Egg", "color": (200, 160, 80), "mineable": False, "solid": False, "spawn_egg": "Lion"},
-    401: {"name": "Rhino Egg", "color": (120, 120, 120), "mineable": False, "solid": False, "spawn_egg": "Rhino"},
-    402: {"name": "Ostrich Egg", "color": (240, 230, 220), "mineable": False, "solid": False, "spawn_egg": "Ostrich"},
-    403: {"name": "Elephant Egg", "color": (140, 140, 140), "mineable": False, "solid": False, "spawn_egg": "Elephant"},
-    404: {"name": "Iron Golem Egg", "color": (180, 180, 180), "mineable": False, "solid": False, "spawn_egg": "IronGolem"},
-    405: {"name": "Enderman Egg", "color": (20, 20, 20), "mineable": False, "solid": False, "spawn_egg": "Enderman"},
-    406: {"name": "Phoenix Egg", "color": (255, 140, 0), "mineable": False, "solid": False, "spawn_egg": "Phoenix"},
-    407: {"name": "Soul Phoenix Egg", "color": (0, 200, 255), "mineable": False, "solid": False, "spawn_egg": "BluePhoenix"},
+    360: {"name": "Zombie Spawn Egg", "color": (60, 120, 60), "mineable": False, "solid": False, "spawn_egg": "Zombie"},
+    361: {"name": "Creeper Spawn Egg", "color": (50, 200, 50), "mineable": False, "solid": False, "spawn_egg": "Creeper"},
+    362: {"name": "Skeleton Spawn Egg", "color": (200, 200, 200), "mineable": False, "solid": False, "spawn_egg": "Skeleton"},
+    363: {"name": "Spider Spawn Egg", "color": (80, 40, 40), "mineable": False, "solid": False, "spawn_egg": "Spider"},
+    364: {"name": "Cave Spider Spawn Egg", "color": (40, 80, 120), "mineable": False, "solid": False, "spawn_egg": "CaveSpider"},
+    365: {"name": "Drowned Spawn Egg", "color": (60, 140, 140), "mineable": False, "solid": False, "spawn_egg": "Drowned"},
+    366: {"name": "Zombie Camel Spawn Egg", "color": (160, 120, 70), "mineable": False, "solid": False, "spawn_egg": "ZombieCamel"},
+    367: {"name": "Husk Spawn Egg", "color": (140, 110, 80), "mineable": False, "solid": False, "spawn_egg": "Husk"},
+    368: {"name": "Stray Spawn Egg", "color": (180, 220, 255), "mineable": False, "solid": False, "spawn_egg": "Stray"},
+    369: {"name": "Parched Spawn Egg", "color": (200, 180, 140), "mineable": False, "solid": False, "spawn_egg": "Parched"},
+    370: {"name": "Slime Spawn Egg", "color": (100, 200, 100), "mineable": False, "solid": False, "spawn_egg": "Slime"},
+    371: {"name": "Witch Spawn Egg", "color": (80, 40, 120), "mineable": False, "solid": False, "spawn_egg": "Witch"},
+    372: {"name": "Sheep Spawn Egg", "color": (240, 240, 240), "mineable": False, "solid": False, "spawn_egg": "Sheep"},
+    373: {"name": "Goat Spawn Egg", "color": (220, 220, 220), "mineable": False, "solid": False, "spawn_egg": "Goat"},
+    374: {"name": "Cow Spawn Egg", "color": (100, 70, 50), "mineable": False, "solid": False, "spawn_egg": "Cow"},
+    375: {"name": "Camel Spawn Egg", "color": (200, 160, 100), "mineable": False, "solid": False, "spawn_egg": "Camel"},
+    376: {"name": "Chicken Spawn Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Chicken"},
+    377: {"name": "Villager Spawn Egg", "color": (100, 80, 60), "mineable": False, "solid": False, "spawn_egg": "Villager"},
+    378: {"name": "Bird Spawn Egg", "color": (100, 150, 200), "mineable": False, "solid": False, "spawn_egg": "Bird"},
+    379: {"name": "Pig Spawn Egg", "color": (255, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Pig"},
+    380: {"name": "Cod Spawn Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Cod"},
+    381: {"name": "Salmon Spawn Egg", "color": (255, 120, 100), "mineable": False, "solid": False, "spawn_egg": "Salmon"},
+    382: {"name": "Tropical Fish Spawn Egg", "color": (255, 200, 50), "mineable": False, "solid": False, "spawn_egg": "TropicalFish"},
+    383: {"name": "Dolphin Spawn Egg", "color": (100, 150, 200), "mineable": False, "solid": False, "spawn_egg": "Dolphin"},
+    384: {"name": "Shark Spawn Egg", "color": (80, 100, 120), "mineable": False, "solid": False, "spawn_egg": "Shark"},
+    385: {"name": "Whale Spawn Egg", "color": (50, 80, 100), "mineable": False, "solid": False, "spawn_egg": "Whale"},
+    386: {"name": "Nautilus Spawn Egg", "color": (200, 180, 255), "mineable": False, "solid": False, "spawn_egg": "Nautilus"},
+    387: {"name": "Zombie Nautilus Spawn Egg", "color": (120, 140, 160), "mineable": False, "solid": False, "spawn_egg": "ZombieNautilus"},
+    388: {"name": "Rabbit Spawn Egg", "color": (180, 150, 120), "mineable": False, "solid": False, "spawn_egg": "Rabbit"},
+    389: {"name": "Horse Spawn Egg", "color": (140, 100, 70), "mineable": False, "solid": False, "spawn_egg": "Horse"},
+    390: {"name": "Zombie Horse Spawn Egg", "color": (80, 120, 80), "mineable": False, "solid": False, "spawn_egg": "ZombieHorse"},
+    391: {"name": "Fox Spawn Egg", "color": (255, 140, 50), "mineable": False, "solid": False, "spawn_egg": "Fox"},
+    392: {"name": "Wolf Spawn Egg", "color": (150, 150, 150), "mineable": False, "solid": False, "spawn_egg": "Wolf"},
+    393: {"name": "Frog Spawn Egg", "color": (100, 200, 100), "mineable": False, "solid": False, "spawn_egg": "Frog"},
+    394: {"name": "Turtle Spawn Egg", "color": (100, 150, 100), "mineable": False, "solid": False, "spawn_egg": "Turtle"},
+    395: {"name": "Monkey Spawn Egg", "color": (160, 120, 80), "mineable": False, "solid": False, "spawn_egg": "Monkey"},
+    396: {"name": "Narwhal Spawn Egg", "color": (180, 200, 220), "mineable": False, "solid": False, "spawn_egg": "Narwhal"},
+    397: {"name": "Deer Spawn Egg", "color": (140, 100, 70), "mineable": False, "solid": False, "spawn_egg": "Deer"},
+    398: {"name": "Panda Spawn Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Panda"},
+    399: {"name": "Bear Spawn Egg", "color": (100, 70, 50), "mineable": False, "solid": False, "spawn_egg": "Bear"},
+    400: {"name": "Lion Spawn Egg", "color": (200, 160, 80), "mineable": False, "solid": False, "spawn_egg": "Lion"},
+    401: {"name": "Rhino Spawn Egg", "color": (120, 120, 120), "mineable": False, "solid": False, "spawn_egg": "Rhino"},
+    402: {"name": "Ostrich Spawn Egg", "color": (240, 230, 220), "mineable": False, "solid": False, "spawn_egg": "Ostrich"},
+    403: {"name": "Elephant Spawn Egg", "color": (140, 140, 140), "mineable": False, "solid": False, "spawn_egg": "Elephant"},
+    404: {"name": "Iron Golem Spawn Egg", "color": (180, 180, 180), "mineable": False, "solid": False, "spawn_egg": "IronGolem"},
+    405: {"name": "Enderman Spawn Egg", "color": (20, 20, 20), "mineable": False, "solid": False, "spawn_egg": "Enderman"},
+    406: {"name": "Phoenix Spawn Egg", "color": (255, 140, 0), "mineable": False, "solid": False, "spawn_egg": "Phoenix"},
+    407: {"name": "Soul Phoenix Spawn Egg", "color": (0, 200, 255), "mineable": False, "solid": False, "spawn_egg": "BluePhoenix"},
     408: {"name": "Ghost Pepper", "color": (255, 255, 255), "mineable": False, "solid": False},
-    409: {"name": "Pillager Egg", "color": (80, 80, 80), "mineable": False, "solid": False, "spawn_egg": "Pillager"},
-    410: {"name": "Zombie Piglin Egg", "color": (180, 140, 120), "mineable": False, "solid": False, "spawn_egg": "ZombiePiglin"},
-    411: {"name": "Piglin Egg", "color": (255, 200, 170), "mineable": False, "solid": False, "spawn_egg": "Piglin"},
-    412: {"name": "Blaze Egg", "color": (255, 200, 0), "mineable": False, "solid": False, "spawn_egg": "Blaze"},
-    413: {"name": "Ghast Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Ghast"},
-    414: {"name": "Magma Cube Egg", "color": (180, 60, 20), "mineable": False, "solid": False, "spawn_egg": "MagmaCube"},
-    415: {"name": "Strider Egg", "color": (180, 40, 40), "mineable": False, "solid": False, "spawn_egg": "Strider"},
-    416: {"name": "Vindicator Egg", "color": (70, 90, 110), "mineable": False, "solid": False, "spawn_egg": "Vindicator"},
-    417: {"name": "Evoker Egg", "color": (40, 40, 50), "mineable": False, "solid": False, "spawn_egg": "Evoker"},
-    418: {"name": "Ravager Egg", "color": (80, 80, 80), "mineable": False, "solid": False, "spawn_egg": "Ravager"},
-    419: {"name": "Vex Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Vex"},
+    409: {"name": "Pillager Spawn Egg", "color": (80, 80, 80), "mineable": False, "solid": False, "spawn_egg": "Pillager"},
+    410: {"name": "Zombie Piglin Spawn Egg", "color": (180, 140, 120), "mineable": False, "solid": False, "spawn_egg": "ZombiePiglin"},
+    411: {"name": "Piglin Spawn Egg", "color": (255, 200, 170), "mineable": False, "solid": False, "spawn_egg": "Piglin"},
+    412: {"name": "Blaze Spawn Egg", "color": (255, 200, 0), "mineable": False, "solid": False, "spawn_egg": "Blaze"},
+    413: {"name": "Ghast Spawn Egg", "color": (255, 255, 255), "mineable": False, "solid": False, "spawn_egg": "Ghast"},
+    414: {"name": "Magma Cube Spawn Egg", "color": (180, 60, 20), "mineable": False, "solid": False, "spawn_egg": "MagmaCube"},
+    415: {"name": "Strider Spawn Egg", "color": (180, 40, 40), "mineable": False, "solid": False, "spawn_egg": "Strider"},
+    416: {"name": "Vindicator Spawn Egg", "color": (70, 90, 110), "mineable": False, "solid": False, "spawn_egg": "Vindicator"},
+    417: {"name": "Evoker Spawn Egg", "color": (40, 40, 50), "mineable": False, "solid": False, "spawn_egg": "Evoker"},
+    418: {"name": "Ravager Spawn Egg", "color": (80, 80, 80), "mineable": False, "solid": False, "spawn_egg": "Ravager"},
+    419: {"name": "Vex Spawn Egg", "color": (150, 150, 180), "mineable": False, "solid": False, "spawn_egg": "Vex"},
     420: {"name": "Ominous Banner", "color": (60, 60, 60), "mineable": False, "solid": False},  # Dropped by patrol captains
-    421: {"name": "Mooshroom Egg", "color": (180, 30, 30), "mineable": False, "solid": False, "spawn_egg": "Mooshroom"},  # Red mooshroom spawn egg
-    422: {"name": "Cat Egg", "color": (255, 165, 80), "mineable": False, "solid": False, "spawn_egg": "Cat"},
-    423: {"name": "Sniffer Egg (item)", "color": (0, 200, 180), "mineable": False, "solid": False, "spawn_egg": "Sniffer"},
-    424: {"name": "Infected Sniffer Egg", "color": (120, 60, 150), "mineable": False, "solid": False, "spawn_egg": "InfectedSniffer"},
+    421: {"name": "Mooshroom Spawn Egg", "color": (180, 30, 30), "mineable": False, "solid": False, "spawn_egg": "Mooshroom"},  # Red mooshroom spawn egg
+    422: {"name": "Cat Spawn Egg", "color": (255, 165, 80), "mineable": False, "solid": False, "spawn_egg": "Cat"},
+    423: {"name": "Sniffer Egg", "color": (0, 200, 180), "mineable": False, "solid": False, "spawn_egg": "Sniffer"},
+    424: {"name": "Infected Sniffer Spawn Egg", "color": (120, 60, 150), "mineable": False, "solid": False, "spawn_egg": "InfectedSniffer"},
     
     # Nether Blocks (450-500)
     450: {"name": "Netherrack", "color": (120, 40, 40), "mineable": True, "min_tool_level": 0, "solid": True},
@@ -10004,6 +10004,8 @@ class InfectedSniffer(Sniffer):
     """Rare 1% variant sniffer. Slow, purple, one-shots unarmored players."""
     def __init__(self, x, y):
         super().__init__(x, y)
+        self.is_boss = True  # Show boss bar
+        self.name = "Infected Sniffer"
         self.health = 30
         self.max_health = 30
         self.speed = 0.4  # Very slow
@@ -26015,6 +26017,28 @@ while running:
         
             # Draw HUD
             draw_hud(player)
+
+            # --- Boss Bar (Infected Sniffer) ---
+            boss_mobs = [m for m in MOBS if getattr(m, 'is_boss', False)]
+            if boss_mobs:
+                boss = boss_mobs[0]  # Show closest/first boss
+                bar_w = 400
+                bar_h = 20
+                bar_x = (SCREEN_WIDTH - bar_w) // 2
+                bar_y = 18
+                boss_name = getattr(boss, 'name', 'Boss')
+                hp_ratio = max(0, boss.health / max(1, boss.max_health))
+                # Background
+                pygame.draw.rect(screen, (30, 0, 0), (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4))
+                pygame.draw.rect(screen, (80, 0, 80), (bar_x, bar_y, bar_w, bar_h))
+                # Health fill
+                fill_color = (160, 0, 200) if hp_ratio > 0.5 else (220, 0, 80) if hp_ratio > 0.25 else (255, 50, 0)
+                pygame.draw.rect(screen, fill_color, (bar_x, bar_y, int(bar_w * hp_ratio), bar_h))
+                # Border
+                pygame.draw.rect(screen, (200, 150, 255), (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), 2)
+                # Name text
+                boss_label = FONT_SMALL.render(boss_name, True, (255, 220, 255))
+                screen.blit(boss_label, (bar_x + (bar_w - boss_label.get_width()) // 2, bar_y - boss_label.get_height() - 2))
         
             # Draw chat system
             draw_chat(screen)
